@@ -1,0 +1,31 @@
+import { describeTimeType } from './describeTime';
+import { offsetDateType } from './offsetDate';
+import { readAnalogType } from './readAnalog';
+import { readCalendarType } from './readCalendar';
+import { registerGenerator } from './registry';
+import type { QuestionType } from './types';
+
+/**
+ * The generators shipped in M1b, in the order they are registered.
+ *
+ * Importing this module registers them. Always reach the registry through this
+ * barrel (`import { generateQuestion } from '../engine/questions'`) rather than
+ * through `./registry`, or the registry will be empty.
+ */
+export const BUILT_IN_QUESTION_TYPES: readonly QuestionType[] = [
+  readAnalogType,
+  describeTimeType,
+  readCalendarType,
+  offsetDateType,
+];
+
+for (const type of BUILT_IN_QUESTION_TYPES) {
+  registerGenerator(type);
+}
+
+export * from './types';
+export * from './registry';
+export * from './readAnalog';
+export * from './describeTime';
+export * from './readCalendar';
+export * from './offsetDate';
