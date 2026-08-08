@@ -30,6 +30,18 @@ describe('randomDate', () => {
     const end = new Date(2026, 5, 1);
     expect(() => randomDate(mulberry32(1), start, end)).toThrow();
   });
+
+  it('can return the last day of a range spanning a DST transition', () => {
+    // 2026-03-08 is the US spring-forward Sunday; range spans all of March
+    const start = new Date(2026, 2, 1);
+    const end = new Date(2026, 2, 31);
+    let sawLastDay = false;
+    for (let seed = 1; seed <= 500 && !sawLastDay; seed++) {
+      const d = randomDate(mulberry32(seed), start, end);
+      if (d.getTime() === end.getTime()) sawLastDay = true;
+    }
+    expect(sawLastDay).toBe(true);
+  });
 });
 
 describe('formatDateLong', () => {

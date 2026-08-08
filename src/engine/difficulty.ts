@@ -5,26 +5,27 @@ export type DateSpan = 'withinMonth' | 'acrossMonths' | 'acrossYears';
 
 export interface DifficultyProfile {
   level: number;
-  timePrecisionWeights: Record<TimePrecision, number>;
+  timePrecisionWeights: Readonly<Record<TimePrecision, number>>;
   timerMs: number;
-  answerModeWeights: Record<AnswerMode, number>;
+  answerModeWeights: Readonly<Record<AnswerMode, number>>;
   dateSpan: DateSpan;
   hour24: boolean;
 }
 
 interface DifficultyRow {
-  timePrecisionWeights: Record<TimePrecision, number>;
+  timePrecisionWeights: Readonly<Record<TimePrecision, number>>;
   timerMs: number;
-  answerModeWeights: Record<AnswerMode, number>;
+  answerModeWeights: Readonly<Record<AnswerMode, number>>;
   dateSpan: DateSpan;
   hour24: boolean;
 }
 
 // One row per difficulty level 1-10. Values are hand-tuned to match the
-// spec's qualitative bands exactly (see this plan's Global Constraints),
-// not derived from a formula, so each row can be adjusted independently
-// during playtesting without touching a curve.
-const TABLE: DifficultyRow[] = [
+// spec's qualitative bands exactly (see
+// docs/superpowers/specs/2026-08-08-summit-clock-design.md, "Difficulty
+// profile" section), not derived from a formula, so each row can be
+// adjusted independently during playtesting without touching a curve.
+const TABLE: readonly DifficultyRow[] = [
   {
     timePrecisionWeights: { hour: 10, half: 0, quarter: 0, five: 0, minute: 0, second: 0 },
     timerMs: 20000,

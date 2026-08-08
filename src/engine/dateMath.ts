@@ -1,11 +1,11 @@
-import { addDays, addMonths, addWeeks, format } from 'date-fns';
+import { addDays, addMonths, addWeeks, differenceInCalendarDays, format } from 'date-fns';
 import { randInt, type Rng } from './rng';
 
 export function randomDate(rng: Rng, start: Date, end: Date): Date {
   if (end.getTime() < start.getTime()) {
     throw new Error('randomDate: end must not be before start');
   }
-  const spanDays = Math.floor((end.getTime() - start.getTime()) / 86_400_000);
+  const spanDays = differenceInCalendarDays(end, start);
   const offset = randInt(rng, 0, spanDays);
   return addDays(start, offset);
 }
