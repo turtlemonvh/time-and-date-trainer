@@ -25,3 +25,9 @@ dist-ssr
 
 playwright-report/
 test-results/
+
+public/icons/
+public/favicon.svg
+public/favicon-32x32.png
+public/apple-touch-icon.png
+dev-dist/
