@@ -42,6 +42,9 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/setupTests.ts'],
     globals: false,
+    env: {
+      TZ: 'America/New_York',
+    },
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
