@@ -6,7 +6,9 @@ import tseslint from 'typescript-eslint';
 import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default tseslint.config(
-  { ignores: ['dist', 'dev-dist', 'public/icons'] },
+  {
+    ignores: ['dist', 'dev-dist', 'public/icons', 'coverage', 'playwright-report', 'test-results'],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
