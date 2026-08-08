@@ -7,6 +7,13 @@ updates:
     groups:
       dev-dependencies:
         dependency-type: 'development'
+    ignore:
+      # TS 7 is the tsgo (Go) rewrite; typescript-eslint has no support yet
+      # and it's not a quick fix (blocked on an ESLint async-parser
+      # limitation - see typescript-eslint/typescript-eslint#10940).
+      # Revisit once typescript-eslint ships real tsgo support.
+      - dependency-name: 'typescript'
+        versions: ['>=7.0.0']
 
   - package-ecosystem: 'github-actions'
     directory: '/'
