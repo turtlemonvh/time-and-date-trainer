@@ -30,15 +30,43 @@ export function formatTime12(t: TimeOfDay, opts: { seconds?: boolean } = {}): st
   const period = t.hour < 12 ? 'AM' : 'PM';
   const hour12 = t.hour % 12 === 0 ? 12 : t.hour % 12;
   const mm = String(t.minute).padStart(2, '0');
-  const base = opts.seconds ? `${hour12}:${mm}:${String(t.second).padStart(2, '0')}` : `${hour12}:${mm}`;
+  const base = opts.seconds
+    ? `${hour12}:${mm}:${String(t.second).padStart(2, '0')}`
+    : `${hour12}:${mm}`;
   return `${base} ${period}`;
 }
 
 const NUMBER_WORDS = [
-  'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
-  'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen',
-  'nineteen', 'twenty', 'twenty-one', 'twenty-two', 'twenty-three', 'twenty-four', 'twenty-five',
-  'twenty-six', 'twenty-seven', 'twenty-eight', 'twenty-nine',
+  'zero',
+  'one',
+  'two',
+  'three',
+  'four',
+  'five',
+  'six',
+  'seven',
+  'eight',
+  'nine',
+  'ten',
+  'eleven',
+  'twelve',
+  'thirteen',
+  'fourteen',
+  'fifteen',
+  'sixteen',
+  'seventeen',
+  'eighteen',
+  'nineteen',
+  'twenty',
+  'twenty-one',
+  'twenty-two',
+  'twenty-three',
+  'twenty-four',
+  'twenty-five',
+  'twenty-six',
+  'twenty-seven',
+  'twenty-eight',
+  'twenty-nine',
 ];
 
 function hourWord(hour24: number): string {

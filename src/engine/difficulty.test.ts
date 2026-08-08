@@ -17,7 +17,14 @@ describe('difficultyProfile', () => {
   it('D5 weights five-minute precision most heavily', () => {
     const p = difficultyProfile(5);
     const weights = p.timePrecisionWeights;
-    const maxWeight = Math.max(weights.hour, weights.half, weights.quarter, weights.five, weights.minute, weights.second);
+    const maxWeight = Math.max(
+      weights.hour,
+      weights.half,
+      weights.quarter,
+      weights.five,
+      weights.minute,
+      weights.second,
+    );
     expect(weights.five).toBe(maxWeight);
   });
 
@@ -43,7 +50,7 @@ describe('difficultyProfile', () => {
     }
   });
 
-  it('maps date span to the spec\'s three bands', () => {
+  it("maps date span to the spec's three bands", () => {
     for (const d of [1, 2, 3]) expect(difficultyProfile(d).dateSpan).toBe('withinMonth');
     for (const d of [4, 5, 6, 7]) expect(difficultyProfile(d).dateSpan).toBe('acrossMonths');
     for (const d of [8, 9, 10]) expect(difficultyProfile(d).dateSpan).toBe('acrossYears');

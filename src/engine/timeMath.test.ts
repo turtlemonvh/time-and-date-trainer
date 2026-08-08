@@ -84,14 +84,12 @@ describe('formatTime12', () => {
   });
 
   it('includes seconds when requested', () => {
-    expect(formatTime12({ hour: 15, minute: 45, second: 9 }, { seconds: true })).toBe(
-      '3:45:09 PM',
-    );
+    expect(formatTime12({ hour: 15, minute: 45, second: 9 }, { seconds: true })).toBe('3:45:09 PM');
   });
 });
 
 describe('describeTime', () => {
-  it('describes exact hours as o\'clock', () => {
+  it("describes exact hours as o'clock", () => {
     expect(describeTime({ hour: 3, minute: 0, second: 0 })).toBe("three o'clock");
     expect(describeTime({ hour: 0, minute: 0, second: 0 })).toBe("twelve o'clock");
     expect(describeTime({ hour: 12, minute: 0, second: 0 })).toBe("twelve o'clock");
