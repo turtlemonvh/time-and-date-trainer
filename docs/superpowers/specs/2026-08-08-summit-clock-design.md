@@ -19,18 +19,18 @@ it — hence full CI, typed pure-function content generators, and an extensible 
 
 ## Decisions locked in
 
-| Decision | Choice |
-|---|---|
+| Decision            | Choice                                                                                                                                                                         |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Difficulty vs peaks | **Independent.** Difficulty 1–10 chosen at start, applies to all peaks. Peaks are 10 themed levels differing by theme, height, and question-type emphasis — not by difficulty. |
-| Target learner | 7–9, comfortable reading analog to 5 minutes; weak on elapsed time and date math. Difficulties 3–6 are the tuning sweet spot. |
-| Stack | TypeScript + Vite + React, Vitest + Playwright, pnpm |
-| Conventions | US 12-hour AM/PM, month-first dates, week starts Sunday. 24-hour clock introduced at difficulty 8+. |
-| Art | Code-defined pixel sprites (char-grid + palette arrays) rendered to canvas. No binary art assets. |
-| Layout | Fully responsive: phone portrait, tablet/desktop landscape |
-| On falling | Retry the current peak from the bottom; already-summited peaks stay summited |
-| Wrong answer | ~1.5s beat: climber slips, correct answer highlights, next question |
-| Audio | Chiptune SFX synthesized via WebAudio (no audio files). Mute toggle. No background music. |
-| Repo | New **public** GitHub repo, Actions CI, auto-deploy to GitHub Pages, Claude Code GitHub Action |
+| Target learner      | 7–9, comfortable reading analog to 5 minutes; weak on elapsed time and date math. Difficulties 3–6 are the tuning sweet spot.                                                  |
+| Stack               | TypeScript + Vite + React, Vitest + Playwright, pnpm                                                                                                                           |
+| Conventions         | US 12-hour AM/PM, month-first dates, week starts Sunday. 24-hour clock introduced at difficulty 8+.                                                                            |
+| Art                 | Code-defined pixel sprites (char-grid + palette arrays) rendered to canvas. No binary art assets.                                                                              |
+| Layout              | Fully responsive: phone portrait, tablet/desktop landscape                                                                                                                     |
+| On falling          | Retry the current peak from the bottom; already-summited peaks stay summited                                                                                                   |
+| Wrong answer        | ~1.5s beat: climber slips, correct answer highlights, next question                                                                                                            |
+| Audio               | Chiptune SFX synthesized via WebAudio (no audio files). Mute toggle. No background music.                                                                                      |
+| Repo                | New **public** GitHub repo, Actions CI, auto-deploy to GitHub Pages, Claude Code GitHub Action                                                                                 |
 
 ---
 
@@ -67,7 +67,7 @@ verified by an automated simulation test, not by guesswork (see Testing).
 A single `difficultyProfile(D)` function returns everything the generators need:
 
 - **Time precision** — weighted distribution that slides across `hour → half → quarter → five →
-  minute → second`. D1 is ~100% hour boundaries; D5 is mostly 5-minute; D9–10 includes seconds.
+minute → second`. D1 is ~100% hour boundaries; D5 is mostly 5-minute; D9–10 includes seconds.
 - **Timer** — 20s at D1 down to 7s at D10 (per-question-type multiplier: interactive
   drag-the-hands questions get ~1.4x, multiple choice ~1.0x).
 - **Answer mode mix** — D1–3 heavily multiple choice; D4–7 mixes in interactive input; D8–10
@@ -83,18 +83,18 @@ Each peak supplies a **theme** (name, palette, silhouette, flavor text, badge), 
 **question-type emphasis** — not a difficulty. Emphasis is what keeps 10 levels from feeling
 identical at a fixed difficulty.
 
-| # | Peak | Emphasis |
-|---|---|---|
-| 1 | Basecamp Bluff | Reading analog clocks |
-| 2 | Sundial Spire | Time ↔ words ("quarter past") |
-| 3 | Calendar Ridge | Reading calendars, dates |
-| 4 | The Hourglass | Setting clock hands |
-| 5 | Weekday Wall | Days of week, nth-weekday |
-| 6 | Elapsed Escarpment | Elapsed time arithmetic |
-| 7 | Monthfall Pass | Date math across months |
-| 8 | The Meridian | AM/PM and 24-hour |
-| 9 | Leap Crag | Leap years, long spans |
-| 10 | Summit of Hours | Everything, mixed |
+| #   | Peak               | Emphasis                      |
+| --- | ------------------ | ----------------------------- |
+| 1   | Basecamp Bluff     | Reading analog clocks         |
+| 2   | Sundial Spire      | Time ↔ words ("quarter past") |
+| 3   | Calendar Ridge     | Reading calendars, dates      |
+| 4   | The Hourglass      | Setting clock hands           |
+| 5   | Weekday Wall       | Days of week, nth-weekday     |
+| 6   | Elapsed Escarpment | Elapsed time arithmetic       |
+| 7   | Monthfall Pass     | Date math across months       |
+| 8   | The Meridian       | AM/PM and 24-hour             |
+| 9   | Leap Crag          | Leap years, long spans        |
+| 10  | Summit of Hours    | Everything, mixed             |
 
 ---
 
@@ -135,7 +135,7 @@ src/
 ### The question interface (the key extension point)
 
 Every generator is a pure function `(rng, ctx: {difficulty, peak}) => Question`. A `Question`
-declares its prompt, the widget used to *display* it, the widget used to *answer* it, the correct
+declares its prompt, the widget used to _display_ it, the widget used to _answer_ it, the correct
 answer, and distractors. Validation is a pure function too. Adding a question type later means
 adding one file and one registry line — no UI changes.
 
@@ -143,13 +143,13 @@ adding one file and one registry line — no UI changes.
 type Question = {
   id: string;
   typeId: string;
-  prompt: string;                       // "What time is it?"
-  display: DisplaySpec;                 // { kind: 'analogClock', time } | { kind: 'calendar', month, highlight } | ...
-  answer: AnswerSpec;                   // { kind: 'choice', options, correctIndex }
-                                        // | { kind: 'setHands', target } | { kind: 'pickDate', correct }
-                                        // | { kind: 'number', correct, unit }
+  prompt: string; // "What time is it?"
+  display: DisplaySpec; // { kind: 'analogClock', time } | { kind: 'calendar', month, highlight } | ...
+  answer: AnswerSpec; // { kind: 'choice', options, correctIndex }
+  // | { kind: 'setHands', target } | { kind: 'pickDate', correct }
+  // | { kind: 'number', correct, unit }
   timeLimitMs: number;
-  explainCorrect: string;               // shown in the 1.5s reveal
+  explainCorrect: string; // shown in the 1.5s reveal
 };
 ```
 
@@ -208,32 +208,32 @@ Each is independently deliverable and testable.
 `ci.yml` (typecheck, lint, unit, e2e, build on PRs), `deploy.yml` (Pages on main), `claude.yml` +
 `claude-code-review.yml` (Claude Code GitHub Action). PWA manifest + service worker via
 `vite-plugin-pwa`, app icons generated from sprite code at build time.
-*Verify:* CI green on a PR; deployed URL installs to a phone home screen and loads offline.
+_Verify:_ CI green on a PR; deployed URL installs to a phone home screen and loads offline.
 
 **M1 — Engine core (headless).** `rng`, `timeMath`, `dateMath`, `difficulty`, `peaks`, `climb`, the
 question interfaces and registry, plus 4 generators (read-analog MC, describe-time MC, read-calendar
 MC, offset-date). Full unit tests.
-*Verify:* `pnpm test` green; `/debug/questions` lists generated questions for any difficulty.
+_Verify:_ `pnpm test` green; `/debug/questions` lists generated questions for any difficulty.
 
 **M2 — Pixel art foundation.** `PixelCanvas`, sprite format, 6 characters with idle/climb/slip/cheer
 frames, 10 mountain themes, fonts, color tokens.
-*Verify:* `/debug/sprites` gallery renders every sprite and palette at several scales.
+_Verify:_ `/debug/sprites` gallery renders every sprite and palette at several scales.
 
 **M3 — Widgets.** AnalogClock (read-only and draggable hands, snapping to the question's precision),
 DigitalClock, CalendarMonth with month flipping, DatePicker, ChoiceGrid, TimeEntry, NumberEntry.
-*Verify:* `/debug/widgets` playground; React Testing Library tests for drag, snap, and month nav.
+_Verify:_ `/debug/widgets` playground; React Testing Library tests for drag, snap, and month nav.
 
 **M4 — Playable vertical slice.** Intro story crawl, profile create/select, character pick, map
 screen, Peak 1 fully playable with live HUD, summit/fall screens, persistence.
-*Verify:* Play Peak 1 start to finish on a phone; progress survives a reload.
+_Verify:_ Play Peak 1 start to finish on a phone; progress survives a reload.
 
 **M5 — Full content.** Remaining question generators, all 10 peaks themed and wired, difficulty
 tuning pass driven by the pacing simulation.
-*Verify:* Play the range at difficulty 3 and difficulty 8; simulation confirms 2–5 min per peak.
+_Verify:_ Play the range at difficulty 3 and difficulty 8; simulation confirms 2–5 min per peak.
 
 **M6 — Polish.** Chiptune SFX, transitions and animation, accessibility (reduced motion, contrast,
 tap targets), Stats screen, Settings, badges, README/CONTRIBUTING/docs.
-*Verify:* Playwright smoke suite green; Lighthouse PWA + a11y pass.
+_Verify:_ Playwright smoke suite green; Lighthouse PWA + a11y pass.
 
 ---
 
@@ -264,6 +264,7 @@ Files created: `.github/workflows/{ci,deploy,claude,claude-code-review}.yml`, `d
 PR template, `CONTRIBUTING.md`, `LICENSE` (MIT), `.editorconfig`, tooling configs.
 
 Two steps need the repo owner (not automatable from here):
+
 1. `gh repo create` for the public repo, and enabling Pages (source: GitHub Actions).
 2. Adding the `ANTHROPIC_API_KEY` repository secret so the Claude action can run.
 

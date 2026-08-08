@@ -21,9 +21,11 @@
 ## Task 1: Scaffold the Vite + React + TypeScript project with pnpm
 
 **Files:**
+
 - Create: `package.json`, `vite.config.ts`, `tsconfig.json`, `tsconfig.app.json`, `tsconfig.node.json`, `index.html`, `src/main.tsx`, `src/App.tsx`, `src/index.css`, `.gitignore` (all from the Vite scaffold)
 
 **Interfaces:**
+
 - Produces: a `pnpm build` / `pnpm dev` toolchain every later task builds on. `App.tsx` default-exports a `App` React component — later tasks (5, 6) assume it renders an `<h1>` with the text `Summit Clock`.
 
 - [ ] **Step 1: Enable corepack so `pnpm` is available**
@@ -92,9 +94,11 @@ git commit -m "Scaffold Vite + React + TypeScript project"
 ## Task 2: Strict TypeScript config
 
 **Files:**
+
 - Modify: `tsconfig.app.json`, `tsconfig.node.json`
 
 **Interfaces:**
+
 - Consumes: the tsconfig files created in Task 1.
 - Produces: a `pnpm typecheck` script other tasks' CI step relies on.
 
@@ -139,10 +143,12 @@ git commit -m "Add typecheck script and include scripts/ in node tsconfig"
 ## Task 3: ESLint + Prettier
 
 **Files:**
+
 - Modify: `eslint.config.js` (already created by the Vite template)
 - Create: `.prettierrc.json`, `.prettierignore`
 
 **Interfaces:**
+
 - Produces: `pnpm lint`, `pnpm lint:fix`, `pnpm format`, `pnpm format:check` scripts.
 
 - [ ] **Step 1: Add Prettier and the ESLint/Prettier bridge**
@@ -247,10 +253,12 @@ git commit -m "Add Prettier and wire it into ESLint"
 ## Task 4: Vitest + Testing Library
 
 **Files:**
+
 - Modify: `vite.config.ts`
 - Create: `src/setupTests.ts`, `src/App.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `App` from `src/App.tsx` (Task 1).
 - Produces: `pnpm test` / `pnpm test:watch` scripts; establishes the `vitest/config` + `test` block pattern later engine unit tests (M1+) will use.
 
@@ -336,10 +344,12 @@ git commit -m "Add Vitest and Testing Library with a sample test"
 ## Task 5: Playwright smoke test
 
 **Files:**
+
 - Create: `playwright.config.ts`, `e2e/smoke.spec.ts`
 - Modify: `.gitignore`
 
 **Interfaces:**
+
 - Consumes: `pnpm build` (Task 1) and `pnpm preview` (built into Vite).
 - Produces: `pnpm test:e2e` script; the `e2e/` directory Task 6 appends more tests to.
 
@@ -426,10 +436,12 @@ git commit -m "Add Playwright with a smoke test"
 ## Task 6: PWA manifest, code-generated icons, and service worker
 
 **Files:**
+
 - Create: `app.config.ts`, `scripts/pixelIcon.ts`, `scripts/pixelIcon.test.ts`, `scripts/generate-icons.ts`
 - Modify: `vite.config.ts`, `package.json`, `index.html`, `src/main.tsx`, `.gitignore`, `e2e/smoke.spec.ts`
 
 **Interfaces:**
+
 - Produces: `app.config.ts` exports `APP_NAME`, `APP_SHORT_NAME`, `APP_DESCRIPTION`, `THEME_COLOR`, `BACKGROUND_COLOR` (all `string`) — the single source of truth both the manifest and the icon generator read from. `scripts/pixelIcon.ts` exports `buildMountainGlyphSvg(sizePx: number, opts?: { maskable?: boolean }): string`.
 
 - [ ] **Step 1: Add the PWA plugin and icon-generation dependencies**
@@ -744,9 +756,11 @@ git commit -m "Add PWA manifest, service worker, and code-generated icons"
 ## Task 7: Continuous integration workflow
 
 **Files:**
+
 - Create: `.github/workflows/ci.yml`
 
 **Interfaces:**
+
 - Consumes: every script from Tasks 1–6 (`typecheck`, `lint`, `format:check`, `test`, `build`, `test:e2e`).
 
 - [ ] **Step 1: Write the workflow**
@@ -812,10 +826,12 @@ git commit -m "Add CI workflow"
 ## Task 8: Deploy workflow and repo metadata
 
 **Files:**
+
 - Create: `.github/workflows/deploy.yml`, `.github/dependabot.yml`, `.github/pull_request_template.md`, `CONTRIBUTING.md`, `LICENSE`, `.editorconfig`
 - Modify: `README.md`
 
 **Interfaces:**
+
 - Consumes: `pnpm build` (Task 1/6). The deploy workflow sets `VITE_BASE_PATH` to match `vite.config.ts`'s `base` read added in Task 6, Step 9.
 
 - [ ] **Step 1: Write the deploy workflow**
@@ -880,18 +896,18 @@ Create `.github/dependabot.yml`:
 ```yaml
 version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
+      interval: 'weekly'
     groups:
       dev-dependencies:
-        dependency-type: "development"
+        dependency-type: 'development'
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "weekly"
+      interval: 'weekly'
 ```
 
 - [ ] **Step 3: Add a PR template**
@@ -911,7 +927,7 @@ Create `.github/pull_request_template.md`:
 
 Create `CONTRIBUTING.md`:
 
-```markdown
+````markdown
 # Contributing to Summit Clock
 
 ## Setup
@@ -932,6 +948,7 @@ pnpm test
 pnpm build
 pnpm test:e2e
 ```
+````
 
 `pnpm test:e2e` requires a build to exist first (`pnpm build`), since Playwright serves the built
 app via `vite preview`.
@@ -941,6 +958,7 @@ app via `vite preview`.
 See `docs/superpowers/specs/2026-08-08-summit-clock-design.md` for the full design — architecture,
 game mechanics, and the milestone roadmap. `docs/superpowers/plans/` holds the implementation plan
 for each milestone.
+
 ```
 
 - [ ] **Step 5: Add an MIT license**
@@ -948,6 +966,7 @@ for each milestone.
 Create `LICENSE`:
 
 ```
+
 MIT License
 
 Copyright (c) 2026 Timothy Van Heest
@@ -969,7 +988,8 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-```
+
+````
 
 - [ ] **Step 6: Add `.editorconfig`**
 
@@ -988,7 +1008,7 @@ insert_final_newline = true
 
 [*.md]
 trim_trailing_whitespace = false
-```
+````
 
 - [ ] **Step 7: Update the README**
 
@@ -1021,9 +1041,11 @@ git commit -m "Add deploy workflow, dependabot, license, and contributor docs"
 ## Task 9: Claude Code GitHub Action workflows
 
 **Files:**
+
 - Create: `.github/workflows/claude.yml`, `.github/workflows/claude-code-review.yml`
 
 **Interfaces:**
+
 - Consumes: an `ANTHROPIC_API_KEY` repository secret that Task 10 (owner-only) provisions. These workflows will fail closed (no-op / auth error) until that secret exists — that's expected and fine to commit ahead of the secret being added.
 
 - [ ] **Step 1: Write the `@claude` mention-triggered workflow**
@@ -1143,6 +1165,7 @@ Pages → Source → "GitHub Actions" in the browser instead.
 ```bash
 gh secret set ANTHROPIC_API_KEY --repo <owner>/time-and-date-trainer
 ```
+
 (Prompts for the value, or pipe it in — don't paste the key in plaintext into a command that ends
 up in shell history.)
 
