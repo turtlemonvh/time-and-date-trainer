@@ -46,7 +46,7 @@ export default defineConfig({
       '**/node_modules/**',
       '**/dist/**',
       '**/e2e/**',
-      '**/.{idea,git,cache,output,temp}/**',
+      '**/.{idea,git,cache,output,temp,claude}/**',
     ],
   },
 });
