@@ -115,7 +115,9 @@ describe('generateOffsetDate', () => {
   });
 
   it('is deterministic for a given seed', () => {
-    expect(generateOffsetDate(mulberry32(42), ctx)).toEqual(generateOffsetDate(mulberry32(42), ctx));
+    expect(generateOffsetDate(mulberry32(42), ctx)).toEqual(
+      generateOffsetDate(mulberry32(42), ctx),
+    );
   });
 
   it('exports a QuestionType wired to the generator', () => {

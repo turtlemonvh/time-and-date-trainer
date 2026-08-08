@@ -72,7 +72,9 @@ describe('generateReadAnalog', () => {
   });
 
   it('is deterministic for a given seed', () => {
-    expect(generateReadAnalog(mulberry32(42), ctx)).toEqual(generateReadAnalog(mulberry32(42), ctx));
+    expect(generateReadAnalog(mulberry32(42), ctx)).toEqual(
+      generateReadAnalog(mulberry32(42), ctx),
+    );
   });
 
   it('exports a QuestionType wired to the generator', () => {
