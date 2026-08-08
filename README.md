@@ -1,3 +1,12 @@
-# Time and date trainer
+# Summit Clock
 
-A simple localstorage-only browser-based app for working on telling time, working with calendars, etc.
+A local-storage-only, installable browser game that teaches telling time and working with
+calendars by climbing ten mountain peaks.
+
+## Setup
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## Design
+
+See [docs/superpowers/specs/2026-08-08-summit-clock-design.md](./docs/superpowers/specs/2026-08-08-summit-clock-design.md).
