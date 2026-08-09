@@ -33,8 +33,16 @@ function planOffset(rng: Rng, span: DateSpan): OffsetPlan {
       return { start, unit: 'day', amount: randInt(rng, 1, 14), forward: true };
     }
     case 'acrossMonths': {
-      const start = randomQuestionDate(rng, 'acrossMonths');
+      let start = randomQuestionDate(rng, 'acrossMonths');
       const unit = pick(rng, ['day', 'week', 'month'] as const);
+      // date-fns' addMonths clamps to month-end (e.g. "1 month after Aug 31"
+      // becomes "Sep 30"), which a child counting forward on a calendar
+      // couldn't derive. Days 1-28 exist in every month, so pinning the start
+      // date's day-of-month there for month-unit questions keeps the answer
+      // reachable by counting.
+      if (unit === 'month' && start.getDate() > 28) {
+        start = new Date(start.getFullYear(), start.getMonth(), 28);
+      }
       const amount =
         unit === 'day'
           ? randInt(rng, 8, 25)
@@ -44,8 +52,12 @@ function planOffset(rng: Rng, span: DateSpan): OffsetPlan {
       return { start, unit, amount, forward: rng() < 0.5 };
     }
     case 'acrossYears': {
-      const start = randomQuestionDate(rng, 'acrossYears');
+      let start = randomQuestionDate(rng, 'acrossYears');
       const unit = pick(rng, ['week', 'month'] as const);
+      // Same month-end clamping hazard as the acrossMonths branch above.
+      if (unit === 'month' && start.getDate() > 28) {
+        start = new Date(start.getFullYear(), start.getMonth(), 28);
+      }
       const amount = unit === 'week' ? randInt(rng, 10, 40) : randInt(rng, 5, 20);
       return { start, unit, amount, forward: rng() < 0.5 };
     }

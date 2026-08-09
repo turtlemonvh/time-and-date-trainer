@@ -69,15 +69,37 @@ describe('generateOffsetDate', () => {
     }
   });
 
-  it('computes the correct date independently of the generator', () => {
-    for (let seed = 0; seed < 100; seed++) {
-      const q = generateOffsetDate(mulberry32(seed), { ...ctx, difficulty: 2 });
-      const match = /^What date is (\d+) (day|days) after (.+)\?$/.exec(q.prompt);
-      if (!match) throw new Error(`unexpected prompt: ${q.prompt}`);
-      const amount = Number(match[1]);
-      const start = parseLongDate(match[3]);
-      const expected = new Date(start.getFullYear(), start.getMonth(), start.getDate() + amount);
-      expect(q.answer.options[q.answer.correctIndex]).toBe(formatDateLong(expected));
+  it('computes the correct date independently of the generator, across units and directions', () => {
+    const unitPattern = '(day|days|week|weeks|month|months)';
+    for (const difficulty of [2, 6, 9]) {
+      for (let seed = 0; seed < 200; seed++) {
+        const q = generateOffsetDate(mulberry32(seed), { ...ctx, difficulty });
+        const match = new RegExp(`^What date is (\\d+) ${unitPattern} (after|before) (.+)\\?$`).exec(
+          q.prompt,
+        );
+        if (!match) throw new Error(`unexpected prompt: ${q.prompt}`);
+        const amount = Number(match[1]);
+        const unitWord = match[2];
+        const direction = match[3] as 'after' | 'before';
+        const start = parseLongDate(match[4]);
+        const sign = direction === 'after' ? 1 : -1;
+        const unit: 'day' | 'week' | 'month' = unitWord.startsWith('week')
+          ? 'week'
+          : unitWord.startsWith('month')
+            ? 'month'
+            : 'day';
+        const expected =
+          unit === 'day'
+            ? new Date(start.getFullYear(), start.getMonth(), start.getDate() + sign * amount)
+            : unit === 'week'
+              ? new Date(
+                  start.getFullYear(),
+                  start.getMonth(),
+                  start.getDate() + sign * amount * 7,
+                )
+              : new Date(start.getFullYear(), start.getMonth() + sign * amount, start.getDate());
+        expect(q.answer.options[q.answer.correctIndex]).toBe(formatDateLong(expected));
+      }
     }
   });
 
