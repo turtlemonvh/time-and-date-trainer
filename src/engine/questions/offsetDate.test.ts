@@ -74,9 +74,9 @@ describe('generateOffsetDate', () => {
     for (const difficulty of [2, 6, 9]) {
       for (let seed = 0; seed < 200; seed++) {
         const q = generateOffsetDate(mulberry32(seed), { ...ctx, difficulty });
-        const match = new RegExp(`^What date is (\\d+) ${unitPattern} (after|before) (.+)\\?$`).exec(
-          q.prompt,
-        );
+        const match = new RegExp(
+          `^What date is (\\d+) ${unitPattern} (after|before) (.+)\\?$`,
+        ).exec(q.prompt);
         if (!match) throw new Error(`unexpected prompt: ${q.prompt}`);
         const amount = Number(match[1]);
         const unitWord = match[2];
@@ -92,11 +92,7 @@ describe('generateOffsetDate', () => {
           unit === 'day'
             ? new Date(start.getFullYear(), start.getMonth(), start.getDate() + sign * amount)
             : unit === 'week'
-              ? new Date(
-                  start.getFullYear(),
-                  start.getMonth(),
-                  start.getDate() + sign * amount * 7,
-                )
+              ? new Date(start.getFullYear(), start.getMonth(), start.getDate() + sign * amount * 7)
               : new Date(start.getFullYear(), start.getMonth() + sign * amount, start.getDate());
         expect(q.answer.options[q.answer.correctIndex]).toBe(formatDateLong(expected));
       }
