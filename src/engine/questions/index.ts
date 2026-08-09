@@ -24,7 +24,20 @@ for (const type of BUILT_IN_QUESTION_TYPES) {
 }
 
 export * from './types';
-export * from './registry';
+// Deliberately not `export * from './registry'`: that would also republish
+// `resetGenerators`, a test-only escape hatch that empties the registry.
+// Since ESM module evaluation runs once, any app code that imported it
+// through this barrel and called it would permanently empty the registry the
+// loop above just populated. Tests that need it import `resetGenerators`
+// directly from `./registry`.
+export {
+  registerGenerator,
+  getGenerator,
+  hasGenerator,
+  listGenerators,
+  selectGenerator,
+  generateQuestion,
+} from './registry';
 export * from './readAnalog';
 export * from './describeTime';
 export * from './readCalendar';
