@@ -1,44 +1,9 @@
 import { useEffect, useState } from 'react';
 import { PEAKS } from '../../engine/peaks';
-import type { DisplaySpec } from '../../engine/questions';
 import { generateQuestionBatch } from '../../engine/questions/preview';
+import { describeDisplay } from '../questionDisplay';
 
 const DIFFICULTIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-
-const MONTH_NAMES = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
-
-function pad(value: number): string {
-  return String(value).padStart(2, '0');
-}
-
-/** A one-line, human-readable gloss of a display spec. Text only — the real
- * widgets (AnalogClock, CalendarMonth) arrive in a later milestone. */
-function describeDisplay(display: DisplaySpec): string {
-  switch (display.kind) {
-    case 'analogClock': {
-      const { hour, minute, second } = display.time;
-      const seconds = display.showSeconds ? ', second hand shown' : '';
-      return `analog clock at ${pad(hour)}:${pad(minute)}:${pad(second)} (24h internal)${seconds}`;
-    }
-    case 'calendar':
-      return `calendar for ${MONTH_NAMES[display.monthIndex]} ${display.year}, day ${display.highlightDay} highlighted`;
-    case 'none':
-      return 'no visual — the prompt carries everything';
-  }
-}
 
 /**
  * Cycles through a generated batch of questions one at a time, so the

@@ -1,63 +1,19 @@
 import { useMemo, useState } from 'react';
-import { getPeak, PEAKS } from '../../engine/peaks';
-import { BUILT_IN_QUESTION_TYPES, type DisplaySpec, type Question } from '../../engine/questions';
-import { mulberry32 } from '../../engine/rng';
+import { PEAKS } from '../../engine/peaks';
+import { BUILT_IN_QUESTION_TYPES } from '../../engine/questions';
+import { generateQuestionBatch } from '../../engine/questions/preview';
+import { describeDisplay } from '../questionDisplay';
 
 const SAMPLES_PER_TYPE = 3;
 const DIFFICULTIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
-const MONTH_NAMES = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
-
-function pad(value: number): string {
-  return String(value).padStart(2, '0');
-}
-
-/**
- * A one-line, human-readable gloss of a display spec. Intentionally text only —
- * the real widgets (AnalogClock, CalendarMonth) arrive in M3; this page just
- * needs to make the data legible.
- */
-function describeDisplay(display: DisplaySpec): string {
-  switch (display.kind) {
-    case 'analogClock': {
-      const { hour, minute, second } = display.time;
-      const seconds = display.showSeconds ? ', second hand shown' : '';
-      return `analog clock at ${pad(hour)}:${pad(minute)}:${pad(second)} (24h internal)${seconds}`;
-    }
-    case 'calendar':
-      return `calendar for ${MONTH_NAMES[display.monthIndex]} ${display.year}, day ${display.highlightDay} highlighted`;
-    case 'none':
-      return 'no visual — the prompt carries everything';
-  }
-}
-
-function generateBatch(seed: number, difficulty: number, peakId: number): Question[] {
-  const rng = mulberry32(seed);
-  // Advance RNG based on peak to get different sequences per peak
-  for (let i = 0; i < peakId - 1; i++) {
-    rng();
-  }
-  const peak = getPeak(peakId);
-  const batch: Question[] = [];
-  for (const type of BUILT_IN_QUESTION_TYPES) {
-    for (let i = 0; i < SAMPLES_PER_TYPE; i++) {
-      batch.push(type.generate(rng, { difficulty, peak }));
-    }
-  }
-  return batch;
+// Well-mixed per-peak seed derivation so switching peaks yields a genuinely
+// different batch (not just a reseed correlated with adjacent peak ids, and
+// not a weak sequential RNG burn-in). See the note in the intro paragraph
+// below: no registered generator actually reads `ctx.peak` yet, so this only
+// changes *which questions* appear within each type — never *which types*.
+function peakSeed(seed: number, peakId: number): number {
+  return (seed ^ Math.imul(peakId, 0x9e3779b9)) >>> 0;
 }
 
 export default function DebugQuestionsPage({ initialSeed }: { initialSeed?: number }) {
@@ -66,7 +22,7 @@ export default function DebugQuestionsPage({ initialSeed }: { initialSeed?: numb
   const [seed, setSeed] = useState(() => initialSeed ?? Date.now());
 
   const questions = useMemo(
-    () => generateBatch(seed, difficulty, peakId),
+    () => generateQuestionBatch(peakSeed(seed, peakId), peakId, difficulty, SAMPLES_PER_TYPE),
     [seed, difficulty, peakId],
   );
 
@@ -75,7 +31,9 @@ export default function DebugQuestionsPage({ initialSeed }: { initialSeed?: numb
       <h1>Debug: questions</h1>
       <p>
         Dev-only. {SAMPLES_PER_TYPE} freshly generated questions from each of the{' '}
-        {BUILT_IN_QUESTION_TYPES.length} registered generators.
+        {BUILT_IN_QUESTION_TYPES.length} registered generators. Generators currently ignore{' '}
+        <code>ctx.peak</code>, so the Peak selector below reseeds the batch rather than changing
+        which question types appear.
       </p>
 
       <p>
