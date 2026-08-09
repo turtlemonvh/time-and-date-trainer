@@ -1,10 +1,7 @@
+import PreviewPlayer from './ui/preview/PreviewPlayer';
+
 function App() {
-  return (
-    <main>
-      <h1>Summit Clock</h1>
-      <p>Under construction.</p>
-    </main>
-  );
+  return <PreviewPlayer />;
 }
 
 export default App;

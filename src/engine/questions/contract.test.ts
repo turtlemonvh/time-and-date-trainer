@@ -1,0 +1,184 @@
+import { describe, expect, it } from 'vitest';
+import { difficultyProfile } from '../difficulty';
+import { PEAKS } from '../peaks';
+import { mulberry32 } from '../rng';
+import { describeTime } from '../timeMath';
+import {
+  BUILT_IN_QUESTION_TYPES,
+  DESCRIBE_TIME_TYPE_ID,
+  generateQuestion,
+  isCorrectChoice,
+  OFFSET_DATE_TYPE_ID,
+  READ_ANALOG_TYPE_ID,
+  READ_CALENDAR_TYPE_ID,
+  type AnswerSpec,
+  type DisplaySpec,
+  type Question,
+} from './index';
+import { formatClockFace, OPTION_COUNT, weekdayName } from './support';
+
+const SEED_COUNT = 200;
+const DIFFICULTIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+/** Distinct, reproducible seed per (difficulty, index) pair. */
+function seedFor(difficulty: number, index: number): number {
+  return difficulty * 104_729 + index * 7919 + 1;
+}
+
+function assertDisplayWellFormed(display: DisplaySpec): void {
+  switch (display.kind) {
+    case 'analogClock': {
+      const { hour, minute, second } = display.time;
+      for (const value of [hour, minute, second]) expect(Number.isInteger(value)).toBe(true);
+      expect(hour).toBeGreaterThanOrEqual(0);
+      expect(hour).toBeLessThanOrEqual(23);
+      expect(minute).toBeGreaterThanOrEqual(0);
+      expect(minute).toBeLessThanOrEqual(59);
+      expect(second).toBeGreaterThanOrEqual(0);
+      expect(second).toBeLessThanOrEqual(59);
+      if (!display.showSeconds) expect(second).toBe(0);
+      return;
+    }
+    case 'calendar': {
+      expect(Number.isInteger(display.year)).toBe(true);
+      expect(display.monthIndex).toBeGreaterThanOrEqual(0);
+      expect(display.monthIndex).toBeLessThanOrEqual(11);
+      // The highlighted day must exist in the highlighted month.
+      const date = new Date(display.year, display.monthIndex, display.highlightDay);
+      expect(date.getFullYear()).toBe(display.year);
+      expect(date.getMonth()).toBe(display.monthIndex);
+      expect(date.getDate()).toBe(display.highlightDay);
+      return;
+    }
+    case 'none':
+      return;
+  }
+}
+
+function assertAnswerGrades(answer: AnswerSpec): void {
+  expect(answer.kind).toBe('choice');
+  expect(answer.options).toHaveLength(OPTION_COUNT);
+  for (const option of answer.options) {
+    expect(typeof option).toBe('string');
+    expect(option.trim().length).toBeGreaterThan(0);
+  }
+  // No duplicate option text: a duplicate means a "wrong" answer that is
+  // word-for-word identical to the right one.
+  expect(new Set(answer.options).size).toBe(OPTION_COUNT);
+  expect(Number.isInteger(answer.correctIndex)).toBe(true);
+  expect(answer.correctIndex).toBeGreaterThanOrEqual(0);
+  expect(answer.correctIndex).toBeLessThan(OPTION_COUNT);
+
+  // The declared correct answer validates true...
+  expect(isCorrectChoice(answer, answer.correctIndex)).toBe(true);
+  // ...and every distractor validates false.
+  for (let i = 0; i < answer.options.length; i++) {
+    if (i === answer.correctIndex) continue;
+    expect(isCorrectChoice(answer, i)).toBe(false);
+    expect(answer.options[i]).not.toBe(answer.options[answer.correctIndex]);
+  }
+}
+
+/**
+ * Re-derives the right answer from the question's own display, independently of
+ * whatever the generator believed. This is the assertion that actually catches
+ * "the game marked her right answer wrong".
+ */
+function assertDeclaredAnswerMatchesDisplay(q: Question): void {
+  const declared = q.answer.options[q.answer.correctIndex];
+  switch (q.typeId) {
+    case READ_ANALOG_TYPE_ID: {
+      expect(q.display.kind).toBe('analogClock');
+      if (q.display.kind !== 'analogClock') return;
+      expect(declared).toBe(formatClockFace(q.display.time, q.display.showSeconds));
+      // A clock face cannot show AM/PM, so no option may claim it.
+      for (const option of q.answer.options) expect(option).not.toMatch(/AM|PM/);
+      return;
+    }
+    case DESCRIBE_TIME_TYPE_ID: {
+      expect(q.display.kind).toBe('analogClock');
+      if (q.display.kind !== 'analogClock') return;
+      expect(declared).toBe(describeTime(q.display.time));
+      return;
+    }
+    case READ_CALENDAR_TYPE_ID: {
+      expect(q.display.kind).toBe('calendar');
+      if (q.display.kind !== 'calendar') return;
+      const date = new Date(q.display.year, q.display.monthIndex, q.display.highlightDay);
+      expect(declared).toBe(weekdayName(date));
+      return;
+    }
+    case OFFSET_DATE_TYPE_ID: {
+      // No display to re-derive from; offsetDate.test.ts re-computes the
+      // arithmetic straight from the prompt instead.
+      expect(q.display.kind).toBe('none');
+      expect(declared).toMatch(/^[A-Z][a-z]+ \d{1,2}, \d{4}$/);
+      return;
+    }
+    default:
+      throw new Error(
+        `contract test has no cross-check for typeId "${q.typeId}" — add one when adding a type`,
+      );
+  }
+}
+
+function assertWellFormed(q: Question, typeId: string, difficulty: number): void {
+  expect(q.typeId).toBe(typeId);
+  expect(q.id.startsWith(`${typeId}-`)).toBe(true);
+  expect(q.id.length).toBeGreaterThan(typeId.length + 1);
+  expect(q.prompt.trim().length).toBeGreaterThan(0);
+  expect(q.explainCorrect.trim().length).toBeGreaterThan(0);
+
+  // The time limit is sane: a whole number of ms, exactly what the difficulty
+  // table declares for a multiple-choice question, and inside a band a child
+  // can actually work within.
+  expect(Number.isInteger(q.timeLimitMs)).toBe(true);
+  expect(q.timeLimitMs).toBe(difficultyProfile(difficulty).timerMs);
+  expect(q.timeLimitMs).toBeGreaterThanOrEqual(5_000);
+  expect(q.timeLimitMs).toBeLessThanOrEqual(30_000);
+
+  assertDisplayWellFormed(q.display);
+  assertAnswerGrades(q.answer);
+  assertDeclaredAnswerMatchesDisplay(q);
+}
+
+describe('generator contract', () => {
+  for (const type of BUILT_IN_QUESTION_TYPES) {
+    describe(type.typeId, () => {
+      for (const difficulty of DIFFICULTIES) {
+        it(`is well formed at difficulty ${difficulty} over ${SEED_COUNT} seeds`, () => {
+          for (let index = 0; index < SEED_COUNT; index++) {
+            const rng = mulberry32(seedFor(difficulty, index));
+            const peak = PEAKS[index % PEAKS.length];
+            assertWellFormed(type.generate(rng, { difficulty, peak }), type.typeId, difficulty);
+          }
+        });
+      }
+    });
+  }
+
+  describe('registry selection', () => {
+    for (const difficulty of DIFFICULTIES) {
+      it(`produces well-formed questions at difficulty ${difficulty}`, () => {
+        const rng = mulberry32(seedFor(difficulty, 999));
+        for (let index = 0; index < SEED_COUNT; index++) {
+          const peak = PEAKS[index % PEAKS.length];
+          const q = generateQuestion(rng, { difficulty, peak });
+          assertWellFormed(q, q.typeId, difficulty);
+        }
+      });
+    }
+  });
+
+  it('has a cross-check for every registered type', () => {
+    const covered = [
+      READ_ANALOG_TYPE_ID,
+      DESCRIBE_TIME_TYPE_ID,
+      READ_CALENDAR_TYPE_ID,
+      OFFSET_DATE_TYPE_ID,
+    ];
+    for (const type of BUILT_IN_QUESTION_TYPES) {
+      expect(covered).toContain(type.typeId);
+    }
+  });
+});
