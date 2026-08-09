@@ -85,4 +85,15 @@ describe('DebugQuestionsPage', () => {
     render(<DebugQuestionsPage initialSeed={4242} />);
     expect(screen.getByTestId('seed').textContent).toBe('4242');
   });
+
+  it('produces the same batch of question ids for the same seed, difficulty, and peak', () => {
+    const { unmount } = render(<DebugQuestionsPage initialSeed={4242} />);
+    const first = questionIds();
+    unmount();
+
+    render(<DebugQuestionsPage initialSeed={4242} />);
+    const second = questionIds();
+
+    expect(second).toEqual(first);
+  });
 });

@@ -2,7 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.tsx';
-import DebugRouter from './ui/debug/DebugRouter.tsx';
+import DebugRouter, { DEBUG_PREFIX } from './ui/debug/DebugRouter.tsx';
 import { registerSW } from 'virtual:pwa-register';
 
 registerSW({ immediate: true });
@@ -14,7 +14,14 @@ const root = createRoot(document.getElementById('root')!);
 // production bundles. The dev server's SPA history fallback is what serves
 // index.html for /debug/* in the first place; a production build has no such
 // fallback, which is a second reason these pages never ship.
-if (import.meta.env.DEV && window.location.pathname.startsWith('/debug/')) {
+//
+// This check assumes the app is served from the root path. If
+// VITE_BASE_PATH is ever set to a non-root base (e.g. `/summit-clock/`),
+// `window.location.pathname` would be prefixed with that base (e.g.
+// `/summit-clock/debug/questions`) and this `startsWith` check would no
+// longer match — the debug routes would silently stop working. Not fixed
+// here; just documented so a future reader isn't surprised.
+if (import.meta.env.DEV && window.location.pathname.startsWith(DEBUG_PREFIX)) {
   root.render(
     <StrictMode>
       <DebugRouter pathname={window.location.pathname} />
