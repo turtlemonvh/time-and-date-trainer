@@ -7,7 +7,7 @@ calendars by climbing ten mountain peaks.
 game (widgets, art, playable levels) hasn't landed yet. The live site currently shows a
 work-in-progress preview of the question engine's output, not the finished game.
 
-**Live:** <https://turtlemonvh.github.io/time-and-date-trainer/>
+**Live:** <https://turtlemonvh.github.io/timescaler/>
 
 ## Setup
 
