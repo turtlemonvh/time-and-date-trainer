@@ -10,6 +10,7 @@
     "dev": "tsx scripts/generate-icons.ts && vite",
     "build": "tsc -b && tsx scripts/generate-icons.ts && vite build",
     "icons": "tsx scripts/generate-icons.ts",
+    "preview:questions": "tsx scripts/preview-questions.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

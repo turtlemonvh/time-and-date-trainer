@@ -20,5 +20,12 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "scripts"]
+  "include": ["vite.config.ts", "scripts"],
+  // preview-questions.ts imports from src/, which is compiled under
+  // tsconfig.app.json's bundler resolution (extension-less relative
+  // imports). Pulling it into this nodenext project would force
+  // explicit .js extensions across the whole engine graph it touches, so
+  // it's excluded here and relies on `tsx` (type-stripping only) to run,
+  // same as the other scripts in this directory.
+  "exclude": ["scripts/preview-questions.ts"]
 }
