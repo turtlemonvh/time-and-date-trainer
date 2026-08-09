@@ -101,6 +101,9 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
 
       <article data-testid="preview-card">
         <h2>{question.typeId}</h2>
+        <p>
+          <code data-testid="preview-id">{question.id}</code>
+        </p>
         <p data-testid="preview-prompt">{question.prompt}</p>
         <p data-testid="preview-display">{describeDisplay(question.display)}</p>
         <ul>

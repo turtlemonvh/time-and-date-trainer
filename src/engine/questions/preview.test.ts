@@ -24,6 +24,12 @@ describe('generateQuestionBatch', () => {
     expect(a).not.toEqual(b);
   });
 
+  it('produces a different batch for a different peak, same seed', () => {
+    const a = generateQuestionBatch(1, 1, 3).map((q) => q.id);
+    const b = generateQuestionBatch(1, 2, 3).map((q) => q.id);
+    expect(a).not.toEqual(b);
+  });
+
   it('throws for an unknown peak id', () => {
     expect(() => generateQuestionBatch(1, 999, 3)).toThrow();
   });
