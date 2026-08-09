@@ -76,5 +76,9 @@ export interface QuestionType {
 
 /** Grades a multiple-choice answer. See the `ChoiceAnswer` doc comment. */
 export function isCorrectChoice(answer: ChoiceAnswer, selectedIndex: number): boolean {
-  return selectedIndex === answer.correctIndex;
+  return (
+    selectedIndex >= 0 &&
+    selectedIndex < answer.options.length &&
+    selectedIndex === answer.correctIndex
+  );
 }

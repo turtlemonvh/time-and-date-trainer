@@ -74,6 +74,11 @@ describe('generateReadCalendar', () => {
     }
   });
 
+  it('explains the correct answer', () => {
+    const q = generateReadCalendar(mulberry32(1), ctx);
+    expect(q.explainCorrect).toContain(q.answer.options[q.answer.correctIndex]);
+  });
+
   it('is deterministic for a given seed', () => {
     expect(generateReadCalendar(mulberry32(42), ctx)).toEqual(
       generateReadCalendar(mulberry32(42), ctx),

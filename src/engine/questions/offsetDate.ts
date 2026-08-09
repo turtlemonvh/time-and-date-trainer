@@ -1,7 +1,7 @@
 import { formatDateLong, offsetDate, type DateOffsetUnit } from '../dateMath';
 import { difficultyProfile, type DateSpan } from '../difficulty';
 import { pick, randInt, type Rng } from '../rng';
-import { buildChoiceAnswer, makeQuestionId, randomQuestionDate } from './support';
+import { buildChoiceAnswer, dateRangeForSpan, makeQuestionId, randomQuestionDate } from './support';
 import type { GeneratorContext, Question, QuestionType } from './types';
 
 export const OFFSET_DATE_TYPE_ID = 'offsetDate';
@@ -28,8 +28,9 @@ function planOffset(rng: Rng, span: DateSpan): OffsetPlan {
     case 'withinMonth': {
       // Start on days 1-14 and move forward 1-14 days, so the answer lands on
       // day 2-28 — a day that exists in every month, in the same month.
+      const year = dateRangeForSpan('withinMonth').start.getFullYear();
       const monthIndex = randInt(rng, 0, 11);
-      const start = new Date(2026, monthIndex, randInt(rng, 1, 14));
+      const start = new Date(year, monthIndex, randInt(rng, 1, 14));
       return { start, unit: 'day', amount: randInt(rng, 1, 14), forward: true };
     }
     case 'acrossMonths': {

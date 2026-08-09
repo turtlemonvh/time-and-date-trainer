@@ -62,6 +62,11 @@ describe('generateDescribeTime', () => {
     }
   });
 
+  it('explains the correct answer', () => {
+    const q = generateDescribeTime(mulberry32(1), ctx);
+    expect(q.explainCorrect).toContain(q.answer.options[q.answer.correctIndex]);
+  });
+
   it('is deterministic for a given seed', () => {
     expect(generateDescribeTime(mulberry32(42), ctx)).toEqual(
       generateDescribeTime(mulberry32(42), ctx),

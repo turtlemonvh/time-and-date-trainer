@@ -71,6 +71,11 @@ const DISTRACTOR_STEP_SECONDS: Record<TimePrecision, number> = {
   second: 15,
 };
 
+// Invariant: offsets must stay under 12h. `formatClockFace` is 12-hour, so a
+// distractor exactly ±12h from the correct time would render identically to
+// it — not a wrong answer, just a silently shrunken candidate pool for
+// `buildChoiceAnswer`. Max offset here is currently ±4h; keep future
+// multiples well clear of ±12h.
 const STEP_MULTIPLES = [1, -1, 2, -2, 3, -3, 4, -4];
 const HOUR_MULTIPLES = [1, -1, 2, -2, 3, -3];
 
@@ -108,6 +113,10 @@ export function weekdayName(d: Date): string {
  */
 export function dateRangeForSpan(span: DateSpan): { start: Date; end: Date } {
   switch (span) {
+    // Intentionally identical windows: `readCalendar` only ever highlights a
+    // single date regardless of span, so there's no narrower window to give
+    // `withinMonth` — the narrowing for that band happens elsewhere (e.g.
+    // `offsetDate`'s own day/month draw), not in this shared date range.
     case 'withinMonth':
     case 'acrossMonths':
       return { start: new Date(2026, 0, 1), end: new Date(2026, 11, 31) };
