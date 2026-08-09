@@ -64,10 +64,14 @@ describe('PreviewPlayer', () => {
   it('resets to question 1 and regenerates when peak changes', async () => {
     const user = userEvent.setup();
     render(<PreviewPlayer initialSeed={1} />);
+    const firstQuestionId = screen.getByTestId('preview-id').textContent;
     await user.click(screen.getByTestId('preview-next'));
     await user.selectOptions(screen.getByTestId('preview-peak'), '3');
     expect(screen.getByTestId('preview-peak')).toHaveValue('3');
     expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 12');
+    // Same seed, different peak: the batch content must actually change, not
+    // just the index — otherwise the Peak selector silently does nothing.
+    expect(screen.getByTestId('preview-id').textContent).not.toBe(firstQuestionId);
   });
 
   it('regenerates and resets to question 1 when Regenerate is clicked', async () => {

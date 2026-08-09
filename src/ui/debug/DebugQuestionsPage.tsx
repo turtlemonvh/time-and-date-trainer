@@ -7,22 +7,13 @@ import { describeDisplay } from '../questionDisplay';
 const SAMPLES_PER_TYPE = 3;
 const DIFFICULTIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
-// Well-mixed per-peak seed derivation so switching peaks yields a genuinely
-// different batch (not just a reseed correlated with adjacent peak ids, and
-// not a weak sequential RNG burn-in). See the note in the intro paragraph
-// below: no registered generator actually reads `ctx.peak` yet, so this only
-// changes *which questions* appear within each type — never *which types*.
-function peakSeed(seed: number, peakId: number): number {
-  return (seed ^ Math.imul(peakId, 0x9e3779b9)) >>> 0;
-}
-
 export default function DebugQuestionsPage({ initialSeed }: { initialSeed?: number }) {
   const [difficulty, setDifficulty] = useState(3);
   const [peakId, setPeakId] = useState(PEAKS[0].id);
   const [seed, setSeed] = useState(() => initialSeed ?? Date.now());
 
   const questions = useMemo(
-    () => generateQuestionBatch(peakSeed(seed, peakId), peakId, difficulty, SAMPLES_PER_TYPE),
+    () => generateQuestionBatch(seed, peakId, difficulty, SAMPLES_PER_TYPE),
     [seed, difficulty, peakId],
   );
 
