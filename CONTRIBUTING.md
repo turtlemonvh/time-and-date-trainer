@@ -1,4 +1,4 @@
-# Contributing to Summit Clock
+# Contributing to Timescaler
 
 ## Setup
 

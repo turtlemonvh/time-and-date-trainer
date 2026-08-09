@@ -16,9 +16,9 @@ const root = createRoot(document.getElementById('root')!);
 // fallback, which is a second reason these pages never ship.
 //
 // This check assumes the app is served from the root path. If
-// VITE_BASE_PATH is ever set to a non-root base (e.g. `/summit-clock/`),
+// VITE_BASE_PATH is ever set to a non-root base (e.g. `/timescaler/`),
 // `window.location.pathname` would be prefixed with that base (e.g.
-// `/summit-clock/debug/questions`) and this `startsWith` check would no
+// `/timescaler/debug/questions`) and this `startsWith` check would no
 // longer match — the debug routes would silently stop working. Not fixed
 // here; just documented so a future reader isn't surprised.
 if (import.meta.env.DEV && window.location.pathname.startsWith(DEBUG_PREFIX)) {

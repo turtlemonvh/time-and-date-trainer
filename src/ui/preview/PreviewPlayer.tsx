@@ -44,7 +44,7 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
 
   return (
     <main>
-      <h1>Summit Clock — question preview</h1>
+      <h1>Timescaler — question preview</h1>
       <p>
         Work in progress: this previews what the question engine produces. Press <kbd>Enter</kbd>{' '}
         (or tap Next) to move on — it always counts as correct, since real answer input isn't wired
