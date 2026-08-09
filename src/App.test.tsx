@@ -5,6 +5,6 @@ import App from './App';
 describe('App', () => {
   it('renders the app name', () => {
     render(<App />);
-    expect(screen.getByRole('heading', { name: /Summit Clock/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Timescaler/ })).toBeInTheDocument();
   });
 });

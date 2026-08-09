@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test('loads the app shell', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Summit Clock' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Timescaler' })).toBeVisible();
 });
 
 test('registers a service worker', async ({ page }) => {
@@ -22,6 +22,6 @@ test('still loads after going offline', async ({ page, context }) => {
   });
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Summit Clock' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Timescaler' })).toBeVisible();
   await context.setOffline(false);
 });

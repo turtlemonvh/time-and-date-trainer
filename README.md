@@ -1,4 +1,4 @@
-# Summit Clock
+# Timescaler
 
 A local-storage-only, installable browser game that teaches telling time and working with
 calendars by climbing ten mountain peaks.
