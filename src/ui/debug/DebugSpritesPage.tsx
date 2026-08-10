@@ -5,7 +5,7 @@ import PixelLayers, { type Layer } from '../pixel/PixelLayers';
 import { generateMountain } from '../pixel/mountain';
 import { MOUNTAIN_THEMES, pixelPeakHeight } from '../pixel/mountainThemes';
 import { bodyIdle, bodyClimb, bodySlip, bodyCheer } from '../pixel/sprites/body';
-import { hairShort } from '../pixel/sprites/hair';
+import { hairShort, hairPuffy, hairPigtails } from '../pixel/sprites/hair';
 import { helmetClassic } from '../pixel/sprites/helmet';
 import { harnessBasic } from '../pixel/sprites/harness';
 import type { Sprite } from '../pixel/types';
@@ -24,6 +24,12 @@ const POSES: readonly [string, Sprite][] = [
   ['cheer', bodyCheer],
 ];
 
+const HAIR_STYLES: readonly [string, Sprite][] = [
+  ['Short', hairShort],
+  ['Puffy', hairPuffy],
+  ['Pigtails', hairPigtails],
+];
+
 const SCALE = 8;
 
 const MOUNTAIN_WIDTH = 64;
@@ -40,6 +46,7 @@ export default function DebugSpritesPage() {
   const [headgear, setHeadgear] = useState<'hair' | 'helmet'>('hair');
   const [showHarness, setShowHarness] = useState(true);
   const [skinIndex, setSkinIndex] = useState(0);
+  const [hairStyleIndex, setHairStyleIndex] = useState(0);
   const [hairIndex, setHairIndex] = useState(0);
   const [shirtIndex, setShirtIndex] = useState(0);
   const [pantsIndex, setPantsIndex] = useState(0);
@@ -56,7 +63,7 @@ export default function DebugSpritesPage() {
 
   const headgearLayer: Layer =
     headgear === 'hair'
-      ? { sprite: hairShort, palette: { hair: HAIR_COLORS[hairIndex] } }
+      ? { sprite: HAIR_STYLES[hairStyleIndex][1], palette: { hair: HAIR_COLORS[hairIndex] } }
       : { sprite: helmetClassic, palette: { helmet: HELMET_COLORS[helmetIndex] } };
   const harnessLayer: Layer[] = showHarness
     ? [{ sprite: harnessBasic, palette: { harness: '#ffcc00' } }]
@@ -119,6 +126,15 @@ export default function DebugSpritesPage() {
       </p>
 
       {colorSelect('Skin', 'skin-select', SKIN_TONES, skinIndex, setSkinIndex)}
+      {headgear === 'hair'
+        ? colorSelect(
+            'Hair style',
+            'hair-style-select',
+            HAIR_STYLES.map(([name]) => name),
+            hairStyleIndex,
+            setHairStyleIndex,
+          )
+        : null}
       {headgear === 'hair'
         ? colorSelect('Hair color', 'hair-select', HAIR_COLORS, hairIndex, setHairIndex)
         : colorSelect('Helmet color', 'helmet-select', HELMET_COLORS, helmetIndex, setHelmetIndex)}
