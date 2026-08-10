@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { TimeOfDay, TimePrecision } from '../../engine/timeMath';
 import AnalogClock from '../widgets/AnalogClock';
 import CalendarMonth from '../widgets/CalendarMonth';
+import ChoiceGrid from '../widgets/ChoiceGrid';
 import DigitalClock from '../widgets/DigitalClock';
 
 const PRECISIONS: TimePrecision[] = ['hour', 'half', 'quarter', 'five', 'minute', 'second'];
@@ -32,6 +33,8 @@ export default function DebugWidgetsPage() {
     year: number;
     monthIndex: number;
   } | null>(null);
+  const [choiceSelected, setChoiceSelected] = useState<number | undefined>(undefined);
+  const [choiceRevealed, setChoiceRevealed] = useState(false);
 
   return (
     <main>
@@ -96,6 +99,41 @@ export default function DebugWidgetsPage() {
           ? `Picked: ${pickedDate.monthIndex + 1}/${pickedDate.day}/${pickedDate.year}`
           : 'Nothing picked yet'}
       </p>
+
+      <h2>ChoiceGrid — pick an answer, then reveal</h2>
+      <ChoiceGrid
+        options={['9:00 AM', '9:15 AM', '9:30 AM', '9:45 AM']}
+        selectedIndex={choiceSelected}
+        correctIndex={choiceRevealed ? 2 : undefined}
+        disabled={choiceRevealed}
+        onSelect={(index) => setChoiceSelected(index)}
+      />
+      <p>
+        <button
+          type="button"
+          data-testid="widgets-reveal-choice"
+          disabled={choiceSelected === undefined}
+          onClick={() => setChoiceRevealed(true)}
+        >
+          Reveal
+        </button>{' '}
+        <button
+          type="button"
+          data-testid="widgets-reset-choice"
+          onClick={() => {
+            setChoiceSelected(undefined);
+            setChoiceRevealed(false);
+          }}
+        >
+          Reset
+        </button>
+      </p>
+
+      <h2>ChoiceGrid — static reveal states</h2>
+      <p>Correct pick:</p>
+      <ChoiceGrid options={['A', 'B', 'C', 'D']} selectedIndex={1} correctIndex={1} />
+      <p>Wrong pick:</p>
+      <ChoiceGrid options={['A', 'B', 'C', 'D']} selectedIndex={0} correctIndex={1} />
     </main>
   );
 }
