@@ -9,13 +9,56 @@ describe('PreviewPlayer', () => {
     expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 12');
   });
 
-  it('shows the prompt, display gloss, one correct option, and the explanation', () => {
+  it('shows the prompt, the answer choices, and the explanation', () => {
     render(<PreviewPlayer initialSeed={1} />);
     const card = screen.getByTestId('preview-card');
     expect(within(card).getByTestId('preview-prompt').textContent).not.toBe('');
-    expect(within(card).getByTestId('preview-display').textContent).not.toBe('');
     expect(within(card).getByTestId('preview-explain').textContent).not.toBe('');
-    expect(within(card).getAllByTestId('preview-correct-option')).toHaveLength(1);
+    expect(within(card).getByTestId('choice-grid')).toBeInTheDocument();
+    expect(within(card).getAllByTestId(/^choice-option-/).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("renders the real AnalogClock widget for readAnalog's display (index 0, by generator registration order)", () => {
+    render(<PreviewPlayer initialSeed={1} />);
+    expect(
+      within(screen.getByTestId('preview-display')).getByTestId('analog-clock'),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the real CalendarMonth widget for readCalendar questions', async () => {
+    const user = userEvent.setup();
+    render(<PreviewPlayer initialSeed={1} />);
+    // readAnalog(0-2), describeTime(3-5), readCalendar(6-8): 6 clicks reaches index 6.
+    for (let i = 0; i < 6; i++) {
+      await user.click(screen.getByTestId('preview-next'));
+    }
+    expect(
+      within(screen.getByTestId('preview-display')).getByTestId('calendar-month'),
+    ).toBeInTheDocument();
+  });
+
+  it('renders no display widget for offsetDate questions (display kind "none")', async () => {
+    const user = userEvent.setup();
+    render(<PreviewPlayer initialSeed={1} />);
+    // readAnalog(0-2), describeTime(3-5), readCalendar(6-8), offsetDate(9-11): 9 clicks reaches index 9.
+    for (let i = 0; i < 9; i++) {
+      await user.click(screen.getByTestId('preview-next'));
+    }
+    expect(screen.getByTestId('preview-display')).toBeEmptyDOMElement();
+  });
+
+  it('reveals correctness when an option is picked, and resets on the next question', async () => {
+    const user = userEvent.setup();
+    render(<PreviewPlayer initialSeed={1} />);
+    const firstOption = screen.getAllByTestId(/^choice-option-/)[0];
+    expect(firstOption).not.toHaveAttribute('data-state');
+    await user.click(firstOption);
+    expect(firstOption).toHaveAttribute('data-state');
+
+    await user.click(screen.getByTestId('preview-next'));
+    for (const option of screen.getAllByTestId(/^choice-option-/)) {
+      expect(option).not.toHaveAttribute('data-state');
+    }
   });
 
   it('advances to the next question when Next is clicked', async () => {
