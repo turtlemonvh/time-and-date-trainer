@@ -46,4 +46,10 @@ describe('DebugSpritesPage', () => {
     await user.click(screen.getByTestId('harness-toggle'));
     expect(screen.getByTestId('harness-toggle')).not.toBeChecked();
   });
+
+  it('renders a mountain silhouette for all 10 peaks', () => {
+    render(<DebugSpritesPage />);
+    const canvases = screen.getByTestId('mountain-preview').querySelectorAll('canvas');
+    expect(canvases).toHaveLength(10);
+  });
 });
