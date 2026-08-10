@@ -50,6 +50,13 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
         (or tap Next) to move on — it always counts as correct, since real answer input isn't wired
         up yet.
       </p>
+      <p>
+        Every batch shows one of each question type, regardless of peak — the peak-to-question-type
+        weighting described in each peak's name isn't wired up yet (most peaks don't have a matching
+        generator built yet). Changing Peak reseeds the batch, so the specific values shown change,
+        but not which types appear. That lands with the rest of a peak's content in a later
+        milestone.
+      </p>
 
       <p>
         <label htmlFor="preview-difficulty">Difficulty</label>{' '}
