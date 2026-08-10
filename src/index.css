@@ -1,3 +1,5 @@
+@import './assets/fonts/fonts.css';
+
 :root {
   --text: #6b6375;
   --text-h: #08060d;
@@ -10,8 +12,10 @@
   --social-bg: rgba(244, 243, 236, 0.5);
   --shadow: rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  /* Pixel fonts (see assets/fonts/fonts.css) — swap either family here to
+     retheme the whole app; nothing else needs to change. */
+  --sans: 'Pixelify Sans', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: 'Press Start 2P', system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
   font: 18px/145% var(--sans);
@@ -72,21 +76,27 @@ h2 {
 }
 
 h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
+  /* Press Start 2P is much wider per character than a normal font — the
+     old 56px/-1.68px letter-spacing (tuned for a proportional font) made
+     longer titles overlap themselves. Sized down, and letter-spacing
+     reset to normal since squeezing a monospace pixel font fights its
+     own glyph grid. */
+  font-size: 28px;
+  line-height: 140%;
+  letter-spacing: normal;
   margin: 32px 0;
   @media (max-width: 1024px) {
-    font-size: 36px;
+    font-size: 20px;
     margin: 20px 0;
   }
 }
 h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
+  font-size: 20px;
+  line-height: 140%;
+  letter-spacing: normal;
   margin: 0 0 8px;
   @media (max-width: 1024px) {
-    font-size: 20px;
+    font-size: 16px;
   }
 }
 p {

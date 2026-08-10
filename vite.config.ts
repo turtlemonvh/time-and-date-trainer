@@ -17,6 +17,13 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'favicon-32x32.png', 'apple-touch-icon.png'],
+      workbox: {
+        // Default globPatterns is js/css/html/ico/png/svg only — misses the
+        // vendored woff2 fonts, which would then need a network request on
+        // first load after any cache eviction, contradicting the "no
+        // network font requests" offline requirement.
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+      },
       manifest: {
         name: APP_NAME,
         short_name: APP_SHORT_NAME,
