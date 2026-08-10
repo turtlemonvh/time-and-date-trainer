@@ -102,6 +102,21 @@ waiting for worker to respond` in the output) usually means a stray background p
   (`kill -9 <pid>`) and re-run — killing one stray day-old `vite` process took a run from 24 failures
   across 6 files down to the single already-known-flaky file.
 
+## PWA offline precaching
+
+- **`vite-plugin-pwa`'s default precache `globPattern` is `**/*.{js,css,html,ico,png,svg}` — it
+  does not include `woff2`, or any other asset type outside that list.** Vendoring the pixel fonts
+  (M2) built them into `dist/assets/` fine, but they were silently absent from the service worker's
+  precache manifest (verify with `grep -o "woff2" dist/sw.js` after `pnpm build` — or more precisely,
+  grep for the actual hashed filename, since a plain `"woff2"` substring won't appear if the format
+  is entirely missing from the manifest). That's a real gap against the project's "installable,
+  offline-first" requirement: after any HTTP-cache eviction, the app would silently fall back to
+  system fonts instead of the vendored ones. Fixed by adding an explicit `workbox: { globPatterns:
+[...] }` to the `VitePWA` config in `vite.config.ts` including every asset extension actually
+  shipped. **Whenever a new binary asset type is added to `src/assets/` (audio, more font formats,
+  etc.), check that extension is in this list too** — it will build successfully and work online
+  without the check ever failing loudly; the gap only shows up as silently-missing offline assets.
+
 ## Before opening a PR
 
 Run the full local check suite — see [CONTRIBUTING.md](./CONTRIBUTING.md). `pnpm format:check`
