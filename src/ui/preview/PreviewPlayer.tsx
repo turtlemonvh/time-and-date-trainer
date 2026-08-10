@@ -1,29 +1,54 @@
 import { useEffect, useState } from 'react';
 import { PEAKS } from '../../engine/peaks';
 import { generateQuestionBatch } from '../../engine/questions/preview';
-import { describeDisplay } from '../questionDisplay';
+import type { DisplaySpec } from '../../engine/questions';
+import AnalogClock from '../widgets/AnalogClock';
+import CalendarMonth from '../widgets/CalendarMonth';
+import ChoiceGrid from '../widgets/ChoiceGrid';
 
 const DIFFICULTIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
+function renderDisplay(display: DisplaySpec) {
+  switch (display.kind) {
+    case 'analogClock':
+      return <AnalogClock time={display.time} showSeconds={display.showSeconds} />;
+    case 'calendar':
+      return (
+        <CalendarMonth
+          year={display.year}
+          monthIndex={display.monthIndex}
+          highlightDay={display.highlightDay}
+        />
+      );
+    case 'none':
+      return null;
+  }
+}
+
 /**
- * Cycles through a generated batch of questions one at a time, so the
- * question engine's output is visible without the real answer-input widgets
- * (which arrive in later milestones). There is no wrong answer here — Enter
- * (or the Next button) always advances, standing in for "the player got it
- * right" until real grading is wired up. Deliberately reachable in
- * production: this is what deploys to GitHub Pages today, so progress on the
- * question engine is visible without a local checkout.
+ * Cycles through a generated batch of questions one at a time, using the
+ * real M3 widgets (AnalogClock, CalendarMonth, ChoiceGrid) rather than a
+ * text gloss — so the question engine's output is visible the way it'll
+ * actually be presented in the game, without the full climb state machine
+ * (which arrives in a later milestone). Picking an option reveals whether
+ * it was correct via ChoiceGrid, but — since there's no climb/scoring here
+ * yet — Enter (or Next) always advances regardless of whether an answer was
+ * picked at all. Deliberately reachable in production: this is what deploys
+ * to GitHub Pages today, so progress on the question engine is visible
+ * without a local checkout.
  */
 export default function PreviewPlayer({ initialSeed }: { initialSeed?: number }) {
   const [difficulty, setDifficulty] = useState(3);
   const [peakId, setPeakId] = useState(PEAKS[0].id);
   const [seed, setSeed] = useState(() => initialSeed ?? Date.now());
   const [index, setIndex] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState<number | undefined>(undefined);
 
   const batch = generateQuestionBatch(seed, peakId, difficulty);
   const question = batch[index];
 
   function advance() {
+    setSelectedIndex(undefined);
     if (index + 1 < batch.length) {
       setIndex(index + 1);
     } else {
@@ -46,9 +71,9 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
     <main>
       <h1>Timescaler — question preview</h1>
       <p>
-        Work in progress: this previews what the question engine produces. Press <kbd>Enter</kbd>{' '}
-        (or tap Next) to move on — it always counts as correct, since real answer input isn't wired
-        up yet.
+        Work in progress: this previews what the question engine produces, using the real answer
+        widgets. Pick an option to see whether it's correct, then press <kbd>Enter</kbd> (or tap
+        Next) to move on — advancing doesn't require answering, since there's no scoring here yet.
       </p>
       <p>
         Every batch shows one of each question type, regardless of peak — the peak-to-question-type
@@ -67,6 +92,7 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
           onChange={(event) => {
             setDifficulty(Number(event.target.value));
             setIndex(0);
+            setSelectedIndex(undefined);
           }}
         >
           {DIFFICULTIES.map((level) => (
@@ -83,6 +109,7 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
           onChange={(event) => {
             setPeakId(Number(event.target.value));
             setIndex(0);
+            setSelectedIndex(undefined);
           }}
         >
           {PEAKS.map((peak) => (
@@ -96,6 +123,7 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
           onClick={() => {
             setSeed((current) => current + 1);
             setIndex(0);
+            setSelectedIndex(undefined);
           }}
         >
           Regenerate
@@ -112,17 +140,13 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
           <code data-testid="preview-id">{question.id}</code>
         </p>
         <p data-testid="preview-prompt">{question.prompt}</p>
-        <p data-testid="preview-display">{describeDisplay(question.display)}</p>
-        <ul>
-          {question.answer.options.map((option, optionIndex) => {
-            const correct = optionIndex === question.answer.correctIndex;
-            return (
-              <li key={option} data-testid={correct ? 'preview-correct-option' : 'preview-option'}>
-                {correct ? `${option} ✓` : option}
-              </li>
-            );
-          })}
-        </ul>
+        <div data-testid="preview-display">{renderDisplay(question.display)}</div>
+        <ChoiceGrid
+          options={question.answer.options}
+          selectedIndex={selectedIndex}
+          correctIndex={selectedIndex !== undefined ? question.answer.correctIndex : undefined}
+          onSelect={setSelectedIndex}
+        />
         <p data-testid="preview-explain">{question.explainCorrect}</p>
       </article>
 
