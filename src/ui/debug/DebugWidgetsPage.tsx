@@ -3,7 +3,10 @@ import type { TimeOfDay, TimePrecision } from '../../engine/timeMath';
 import AnalogClock from '../widgets/AnalogClock';
 import CalendarMonth from '../widgets/CalendarMonth';
 import ChoiceGrid from '../widgets/ChoiceGrid';
+import DatePicker from '../widgets/DatePicker';
 import DigitalClock from '../widgets/DigitalClock';
+import NumberEntry from '../widgets/NumberEntry';
+import TimeEntry from '../widgets/TimeEntry';
 
 const PRECISIONS: TimePrecision[] = ['hour', 'half', 'quarter', 'five', 'minute', 'second'];
 
@@ -35,6 +38,9 @@ export default function DebugWidgetsPage() {
   } | null>(null);
   const [choiceSelected, setChoiceSelected] = useState<number | undefined>(undefined);
   const [choiceRevealed, setChoiceRevealed] = useState(false);
+  const [entryTime, setEntryTime] = useState<TimeOfDay>({ hour: 9, minute: 30, second: 0 });
+  const [entryHour24, setEntryHour24] = useState(false);
+  const [entryNumber, setEntryNumber] = useState<number | ''>('');
 
   return (
     <main>
@@ -134,6 +140,29 @@ export default function DebugWidgetsPage() {
       <ChoiceGrid options={['A', 'B', 'C', 'D']} selectedIndex={1} correctIndex={1} />
       <p>Wrong pick:</p>
       <ChoiceGrid options={['A', 'B', 'C', 'D']} selectedIndex={0} correctIndex={1} />
+
+      <h2>DatePicker</h2>
+      <DatePicker initialYear={2026} initialMonthIndex={7} />
+
+      <h2>TimeEntry</h2>
+      <p>
+        <label>
+          <input
+            type="checkbox"
+            data-testid="widgets-entry-hour24"
+            checked={entryHour24}
+            onChange={(event) => setEntryHour24(event.target.checked)}
+          />{' '}
+          24-hour
+        </label>
+      </p>
+      <TimeEntry time={entryTime} onChange={setEntryTime} hour24={entryHour24} showSeconds />
+      <p>
+        <DigitalClock time={entryTime} hour24={entryHour24} showSeconds />
+      </p>
+
+      <h2>NumberEntry</h2>
+      <NumberEntry value={entryNumber} onChange={setEntryNumber} min={0} max={59} unit="minutes" />
     </main>
   );
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { mulberry32 } from './rng';
-import { describeTime, formatTime12, randomTime } from './timeMath';
+import { describeTime, formatTime12, randomTime, to24Hour } from './timeMath';
 
 describe('randomTime', () => {
   it('snaps to hour boundaries', () => {
@@ -85,6 +85,32 @@ describe('formatTime12', () => {
 
   it('includes seconds when requested', () => {
     expect(formatTime12({ hour: 15, minute: 45, second: 9 }, { seconds: true })).toBe('3:45:09 PM');
+  });
+});
+
+describe('to24Hour', () => {
+  it('maps 12 AM to hour 0 (midnight)', () => {
+    expect(to24Hour(12, false)).toBe(0);
+  });
+
+  it('maps 12 PM to hour 12 (noon)', () => {
+    expect(to24Hour(12, true)).toBe(12);
+  });
+
+  it('maps a morning hour unchanged', () => {
+    expect(to24Hour(3, false)).toBe(3);
+  });
+
+  it('adds 12 to a non-noon afternoon hour', () => {
+    expect(to24Hour(3, true)).toBe(15);
+  });
+
+  it("round-trips with formatTime12's hour-12 conversion for every hour", () => {
+    for (let hour = 0; hour < 24; hour++) {
+      const isPM = hour >= 12;
+      const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+      expect(to24Hour(hour12, isPM)).toBe(hour);
+    }
   });
 });
 

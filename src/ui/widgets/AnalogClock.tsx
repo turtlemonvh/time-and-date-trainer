@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
-import type { TimeOfDay, TimePrecision } from '../../engine/timeMath';
+import { to24Hour, type TimeOfDay, type TimePrecision } from '../../engine/timeMath';
 import PixelCanvas from '../pixel/PixelCanvas';
 import { generateClockFace } from '../pixel/clockFace';
 
@@ -78,8 +78,7 @@ export default function AnalogClock({
       } else {
         const hour12 = Math.round(angle / 30) % 12 || 12;
         const isPM = time.hour >= 12;
-        const hour = isPM ? (hour12 === 12 ? 12 : hour12 + 12) : hour12 === 12 ? 0 : hour12;
-        onHandChange({ ...time, hour });
+        onHandChange({ ...time, hour: to24Hour(hour12, isPM) });
       }
     },
     [angleFromPointer, onHandChange, precision, time],
