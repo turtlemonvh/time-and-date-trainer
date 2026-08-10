@@ -77,4 +77,16 @@ describe('layered character sprites', () => {
       }
     }
   });
+
+  it('no headgear covers the eyes — row 5, columns 6 and 11, must stay transparent', () => {
+    // Regression test: hairPuffy's first draft filled column 6 on row 5 (a
+    // full-width cap reaching the eye), painting hair color over the eye
+    // pixel body.ts draws underneath. Column 6 mirrors to column 11 (see
+    // mirrorRow — the sprite is 18 wide, col i mirrors to col 17-i).
+    for (const [, sprite] of [...HAIR_STYLES, ['helmetClassic', helmetClassic]] as const) {
+      const eyeRow = sprite.grid[5];
+      expect(eyeRow[6]).toBe('.');
+      expect(eyeRow[11]).toBe('.');
+    }
+  });
 });

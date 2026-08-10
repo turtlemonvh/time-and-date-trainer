@@ -34,14 +34,20 @@ export const hairShort = buildHair([
   sideburn(1), // 7
 ]);
 
-/** Full and round, no sideburns — reads as curlier/fuller hair. */
+/**
+ * Full and round, no sideburns — reads as curlier/fuller hair. Stops at
+ * row 4: `cap(5)` at row 5 (the eye row — see `body.ts`'s `skinWithEye`)
+ * reached column 6, which is exactly where the eye pixel sits, so the
+ * puff painted over it. `hairShort`/`hairPigtails` never hit this because
+ * their row 5 is a narrow sideburn at the far outer edge, nowhere near
+ * column 6.
+ */
 export const hairPuffy = buildHair([
   cap(6), // 0
   cap(8), // 1
   cap(9), // 2: full width
   cap(9), // 3
   cap(7), // 4
-  cap(5), // 5
 ]);
 
 /**
