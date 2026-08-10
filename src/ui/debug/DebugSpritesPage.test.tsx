@@ -4,10 +4,10 @@ import userEvent from '@testing-library/user-event';
 import DebugSpritesPage from './DebugSpritesPage';
 
 describe('DebugSpritesPage', () => {
-  it('renders the character at every configured scale', () => {
+  it('renders every pose', () => {
     render(<DebugSpritesPage />);
     const canvases = screen.getByTestId('character-preview').querySelectorAll('canvas');
-    expect(canvases).toHaveLength(3);
+    expect(canvases).toHaveLength(4);
   });
 
   it('defaults to hair, with a harness worn', () => {

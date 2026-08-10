@@ -6,7 +6,7 @@ const cap = (halfWidth: number) => '.'.repeat(9 - halfWidth) + 'H'.repeat(halfWi
 const sideburn = (halfWidth: number) => 'H'.repeat(halfWidth) + '.'.repeat(9 - halfWidth);
 
 /**
- * A headgear overlay, same 18x28 grid as `bodyBase`, drawn on top of it.
+ * A headgear overlay, same 18x28 grid as the body layer, drawn on top of it.
  * Only rows 0-8 (the head) are non-empty — everything below is
  * transparent, so this composites cleanly over the body regardless of
  * what it's drawing there. Swap this for `helmet.ts` (or add another hair
