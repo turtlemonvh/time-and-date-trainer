@@ -1,5 +1,6 @@
 import DebugQuestionsPage from './DebugQuestionsPage';
 import DebugSpritesPage from './DebugSpritesPage';
+import DebugWidgetsPage from './DebugWidgetsPage';
 
 export const DEBUG_PREFIX = '/debug/';
 
@@ -21,6 +22,8 @@ export default function DebugRouter({ pathname }: { pathname: string }) {
       return <DebugQuestionsPage />;
     case 'sprites':
       return <DebugSpritesPage />;
+    case 'widgets':
+      return <DebugWidgetsPage />;
     default:
       return (
         <main>
@@ -34,6 +37,9 @@ export default function DebugRouter({ pathname }: { pathname: string }) {
             </li>
             <li>
               <a href="/debug/sprites">/debug/sprites</a>
+            </li>
+            <li>
+              <a href="/debug/widgets">/debug/widgets</a>
             </li>
           </ul>
         </main>
