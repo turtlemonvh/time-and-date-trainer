@@ -93,6 +93,14 @@ already used by worktree` — the merge itself still succeeds despite the comman
   canvas-rendering UI tests (M2) made this more frequent; if it gets worse, consider
   `test.pool`/`test.maxWorkers` tuning in `vite.config.ts`, but that's out of scope for now since CI
   isn't affected.
+- **A big spike in failure count (20+ tests across many files, `[vitest-pool-runner]: Timeout
+waiting for worker to respond` in the output) usually means a stray background process is eating
+  resources, not that the contention got organically worse.** Check `ps aux | grep -E "vite|chromium"`
+  — a `pnpm exec vite --port <N>` left over from an earlier Playwright screenshot session (started
+  with `run_in_background`, meant to be killed with `pkill -f "vite --port <N>"` after) can survive a
+  failed/no-op kill and linger for hours, quietly starving later test runs. Kill it
+  (`kill -9 <pid>`) and re-run — killing one stray day-old `vite` process took a run from 24 failures
+  across 6 files down to the single already-known-flaky file.
 
 ## Before opening a PR
 
