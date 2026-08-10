@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { TimeOfDay, TimePrecision } from '../../engine/timeMath';
 import AnalogClock from '../widgets/AnalogClock';
+import CalendarMonth from '../widgets/CalendarMonth';
 import DigitalClock from '../widgets/DigitalClock';
 
 const PRECISIONS: TimePrecision[] = ['hour', 'half', 'quarter', 'five', 'minute', 'second'];
@@ -26,6 +27,11 @@ export default function DebugWidgetsPage() {
     second: 0,
   });
   const [precision, setPrecision] = useState<TimePrecision>('five');
+  const [pickedDate, setPickedDate] = useState<{
+    day: number;
+    year: number;
+    monthIndex: number;
+  } | null>(null);
 
   return (
     <main>
@@ -74,6 +80,21 @@ export default function DebugWidgetsPage() {
       <p>
         <DigitalClock time={{ hour: 14, minute: 5, second: 0 }} /> vs{' '}
         <DigitalClock time={{ hour: 14, minute: 5, second: 0 }} hour24 />
+      </p>
+
+      <h2>CalendarMonth — read-only, with a highlighted day</h2>
+      <CalendarMonth year={2026} monthIndex={7} highlightDay={15} />
+
+      <h2>CalendarMonth — clickable days</h2>
+      <CalendarMonth
+        year={2026}
+        monthIndex={0}
+        onDayClick={(day, year, monthIndex) => setPickedDate({ day, year, monthIndex })}
+      />
+      <p data-testid="widgets-picked-date">
+        {pickedDate
+          ? `Picked: ${pickedDate.monthIndex + 1}/${pickedDate.day}/${pickedDate.year}`
+          : 'Nothing picked yet'}
       </p>
     </main>
   );
