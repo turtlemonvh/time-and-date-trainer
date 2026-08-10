@@ -5,7 +5,9 @@ calendars by climbing ten mountain peaks.
 
 **🚧 Work in progress.** The question-generating engine is built and unit-tested, but the real
 game (widgets, art, playable levels) hasn't landed yet. The live site currently shows a
-work-in-progress preview of the question engine's output, not the finished game.
+work-in-progress preview of the question engine's output, not the finished game. Pixel art
+(characters, mountain themes) is further along than what's shown on the live site — it's only
+viewable by running the app locally for now; see [CONTRIBUTING.md](./CONTRIBUTING.md#debug-pages).
 
 **Live:** <https://turtlemonvh.github.io/timescaler/>
 

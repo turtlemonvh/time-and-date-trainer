@@ -6,6 +6,14 @@
 2. `pnpm install`
 3. `pnpm dev`
 
+## Debug pages
+
+`pnpm dev` also serves a few dev-only pages, gated behind `import.meta.env.DEV` and tree-shaken out
+of production builds — they're never reachable on the live site, only when running locally:
+
+- `/debug/questions` — every question generator's output at any difficulty/peak, with raw JSON
+- `/debug/sprites` — every character pose, palette, and mountain theme
+
 ## Before opening a PR
 
 Run the full local check suite (this is what CI runs):
