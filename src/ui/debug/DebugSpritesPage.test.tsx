@@ -52,4 +52,21 @@ describe('DebugSpritesPage', () => {
     const canvases = screen.getByTestId('mountain-preview').querySelectorAll('canvas');
     expect(canvases).toHaveLength(10);
   });
+
+  it('offers more than one hair style, only while hair is the headgear', async () => {
+    const user = userEvent.setup();
+    render(<DebugSpritesPage />);
+    const styleOptions = screen.getByTestId('hair-style-select').querySelectorAll('option');
+    expect(styleOptions.length).toBeGreaterThan(1);
+
+    await user.selectOptions(screen.getByTestId('headgear-select'), 'helmet');
+    expect(screen.queryByTestId('hair-style-select')).not.toBeInTheDocument();
+  });
+
+  it('selecting a different hair style updates the selector', async () => {
+    const user = userEvent.setup();
+    render(<DebugSpritesPage />);
+    await user.selectOptions(screen.getByTestId('hair-style-select'), 'Puffy');
+    expect(screen.getByTestId('hair-style-select')).toHaveValue('1');
+  });
 });

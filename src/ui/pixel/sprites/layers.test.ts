@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { validateSprite } from '../sprite';
 import { bodyIdle, bodyClimb, bodySlip, bodyCheer } from './body';
-import { hairShort } from './hair';
+import { hairShort, hairPuffy, hairPigtails } from './hair';
 import { helmetClassic } from './helmet';
 import { harnessBasic } from './harness';
 import type { Sprite } from '../types';
@@ -13,10 +13,16 @@ const BODY_POSES: readonly [string, Sprite][] = [
   ['bodyCheer', bodyCheer],
 ];
 
+const HAIR_STYLES: readonly [string, Sprite][] = [
+  ['hairShort', hairShort],
+  ['hairPuffy', hairPuffy],
+  ['hairPigtails', hairPigtails],
+];
+
 describe('layered character sprites', () => {
   it.each([
     ...BODY_POSES,
-    ['hairShort', hairShort],
+    ...HAIR_STYLES,
     ['helmetClassic', helmetClassic],
     ['harnessBasic', harnessBasic],
   ])('%s is well-formed', (_name, sprite) => {
@@ -40,7 +46,11 @@ describe('layered character sprites', () => {
   });
 
   it('every headgear/harness overlay shares the body’s dimensions', () => {
-    for (const overlay of [hairShort, helmetClassic, harnessBasic]) {
+    for (const [, overlay] of [
+      ...HAIR_STYLES,
+      ['helmetClassic', helmetClassic],
+      ['harnessBasic', harnessBasic],
+    ] as const) {
       expect(overlay.w).toBe(bodyIdle.w);
       expect(overlay.h).toBe(bodyIdle.h);
     }
@@ -53,9 +63,17 @@ describe('layered character sprites', () => {
   });
 
   it('headgear never marks a pixel below the head rows (9+)', () => {
-    for (const sprite of [hairShort, helmetClassic]) {
+    for (const [, sprite] of [...HAIR_STYLES, ['helmetClassic', helmetClassic]] as const) {
       for (const row of sprite.grid.slice(9)) {
         expect(row).toBe('.'.repeat(sprite.w));
+      }
+    }
+  });
+
+  it('every hair style is visually distinct from the others', () => {
+    for (let i = 0; i < HAIR_STYLES.length; i++) {
+      for (let j = i + 1; j < HAIR_STYLES.length; j++) {
+        expect(HAIR_STYLES[i][1].grid).not.toEqual(HAIR_STYLES[j][1].grid);
       }
     }
   });
