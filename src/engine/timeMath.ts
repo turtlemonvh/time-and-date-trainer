@@ -26,6 +26,12 @@ export function randomTime(rng: Rng, precision: TimePrecision): TimeOfDay {
   return { hour, minute, second };
 }
 
+/** Converts a 12-hour clock hour (1-12) plus AM/PM to a 24-hour hour (0-23). */
+export function to24Hour(hour12: number, isPM: boolean): number {
+  const hour = hour12 % 12;
+  return isPM ? hour + 12 : hour;
+}
+
 export function formatTime12(t: TimeOfDay, opts: { seconds?: boolean } = {}): string {
   const period = t.hour < 12 ? 'AM' : 'PM';
   const hour12 = t.hour % 12 === 0 ? 12 : t.hour % 12;
