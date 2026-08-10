@@ -3,6 +3,7 @@ import { mulberry32 } from '../../engine/rng';
 import PixelCanvas from '../pixel/PixelCanvas';
 import PixelLayers, { type Layer } from '../pixel/PixelLayers';
 import { generateMountain } from '../pixel/mountain';
+import { MOUNTAIN_THEMES, pixelPeakHeight } from '../pixel/mountainThemes';
 import { bodyIdle, bodyClimb, bodySlip, bodyCheer } from '../pixel/sprites/body';
 import { hairShort } from '../pixel/sprites/hair';
 import { helmetClassic } from '../pixel/sprites/helmet';
@@ -25,12 +26,6 @@ const POSES: readonly [string, Sprite][] = [
 
 const SCALE = 8;
 
-const MOUNTAIN_THEMES = [
-  { name: 'Basecamp Bluff', seed: 1, rock: '#6b6459', snow: '#f4f4f4' },
-  { name: 'Sundial Spire', seed: 2, rock: '#8a5a44', snow: '#fceabb' },
-  { name: 'Calendar Ridge', seed: 3, rock: '#4a5859', snow: '#e8f6f6' },
-  { name: 'Leap Crag', seed: 9, rock: '#3d3a4b', snow: '#d6d9f2' },
-];
 const MOUNTAIN_WIDTH = 64;
 const MOUNTAIN_HEIGHT = 24;
 const MOUNTAIN_SCALE = 4;
@@ -149,17 +144,24 @@ export default function DebugSpritesPage() {
       <h2>Mountain silhouettes</h2>
       <p>
         Procedurally generated (a jagged ridge via midpoint displacement, seeded per peak) — one
-        algorithm, different seed/palette/peak-height per theme.
+        algorithm, different seed/palette/peak-height per theme. All 10 peaks, in climb order.
       </p>
       <div
         data-testid="mountain-preview"
         style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
       >
         {MOUNTAIN_THEMES.map((theme) => (
-          <div key={theme.name}>
-            <p>{theme.name}</p>
+          <div key={theme.peak.id}>
+            <p>
+              {theme.peak.id}. {theme.peak.name} — {theme.peak.emphasis}
+            </p>
             <PixelCanvas
-              sprite={generateMountain(mulberry32(theme.seed), MOUNTAIN_WIDTH, MOUNTAIN_HEIGHT, 18)}
+              sprite={generateMountain(
+                mulberry32(theme.peak.id),
+                MOUNTAIN_WIDTH,
+                MOUNTAIN_HEIGHT,
+                pixelPeakHeight(theme.peak),
+              )}
               palette={{ rock: theme.rock, snow: theme.snow }}
               scale={MOUNTAIN_SCALE}
             />
