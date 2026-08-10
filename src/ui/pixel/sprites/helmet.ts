@@ -8,7 +8,7 @@ const strap = (halfWidth: number) => 'H'.repeat(halfWidth) + '.'.repeat(9 - half
 /**
  * A climbing helmet: rounded dome, a brim ring, a thin chin strap trailing
  * toward the jaw. Same overlay contract as `hair.ts` — swap one for the
- * other over `bodyBase` for the "helmet vs. hair" choice.
+ * other over the body layer for the "helmet vs. hair" choice.
  */
 export const helmetClassic: Sprite = {
   w: 18,

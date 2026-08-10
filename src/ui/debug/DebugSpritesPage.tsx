@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import PixelLayers, { type Layer } from '../pixel/PixelLayers';
-import { bodyBase } from '../pixel/sprites/body';
+import { bodyIdle, bodyClimb, bodySlip, bodyCheer } from '../pixel/sprites/body';
 import { hairShort } from '../pixel/sprites/hair';
 import { helmetClassic } from '../pixel/sprites/helmet';
 import { harnessBasic } from '../pixel/sprites/harness';
+import type { Sprite } from '../pixel/types';
 
 const SKIN_TONES = ['#e8b98a', '#c68958', '#8d5a3a', '#f2cba0'];
 const HAIR_COLORS = ['#4a2f1c', '#1b1b1b', '#a35c2e', '#e8c15a'];
@@ -12,14 +13,20 @@ const PANTS_COLORS = ['#2b2d42', '#4a3728', '#3d5a80'];
 const SHOE_COLORS = ['#1b1b1b', '#6b4226', '#e8e8e8'];
 const HELMET_COLORS = ['#e63946', '#ffb703', '#3a86ff', '#2b2d42'];
 
-const SCALES = [4, 8, 12];
+const POSES: readonly [string, Sprite][] = [
+  ['idle', bodyIdle],
+  ['climb', bodyClimb],
+  ['slip', bodySlip],
+  ['cheer', bodyCheer],
+];
+
+const SCALE = 8;
 
 /**
- * Dev-only gallery for the layered character system: a base body plus
- * swappable headgear (hair or helmet) and an optional harness overlay,
- * each independently colorable. Grows as more hair styles / gear are
- * added — the point is to eyeball real combinations, not enumerate every
- * possible one.
+ * Dev-only gallery for the layered character system: every body pose,
+ * with the currently selected headgear/harness/colors applied to each —
+ * the point is to eyeball the pose set as a set (same character,
+ * different silhouette), not each pose in isolation.
  */
 export default function DebugSpritesPage() {
   const [headgear, setHeadgear] = useState<'hair' | 'helmet'>('hair');
@@ -39,13 +46,13 @@ export default function DebugSpritesPage() {
     eyes: '#2b2118',
   };
 
-  const layers: Layer[] = [
-    { sprite: bodyBase, palette: bodyPalette },
+  const headgearLayer: Layer =
     headgear === 'hair'
       ? { sprite: hairShort, palette: { hair: HAIR_COLORS[hairIndex] } }
-      : { sprite: helmetClassic, palette: { helmet: HELMET_COLORS[helmetIndex] } },
-    ...(showHarness ? [{ sprite: harnessBasic, palette: { harness: '#ffcc00' } }] : []),
-  ];
+      : { sprite: helmetClassic, palette: { helmet: HELMET_COLORS[helmetIndex] } };
+  const harnessLayer: Layer[] = showHarness
+    ? [{ sprite: harnessBasic, palette: { harness: '#ffcc00' } }]
+    : [];
 
   function colorSelect(
     label: string,
@@ -76,7 +83,7 @@ export default function DebugSpritesPage() {
   return (
     <main>
       <h1>Debug: sprites</h1>
-      <p>Dev-only. Layered, customizable character: body + headgear + harness.</p>
+      <p>Dev-only. Layered, customizable character: body + headgear + harness, every pose.</p>
 
       <p>
         <label htmlFor="headgear-select">Headgear</label>{' '}
@@ -115,10 +122,13 @@ export default function DebugSpritesPage() {
         data-testid="character-preview"
         style={{ display: 'flex', gap: '2rem', alignItems: 'flex-end' }}
       >
-        {SCALES.map((scale) => (
-          <div key={scale}>
-            <PixelLayers layers={layers} scale={scale} />
-            <p>{scale}x</p>
+        {POSES.map(([name, body]) => (
+          <div key={name}>
+            <PixelLayers
+              layers={[{ sprite: body, palette: bodyPalette }, headgearLayer, ...harnessLayer]}
+              scale={SCALE}
+            />
+            <p>{name}</p>
           </div>
         ))}
       </div>
