@@ -80,6 +80,20 @@ already used by worktree` — the merge itself still succeeds despite the comman
 - Never run bare `git stash` — the stash stack is shared across worktrees and other sessions may be
   using it concurrently.
 
+## Local test flakiness under full-suite parallel load
+
+- **`pnpm test` (the full suite, 25+ files) can flake in this local sandbox under parallel
+  execution — a different, unrelated test fails each run despite every generator test using fixed,
+  deterministic seeds.** Confirmed environmental, not a logic bug: the same "failing" test passes
+  reliably every time when run in isolation (`pnpm exec vitest run path/to/file.test.ts`), and CI
+  (GitHub Actions, a more consistent environment) has shown `test: pass` on every PR all session.
+  Before treating a full-suite failure as a real regression: re-run the single file that failed in
+  isolation a couple of times. If it's clean alone, it's contention (worker timeouts under CPU/memory
+  pressure), not a bug — don't start "fixing" generator logic chasing it. Adding more
+  canvas-rendering UI tests (M2) made this more frequent; if it gets worse, consider
+  `test.pool`/`test.maxWorkers` tuning in `vite.config.ts`, but that's out of scope for now since CI
+  isn't affected.
+
 ## Before opening a PR
 
 Run the full local check suite — see [CONTRIBUTING.md](./CONTRIBUTING.md). `pnpm format:check`

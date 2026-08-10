@@ -1,17 +1,49 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import DebugSpritesPage from './DebugSpritesPage';
-import { climberPalettes } from '../pixel/sprites/climber';
 
 describe('DebugSpritesPage', () => {
-  it('renders one row per climber palette variant', () => {
+  it('renders the character at every configured scale', () => {
     render(<DebugSpritesPage />);
-    expect(screen.getAllByTestId('sprite-palette-row')).toHaveLength(climberPalettes.length);
+    const canvases = screen.getByTestId('character-preview').querySelectorAll('canvas');
+    expect(canvases).toHaveLength(3);
   });
 
-  it('renders every sprite at every configured scale', () => {
-    const { container } = render(<DebugSpritesPage />);
-    const canvases = container.querySelectorAll('canvas');
-    expect(canvases).toHaveLength(climberPalettes.length * 3);
+  it('defaults to hair, with a harness worn', () => {
+    render(<DebugSpritesPage />);
+    expect(screen.getByTestId('headgear-select')).toHaveValue('hair');
+    expect(screen.getByTestId('harness-toggle')).toBeChecked();
+    expect(screen.getByTestId('hair-select')).toBeInTheDocument();
+    expect(screen.queryByTestId('helmet-select')).not.toBeInTheDocument();
+  });
+
+  it('swaps the hair color picker for a helmet color picker when headgear changes', async () => {
+    const user = userEvent.setup();
+    render(<DebugSpritesPage />);
+    await user.selectOptions(screen.getByTestId('headgear-select'), 'helmet');
+    expect(screen.getByTestId('helmet-select')).toBeInTheDocument();
+    expect(screen.queryByTestId('hair-select')).not.toBeInTheDocument();
+  });
+
+  it('offers more than one color option for every colorable slot', () => {
+    render(<DebugSpritesPage />);
+    for (const testId of [
+      'skin-select',
+      'hair-select',
+      'shirt-select',
+      'pants-select',
+      'shoes-select',
+    ]) {
+      const options = screen.getByTestId(testId).querySelectorAll('option');
+      expect(options.length).toBeGreaterThan(1);
+    }
+  });
+
+  it('toggles the harness off', async () => {
+    const user = userEvent.setup();
+    render(<DebugSpritesPage />);
+    await user.click(screen.getByTestId('harness-toggle'));
+    expect(screen.getByTestId('harness-toggle')).not.toBeChecked();
   });
 });
