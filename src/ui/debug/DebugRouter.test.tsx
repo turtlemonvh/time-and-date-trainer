@@ -18,13 +18,19 @@ describe('DebugRouter', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Debug: sprites' })).toBeInTheDocument();
   });
 
-  it('shows an index for a debug route that does not exist yet', () => {
+  it('renders the widgets page at /debug/widgets', () => {
     render(<DebugRouter pathname="/debug/widgets" />);
+    expect(screen.getByRole('heading', { level: 1, name: 'Debug: widgets' })).toBeInTheDocument();
+  });
+
+  it('shows an index for a debug route that does not exist', () => {
+    render(<DebugRouter pathname="/debug/nonexistent" />);
     expect(
       screen.getByRole('heading', { level: 1, name: 'Unknown debug route' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '/debug/questions' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '/debug/sprites' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '/debug/widgets' })).toBeInTheDocument();
   });
 
   it('shows the index for a path outside /debug/ entirely', () => {

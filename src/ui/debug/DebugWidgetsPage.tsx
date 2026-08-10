@@ -29,7 +29,7 @@ export default function DebugWidgetsPage() {
 
   return (
     <main>
-      <h1>Widget gallery</h1>
+      <h1>Debug: widgets</h1>
       <p>Dev-only. Not shipped to production — see CONTRIBUTING for how to reach this page.</p>
 
       <h2>AnalogClock — read-only</h2>
