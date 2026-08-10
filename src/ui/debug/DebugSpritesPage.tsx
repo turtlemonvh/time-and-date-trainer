@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { mulberry32 } from '../../engine/rng';
-import PixelCanvas from '../pixel/PixelCanvas';
 import PixelLayers, { type Layer } from '../pixel/PixelLayers';
-import { generateMountain } from '../pixel/mountain';
+import { generateMountainScene } from '../pixel/mountainScene';
 import { MOUNTAIN_THEMES, pixelPeakHeight } from '../pixel/mountainThemes';
 import { bodyIdle, bodyClimb, bodySlip, bodyCheer } from '../pixel/sprites/body';
 import { hairShort, hairPuffy, hairPigtails } from '../pixel/sprites/hair';
@@ -157,9 +156,9 @@ export default function DebugSpritesPage() {
         ))}
       </div>
 
-      <h2>Mountain silhouettes</h2>
+      <h2>Mountain scenes</h2>
       <p>
-        Procedurally generated (a jagged ridge via midpoint displacement, seeded per peak) — one
+        Procedurally generated, 3 parallax bands per scene (paler and shorter toward the back) — one
         algorithm, different seed/palette/peak-height per theme. All 10 peaks, in climb order.
       </p>
       <div
@@ -171,14 +170,15 @@ export default function DebugSpritesPage() {
             <p>
               {theme.peak.id}. {theme.peak.name} — {theme.peak.emphasis}
             </p>
-            <PixelCanvas
-              sprite={generateMountain(
+            <PixelLayers
+              layers={generateMountainScene(
                 mulberry32(theme.peak.id),
                 MOUNTAIN_WIDTH,
                 MOUNTAIN_HEIGHT,
                 pixelPeakHeight(theme.peak),
+                theme.rock,
+                theme.snow,
               )}
-              palette={{ rock: theme.rock, snow: theme.snow }}
               scale={MOUNTAIN_SCALE}
             />
           </div>
