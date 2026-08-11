@@ -1,5 +1,8 @@
 import { useState } from 'react';
+import { PEAKS } from '../../engine/peaks';
+import { CHARACTER_PRESETS } from '../character/presets';
 import CharacterPick from '../screens/CharacterPick';
+import Climb from '../screens/Climb';
 import Intro from '../screens/Intro';
 import Map from '../screens/Map';
 import ProfileSelect from '../screens/ProfileSelect';
@@ -42,6 +45,8 @@ export default function DebugScreensPage() {
   const [pickedCharacterId, setPickedCharacterId] = useState<string | null>(null);
   const [mapProfile, setMapProfile] = useState(SAMPLE_PROFILES[0]);
   const [mapAction, setMapAction] = useState<string | null>(null);
+  const [climbKey, setClimbKey] = useState(0);
+  const [climbStatus, setClimbStatus] = useState<string | null>(null);
 
   return (
     <main>
@@ -89,6 +94,32 @@ export default function DebugScreensPage() {
           setMapAction(`Set difficulty: ${difficulty}`);
         }}
         onSelectPeak={(peakId) => setMapAction(`Selected peak: ${peakId}`)}
+      />
+
+      <h2>Climb</h2>
+      <p data-testid="screens-climb-status">{climbStatus ?? 'In progress'}</p>
+      <p>
+        <button
+          type="button"
+          data-testid="screens-climb-restart"
+          onClick={() => {
+            setClimbKey((key) => key + 1);
+            setClimbStatus(null);
+          }}
+        >
+          Restart Climb
+        </button>
+      </p>
+      <Climb
+        key={climbKey}
+        peak={PEAKS[0]}
+        difficulty={5}
+        characterPreset={CHARACTER_PRESETS[0]}
+        seed={climbKey}
+        onSummit={(state, elapsedMs) =>
+          setClimbStatus(`Summited at position ${state.position} in ${elapsedMs}ms`)
+        }
+        onFall={(state) => setClimbStatus(`Fell at position ${state.position}`)}
       />
     </main>
   );
