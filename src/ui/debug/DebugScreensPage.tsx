@@ -3,9 +3,11 @@ import { PEAKS } from '../../engine/peaks';
 import { CHARACTER_PRESETS } from '../character/presets';
 import CharacterPick from '../screens/CharacterPick';
 import Climb from '../screens/Climb';
+import Fell from '../screens/Fell';
 import Intro from '../screens/Intro';
 import Map from '../screens/Map';
 import ProfileSelect from '../screens/ProfileSelect';
+import Summit from '../screens/Summit';
 import type { Profile } from '../../storage/types';
 
 const SAMPLE_PROFILES: Profile[] = [
@@ -47,6 +49,8 @@ export default function DebugScreensPage() {
   const [mapAction, setMapAction] = useState<string | null>(null);
   const [climbKey, setClimbKey] = useState(0);
   const [climbStatus, setClimbStatus] = useState<string | null>(null);
+  const [summitAction, setSummitAction] = useState<string | null>(null);
+  const [fellAction, setFellAction] = useState<string | null>(null);
 
   return (
     <main>
@@ -120,6 +124,24 @@ export default function DebugScreensPage() {
           setClimbStatus(`Summited at position ${state.position} in ${elapsedMs}ms`)
         }
         onFall={(state) => setClimbStatus(`Fell at position ${state.position}`)}
+      />
+
+      <h2>Summit</h2>
+      <p data-testid="screens-summit-action">{summitAction ?? 'No action yet'}</p>
+      <Summit
+        peak={PEAKS[0]}
+        characterPreset={CHARACTER_PRESETS[0]}
+        elapsedMs={92000}
+        onContinue={() => setSummitAction('Continued to map')}
+      />
+
+      <h2>Fell</h2>
+      <p data-testid="screens-fell-action">{fellAction ?? 'No action yet'}</p>
+      <Fell
+        peak={PEAKS[0]}
+        characterPreset={CHARACTER_PRESETS[0]}
+        onRetry={() => setFellAction('Retry')}
+        onReturnToMap={() => setFellAction('Returned to map')}
       />
     </main>
   );
