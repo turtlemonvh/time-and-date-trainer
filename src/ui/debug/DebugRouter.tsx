@@ -1,3 +1,4 @@
+import DebugHudPage from './DebugHudPage';
 import DebugQuestionsPage from './DebugQuestionsPage';
 import DebugSpritesPage from './DebugSpritesPage';
 import DebugWidgetsPage from './DebugWidgetsPage';
@@ -23,6 +24,8 @@ export default function DebugRouter({ pathname }: { pathname: string }) {
       return <DebugSpritesPage />;
     case 'widgets':
       return <DebugWidgetsPage />;
+    case 'hud':
+      return <DebugHudPage />;
     default:
       return (
         <main>
@@ -39,6 +42,9 @@ export default function DebugRouter({ pathname }: { pathname: string }) {
             </li>
             <li>
               <a href="/debug/widgets">/debug/widgets</a>
+            </li>
+            <li>
+              <a href="/debug/hud">/debug/hud</a>
             </li>
           </ul>
         </main>
