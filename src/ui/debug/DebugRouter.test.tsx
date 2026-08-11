@@ -28,6 +28,11 @@ describe('DebugRouter', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Debug: hud' })).toBeInTheDocument();
   });
 
+  it('renders the screens page at /debug/screens', () => {
+    render(<DebugRouter pathname="/debug/screens" />);
+    expect(screen.getByRole('heading', { level: 1, name: 'Debug: screens' })).toBeInTheDocument();
+  });
+
   it('shows an index for a debug route that does not exist', () => {
     render(<DebugRouter pathname="/debug/nonexistent" />);
     expect(
