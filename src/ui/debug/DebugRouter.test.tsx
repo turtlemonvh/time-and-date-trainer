@@ -33,6 +33,13 @@ describe('DebugRouter', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Debug: screens' })).toBeInTheDocument();
   });
 
+  it('renders PreviewPlayer at /debug/preview', () => {
+    render(<DebugRouter pathname="/debug/preview" />);
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Timescaler — question preview' }),
+    ).toBeInTheDocument();
+  });
+
   it('shows an index for a debug route that does not exist', () => {
     render(<DebugRouter pathname="/debug/nonexistent" />);
     expect(

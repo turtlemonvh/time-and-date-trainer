@@ -13,6 +13,11 @@ of production builds — they're never reachable on the live site, only when run
 
 - `/debug/questions` — every question generator's output at any difficulty/peak, with raw JSON
 - `/debug/sprites` — every character pose, palette, and mountain theme
+- `/debug/widgets` — every answer/display widget (clocks, calendar, choice grid, entry fields)
+- `/debug/hud` — the in-climb HUD components (timer, boost/fall-risk meters, mini-map, profile chip)
+- `/debug/screens` — every M4 screen rendered standalone, for visual QA as each one is built
+- `/debug/preview` — `PreviewPlayer`, the click-through question-engine preview that used to be the
+  production landing page before the real game (`App.tsx`) existed
 
 ## Before opening a PR
 
