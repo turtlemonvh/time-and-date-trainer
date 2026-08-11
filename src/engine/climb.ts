@@ -55,3 +55,13 @@ export function applyMiss(state: ClimbState): ClimbState {
     fallRisk: state.fallRisk + 1,
   };
 }
+
+/**
+ * Whether a correct answer counts as "fast" for `applyCorrect`'s boost
+ * bonus — answered in under half the question's time limit, per the design
+ * spec. A tiny pure rule, but it belongs here rather than inlined in a UI
+ * component: it's a game rule, not a rendering concern.
+ */
+export function isFastAnswer(elapsedMs: number, timeLimitMs: number): boolean {
+  return elapsedMs < timeLimitMs / 2;
+}

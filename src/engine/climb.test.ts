@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyCorrect, applyMiss, createClimb } from './climb';
+import { applyCorrect, applyMiss, createClimb, isFastAnswer } from './climb';
 import { getPeak } from './peaks';
 
 const peak1 = getPeak(1); // height 20
@@ -136,5 +136,23 @@ describe('applyMiss', () => {
     expect(state).toEqual(fallen);
     state = applyCorrect(state, true);
     expect(state).toEqual(fallen);
+  });
+});
+
+describe('isFastAnswer', () => {
+  it('is true when answered in under half the time limit', () => {
+    expect(isFastAnswer(2000, 10000)).toBe(true);
+  });
+
+  it('is false when answered at exactly half the time limit', () => {
+    expect(isFastAnswer(5000, 10000)).toBe(false);
+  });
+
+  it('is false when answered in over half the time limit', () => {
+    expect(isFastAnswer(8000, 10000)).toBe(false);
+  });
+
+  it('is true for an instant answer (0ms elapsed)', () => {
+    expect(isFastAnswer(0, 10000)).toBe(true);
   });
 });
