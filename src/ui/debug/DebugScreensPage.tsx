@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import CharacterPick from '../screens/CharacterPick';
 import Intro from '../screens/Intro';
+import Map from '../screens/Map';
 import ProfileSelect from '../screens/ProfileSelect';
 import type { Profile } from '../../storage/types';
 
@@ -11,7 +12,10 @@ const SAMPLE_PROFILES: Profile[] = [
     characterId: 'sunny',
     createdAt: Date.now(),
     settings: { difficulty: 4 },
-    progress: {},
+    progress: {
+      1: { summited: true, bestTimeMs: 92000, attempts: 2 },
+      2: { summited: false, bestTimeMs: null, attempts: 1 },
+    },
     stats: {},
   },
   {
@@ -36,6 +40,8 @@ export default function DebugScreensPage() {
   const [showEmptyProfiles, setShowEmptyProfiles] = useState(false);
   const [profileAction, setProfileAction] = useState<string | null>(null);
   const [pickedCharacterId, setPickedCharacterId] = useState<string | null>(null);
+  const [mapProfile, setMapProfile] = useState(SAMPLE_PROFILES[0]);
+  const [mapAction, setMapAction] = useState<string | null>(null);
 
   return (
     <main>
@@ -70,6 +76,20 @@ export default function DebugScreensPage() {
         {pickedCharacterId ? `Picked: ${pickedCharacterId}` : 'Nothing picked yet'}
       </p>
       <CharacterPick onPick={setPickedCharacterId} />
+
+      <h2>Map</h2>
+      <p data-testid="screens-map-action">{mapAction ?? 'No action yet'}</p>
+      <Map
+        profile={mapProfile}
+        onSetDifficulty={(difficulty) => {
+          setMapProfile((profile) => ({
+            ...profile,
+            settings: { ...profile.settings, difficulty },
+          }));
+          setMapAction(`Set difficulty: ${difficulty}`);
+        }}
+        onSelectPeak={(peakId) => setMapAction(`Selected peak: ${peakId}`)}
+      />
     </main>
   );
 }
