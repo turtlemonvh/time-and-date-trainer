@@ -4,7 +4,12 @@ import { to24Hour, type TimeOfDay, type TimePrecision } from '../../engine/timeM
 import PixelCanvas from '../pixel/PixelCanvas';
 import { generateClockFace } from '../pixel/clockFace';
 
-const FACE_DIAMETER = 33;
+// Higher than the 33-cell grid used elsewhere in the pixel-art system
+// (characters, mountains) — a circle is the hardest shape for chunky pixel
+// art to render legibly, and the low-density first version read as too
+// blocky. `clockFace.ts`'s band widths scale with diameter, so this stays
+// proportioned the same way, just finer-grained.
+const FACE_DIAMETER = 65;
 const FACE_PALETTE = {
   face: '#fdf6e3',
   rim: '#3a2e1f',
