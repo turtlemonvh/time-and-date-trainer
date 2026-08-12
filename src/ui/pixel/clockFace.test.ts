@@ -35,4 +35,25 @@ describe('generateClockFace', () => {
     expect(face.grid).toHaveLength(41);
     expect(face.grid.every((row) => row.length === 41)).toBe(true);
   });
+
+  describe('at the production diameter (129)', () => {
+    // Higher-density grid used by AnalogClock, dense enough to carry both
+    // the 12 hour/major ticks and 60 fine minute ticks distinctly.
+    const face = generateClockFace(129);
+
+    it('is well-formed and declares a minuteTick slot', () => {
+      expect(() => validateSprite(face)).not.toThrow();
+      expect(face.slots.t).toBe('minuteTick');
+    });
+
+    it("still marks major ticks at 12 and 3 o'clock", () => {
+      expect(face.grid[5][64]).toBe('M');
+      expect(face.grid[64][123]).toBe('M');
+    });
+
+    it('marks thin minute ticks between the hour positions', () => {
+      // A minute position near 12 o'clock that is not itself an hour mark.
+      expect(face.grid[6][57]).toBe('t');
+    });
+  });
 });

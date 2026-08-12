@@ -11,7 +11,13 @@ const DIFFICULTIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 function renderDisplay(display: DisplaySpec) {
   switch (display.kind) {
     case 'analogClock':
-      return <AnalogClock time={display.time} showSeconds={display.showSeconds} />;
+      return (
+        <AnalogClock
+          time={display.time}
+          showSeconds={display.showSeconds}
+          showNumerals={display.showNumerals}
+        />
+      );
     case 'calendar':
       return (
         <CalendarMonth
