@@ -6,8 +6,11 @@ import { describeTime } from '../timeMath';
 import {
   BUILT_IN_QUESTION_TYPES,
   DESCRIBE_TIME_TYPE_ID,
+  ELAPSED_ADD_TYPE_ID,
+  ELAPSED_BETWEEN_TYPE_ID,
   generateQuestion,
   isCorrectChoice,
+  isCorrectNumber,
   OFFSET_DATE_TYPE_ID,
   READ_ANALOG_TYPE_ID,
   READ_CALENDAR_TYPE_ID,
@@ -32,6 +35,8 @@ const TIME_LIMIT_MULTIPLIERS: Record<string, number> = {
   [DESCRIBE_TIME_TYPE_ID]: 1,
   [READ_CALENDAR_TYPE_ID]: 1.15,
   [OFFSET_DATE_TYPE_ID]: 1.4,
+  [ELAPSED_ADD_TYPE_ID]: 1.2,
+  [ELAPSED_BETWEEN_TYPE_ID]: 1.3,
 };
 
 /** Distinct, reproducible seed per (difficulty, index) pair. */
@@ -70,28 +75,43 @@ function assertDisplayWellFormed(display: DisplaySpec): void {
 }
 
 function assertAnswerGrades(spec: AnswerSpec): void {
-  expect(spec.kind).toBe('choice');
-  if (spec.kind !== 'choice') return;
-  const answer = spec;
-  expect(answer.options).toHaveLength(OPTION_COUNT);
-  for (const option of answer.options) {
-    expect(typeof option).toBe('string');
-    expect(option.trim().length).toBeGreaterThan(0);
-  }
-  // No duplicate option text: a duplicate means a "wrong" answer that is
-  // word-for-word identical to the right one.
-  expect(new Set(answer.options).size).toBe(OPTION_COUNT);
-  expect(Number.isInteger(answer.correctIndex)).toBe(true);
-  expect(answer.correctIndex).toBeGreaterThanOrEqual(0);
-  expect(answer.correctIndex).toBeLessThan(OPTION_COUNT);
+  switch (spec.kind) {
+    case 'choice': {
+      const answer = spec;
+      expect(answer.options).toHaveLength(OPTION_COUNT);
+      for (const option of answer.options) {
+        expect(typeof option).toBe('string');
+        expect(option.trim().length).toBeGreaterThan(0);
+      }
+      // No duplicate option text: a duplicate means a "wrong" answer that is
+      // word-for-word identical to the right one.
+      expect(new Set(answer.options).size).toBe(OPTION_COUNT);
+      expect(Number.isInteger(answer.correctIndex)).toBe(true);
+      expect(answer.correctIndex).toBeGreaterThanOrEqual(0);
+      expect(answer.correctIndex).toBeLessThan(OPTION_COUNT);
 
-  // The declared correct answer validates true...
-  expect(isCorrectChoice(answer, answer.correctIndex)).toBe(true);
-  // ...and every distractor validates false.
-  for (let i = 0; i < answer.options.length; i++) {
-    if (i === answer.correctIndex) continue;
-    expect(isCorrectChoice(answer, i)).toBe(false);
-    expect(answer.options[i]).not.toBe(answer.options[answer.correctIndex]);
+      // The declared correct answer validates true...
+      expect(isCorrectChoice(answer, answer.correctIndex)).toBe(true);
+      // ...and every distractor validates false.
+      for (let i = 0; i < answer.options.length; i++) {
+        if (i === answer.correctIndex) continue;
+        expect(isCorrectChoice(answer, i)).toBe(false);
+        expect(answer.options[i]).not.toBe(answer.options[answer.correctIndex]);
+      }
+      return;
+    }
+    case 'number': {
+      expect(Number.isInteger(spec.target)).toBe(true);
+      expect(isCorrectNumber(spec, spec.target)).toBe(true);
+      expect(isCorrectNumber(spec, spec.target + 1)).toBe(false);
+      expect(isCorrectNumber(spec, spec.target - 1)).toBe(false);
+      return;
+    }
+    case 'setHands':
+    case 'pickDate':
+      // No generator produces these yet; the PR that adds one extends this
+      // switch with its own grading assertions.
+      return;
   }
 }
 
@@ -101,10 +121,30 @@ function assertAnswerGrades(spec: AnswerSpec): void {
  * "the game marked her right answer wrong".
  */
 function assertDeclaredAnswerMatchesDisplay(q: Question): void {
-  // Every registered generator is still choice-mode today. A generator that
-  // produces setHands/number/pickDate needs its own re-derivation assertion
-  // here (the options[correctIndex] lookup below doesn't apply to those
-  // kinds) — add one in that generator's own PR, not a bare early return.
+  // A typeId whose answer isn't choice-kind (elapsedBetween's `number`, and
+  // any future setHands/pickDate generator) handles its own re-derivation
+  // inside its switch case below, since `declared`/`answer.options` here
+  // don't apply to those kinds.
+  if (q.typeId === ELAPSED_BETWEEN_TYPE_ID) {
+    expect(q.answer.kind).toBe('number');
+    if (q.answer.kind !== 'number') return;
+    expect(q.display.kind).toBe('none');
+    // Re-derive the elapsed minutes straight from the prompt's two 12-hour,
+    // no-AM/PM clock-face labels via mod-720 (half-day) arithmetic — since
+    // the generator guarantees the true elapsed span is under 720 minutes,
+    // this recovers the unique correct value with no AM/PM to disambiguate.
+    const match = q.prompt.match(
+      /^It's (\d{1,2}):(\d{2})\. It becomes (\d{1,2}):(\d{2})\. How many minutes have passed\?$/,
+    );
+    expect(match).not.toBeNull();
+    if (!match) return;
+    const [, startHour, startMin, endHour, endMin] = match;
+    const startOfHalfDay = (Number(startHour) % 12) * 60 + Number(startMin);
+    const endOfHalfDay = (Number(endHour) % 12) * 60 + Number(endMin);
+    const elapsed = (((endOfHalfDay - startOfHalfDay) % 720) + 720) % 720;
+    expect(q.answer.target).toBe(elapsed);
+    return;
+  }
   if (q.answer.kind !== 'choice') return;
   const answer = q.answer;
   const declared = answer.options[answer.correctIndex];
@@ -135,6 +175,13 @@ function assertDeclaredAnswerMatchesDisplay(q: Question): void {
       // arithmetic straight from the prompt instead.
       expect(q.display.kind).toBe('none');
       expect(declared).toMatch(/^[A-Z][a-z]+ \d{1,2}, \d{4}$/);
+      return;
+    }
+    case ELAPSED_ADD_TYPE_ID: {
+      // No display to re-derive from, same as offsetDate; elapsedAdd.test.ts
+      // re-computes the arithmetic straight from the prompt instead.
+      expect(q.display.kind).toBe('none');
+      expect(declared).toMatch(/^\d{1,2}:\d{2}$/);
       return;
     }
     default:
@@ -199,6 +246,8 @@ describe('generator contract', () => {
       DESCRIBE_TIME_TYPE_ID,
       READ_CALENDAR_TYPE_ID,
       OFFSET_DATE_TYPE_ID,
+      ELAPSED_ADD_TYPE_ID,
+      ELAPSED_BETWEEN_TYPE_ID,
     ];
     for (const type of BUILT_IN_QUESTION_TYPES) {
       expect(covered).toContain(type.typeId);
