@@ -94,6 +94,38 @@ describe('selectGenerator', () => {
       selectGenerator(mulberry32(5), ctx).typeId,
     );
   });
+
+  it('draws the peak-matching generator far more often than an off-theme one', () => {
+    // 'readAnalog' is on-theme for peak 1 (Basecamp Bluff, see peakEmphasis.ts);
+    // 'offsetDate' is on-theme for peak 7, not peak 1 — same answerMode, so only
+    // the peak-match 5x weight should separate them.
+    registerGenerator(fakeType('readAnalog'));
+    registerGenerator(fakeType('offsetDate'));
+    const rng = mulberry32(11);
+    const counts = { readAnalog: 0, offsetDate: 0 };
+    for (let i = 0; i < 2000; i++) {
+      counts[selectGenerator(rng, ctx).typeId as 'readAnalog' | 'offsetDate']++;
+    }
+    // Expected ~5:1; assert direction and a generous ratio bound rather than
+    // an exact split, since this is a randomized draw.
+    expect(counts.readAnalog).toBeGreaterThan(counts.offsetDate * 3);
+  });
+
+  it('never draws a generator whose answerMode has zero weight at this difficulty', () => {
+    const interactiveType: QuestionType = {
+      typeId: 'gizmo',
+      answerMode: 'interactive',
+      generate: fakeType('gizmo').generate,
+    };
+    registerGenerator(fakeType('readAnalog'));
+    registerGenerator(interactiveType);
+    // Difficulty 1's answerModeWeights.interactive is 0 (see difficulty.ts).
+    const level1Ctx: GeneratorContext = { difficulty: 1, peak: getPeak(1) };
+    const rng = mulberry32(3);
+    for (let i = 0; i < 200; i++) {
+      expect(selectGenerator(rng, level1Ctx).typeId).toBe('readAnalog');
+    }
+  });
 });
 
 describe('generateQuestion', () => {
