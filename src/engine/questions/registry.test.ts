@@ -98,7 +98,8 @@ describe('selectGenerator', () => {
   it('draws the peak-matching generator far more often than an off-theme one', () => {
     // 'readAnalog' is on-theme for peak 1 (Basecamp Bluff, see peakEmphasis.ts);
     // 'offsetDate' is on-theme for peak 7, not peak 1 — same answerMode, so only
-    // the peak-match 5x weight should separate them.
+    // the peak-match weight (PEAK_MATCH_WEIGHT_MULTIPLIER, currently 3x) should
+    // separate them.
     registerGenerator(fakeType('readAnalog'));
     registerGenerator(fakeType('offsetDate'));
     const rng = mulberry32(11);
@@ -106,9 +107,9 @@ describe('selectGenerator', () => {
     for (let i = 0; i < 2000; i++) {
       counts[selectGenerator(rng, ctx).typeId as 'readAnalog' | 'offsetDate']++;
     }
-    // Expected ~5:1; assert direction and a generous ratio bound rather than
+    // Expected ~3:1; assert direction and a generous ratio bound rather than
     // an exact split, since this is a randomized draw.
-    expect(counts.readAnalog).toBeGreaterThan(counts.offsetDate * 3);
+    expect(counts.readAnalog).toBeGreaterThan(counts.offsetDate * 2);
   });
 
   it('never draws a generator whose answerMode has zero weight at this difficulty', () => {

@@ -4,7 +4,8 @@ import { PEAKS, type Peak } from '../peaks';
  * Which generator typeIds are "on theme" for each peak, keyed by `peak.id`
  * — one entry per `PEAKS` entry (checked by a test), so a new peak can't
  * silently ship with no emphasis mapping. `selectGenerator` weights a
- * matching generator 5x over a non-matching one.
+ * matching generator more heavily than a non-matching one (see
+ * `PEAK_MATCH_WEIGHT_MULTIPLIER` in `registry.ts`).
  *
  * A peak whose dedicated generator hasn't landed yet gets an empty array;
  * until then, `selectGenerator` falls back to `answerModeWeights` alone
