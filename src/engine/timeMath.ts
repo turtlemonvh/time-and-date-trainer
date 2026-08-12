@@ -42,6 +42,13 @@ export function formatTime12(t: TimeOfDay, opts: { seconds?: boolean } = {}): st
   return `${base} ${period}`;
 }
 
+/** "HH:MM", zero-padded 24-hour time — no AM/PM, unlike `formatTime12`. */
+export function formatTime24(t: TimeOfDay, opts: { seconds?: boolean } = {}): string {
+  const hh = String(t.hour).padStart(2, '0');
+  const mm = String(t.minute).padStart(2, '0');
+  return opts.seconds ? `${hh}:${mm}:${String(t.second).padStart(2, '0')}` : `${hh}:${mm}`;
+}
+
 const NUMBER_WORDS = [
   'zero',
   'one',

@@ -4,9 +4,9 @@ import userEvent from '@testing-library/user-event';
 import PreviewPlayer from './PreviewPlayer';
 
 describe('PreviewPlayer', () => {
-  it('renders the first question of a 30-question batch', () => {
+  it('renders the first question of a 33-question batch', () => {
     render(<PreviewPlayer initialSeed={1} />);
-    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 30');
+    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 33');
   });
 
   it('shows the prompt, the answer choices, and the explanation', () => {
@@ -125,7 +125,7 @@ describe('PreviewPlayer', () => {
     render(<PreviewPlayer initialSeed={1} />);
     const firstPrompt = screen.getByTestId('preview-prompt').textContent;
     await user.click(screen.getByTestId('preview-next'));
-    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 2 of 30');
+    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 2 of 33');
     // Not a strict requirement that the prompt text differs (two generators could
     // coincidentally produce the same prompt), but the progress counter moving is.
     void firstPrompt;
@@ -135,32 +135,32 @@ describe('PreviewPlayer', () => {
     const user = userEvent.setup();
     render(<PreviewPlayer initialSeed={1} />);
     await user.keyboard('{Enter}');
-    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 2 of 30');
+    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 2 of 33');
   });
 
   it('does not advance when Enter is pressed inside a select', () => {
     render(<PreviewPlayer initialSeed={1} />);
     fireEvent.keyDown(screen.getByTestId('preview-difficulty'), { key: 'Enter' });
-    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 30');
+    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 33');
   });
 
   it('wraps to a fresh batch after the last question', async () => {
     const user = userEvent.setup();
     render(<PreviewPlayer initialSeed={1} />);
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 33; i++) {
       await user.click(screen.getByTestId('preview-next'));
     }
-    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 30');
+    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 33');
   });
 
   it('resets to question 1 and regenerates when difficulty changes', async () => {
     const user = userEvent.setup();
     render(<PreviewPlayer initialSeed={1} />);
     await user.click(screen.getByTestId('preview-next'));
-    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 2 of 30');
+    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 2 of 33');
     await user.selectOptions(screen.getByTestId('preview-difficulty'), '9');
     expect(screen.getByTestId('preview-difficulty')).toHaveValue('9');
-    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 30');
+    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 33');
   });
 
   it('resets to question 1 and regenerates when peak changes', async () => {
@@ -170,7 +170,7 @@ describe('PreviewPlayer', () => {
     await user.click(screen.getByTestId('preview-next'));
     await user.selectOptions(screen.getByTestId('preview-peak'), '3');
     expect(screen.getByTestId('preview-peak')).toHaveValue('3');
-    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 30');
+    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 33');
     // Same seed, different peak: the batch content must actually change, not
     // just the index — otherwise the Peak selector silently does nothing.
     expect(screen.getByTestId('preview-id').textContent).not.toBe(firstQuestionId);
@@ -181,7 +181,7 @@ describe('PreviewPlayer', () => {
     render(<PreviewPlayer initialSeed={1} />);
     await user.click(screen.getByTestId('preview-next'));
     await user.click(screen.getByRole('button', { name: 'Regenerate' }));
-    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 30');
+    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 33');
   });
 
   it('offers all ten difficulties and all ten peaks', () => {

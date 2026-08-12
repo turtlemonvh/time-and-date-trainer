@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { difficultyProfile } from '../difficulty';
 import { PEAKS } from '../peaks';
 import { mulberry32 } from '../rng';
-import { describeTime } from '../timeMath';
+import { describeTime, to24Hour } from '../timeMath';
 import {
   BUILT_IN_QUESTION_TYPES,
   COUNT_WEEKDAYS_TYPE_ID,
@@ -11,6 +11,7 @@ import {
   ELAPSED_ADD_TYPE_ID,
   ELAPSED_BETWEEN_TYPE_ID,
   generateQuestion,
+  HOUR24_TYPE_ID,
   isCorrectChoice,
   isCorrectNumber,
   isCorrectPickDate,
@@ -62,6 +63,7 @@ const TIME_LIMIT_MULTIPLIERS: Record<string, number> = {
   [DAY_OF_WEEK_TYPE_ID]: 1.1,
   [NTH_WEEKDAY_TYPE_ID]: 1.5,
   [COUNT_WEEKDAYS_TYPE_ID]: 1.4,
+  [HOUR24_TYPE_ID]: 1.2,
 };
 
 /** Distinct, reproducible seed per (difficulty, index) pair. */
@@ -319,6 +321,29 @@ function assertDeclaredAnswerMatchesDisplay(q: Question): void {
       expect(WEEKDAY_NAMES).toContain(declared);
       return;
     }
+    case HOUR24_TYPE_ID: {
+      expect(q.display.kind).toBe('none');
+      // Re-derive the conversion straight from the prompt's given time,
+      // independent of the generator — using `to24Hour`, a small standalone
+      // utility, not the generator's own formatting logic.
+      const to24Match = q.prompt.match(/^What is (\d{1,2}):(\d{2}) (AM|PM) in 24-hour time\?$/);
+      const to12Match = q.prompt.match(/^What is (\d{2}):(\d{2}) in 12-hour time\?$/);
+      if (to24Match) {
+        const [, hourText, minuteText, period] = to24Match;
+        const hour24 = to24Hour(Number(hourText), period === 'PM');
+        expect(declared).toBe(`${String(hour24).padStart(2, '0')}:${minuteText}`);
+        return;
+      }
+      if (to12Match) {
+        const [, hourText, minuteText] = to12Match;
+        const hour24 = Number(hourText);
+        const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+        const period = hour24 < 12 ? 'AM' : 'PM';
+        expect(declared).toBe(`${hour12}:${minuteText} ${period}`);
+        return;
+      }
+      throw new Error(`unexpected hour24 prompt: ${q.prompt}`);
+    }
     default:
       throw new Error(
         `contract test has no cross-check for typeId "${q.typeId}" — add one when adding a type`,
@@ -387,6 +412,7 @@ describe('generator contract', () => {
       DAY_OF_WEEK_TYPE_ID,
       NTH_WEEKDAY_TYPE_ID,
       COUNT_WEEKDAYS_TYPE_ID,
+      HOUR24_TYPE_ID,
     ];
     for (const type of BUILT_IN_QUESTION_TYPES) {
       expect(covered).toContain(type.typeId);
