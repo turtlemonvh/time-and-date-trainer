@@ -8,23 +8,35 @@ function questionIds(): string[] {
 }
 
 describe('DebugQuestionsPage', () => {
-  it('renders three questions for each of the four generators', () => {
+  it('renders three questions for each of the six generators', () => {
     render(<DebugQuestionsPage initialSeed={1} />);
-    expect(screen.getAllByTestId('question-card')).toHaveLength(12);
+    expect(screen.getAllByTestId('question-card')).toHaveLength(18);
   });
 
   it('shows every registered question type', () => {
     render(<DebugQuestionsPage initialSeed={1} />);
-    for (const typeId of ['readAnalog', 'describeTime', 'readCalendar', 'offsetDate']) {
+    for (const typeId of [
+      'readAnalog',
+      'describeTime',
+      'readCalendar',
+      'offsetDate',
+      'elapsedAdd',
+      'elapsedBetween',
+    ]) {
       expect(screen.getAllByText(typeId).length).toBe(3);
     }
   });
 
-  it('marks exactly one option correct on every card', () => {
+  it('marks exactly one option correct on every choice-kind card, and shows an answer summary otherwise', () => {
     render(<DebugQuestionsPage initialSeed={1} />);
     for (const card of screen.getAllByTestId('question-card')) {
-      expect(within(card).getAllByTestId('correct-option')).toHaveLength(1);
-      expect(within(card).getAllByTestId('option')).toHaveLength(3);
+      const correctOptions = within(card).queryAllByTestId('correct-option');
+      if (correctOptions.length > 0) {
+        expect(correctOptions).toHaveLength(1);
+        expect(within(card).getAllByTestId('option')).toHaveLength(3);
+      } else {
+        expect(within(card).getByTestId('question-answer').textContent).not.toBe('');
+      }
     }
   });
 
@@ -41,7 +53,7 @@ describe('DebugQuestionsPage', () => {
   it('dumps the raw display spec as JSON for inspection', () => {
     render(<DebugQuestionsPage initialSeed={1} />);
     const dumps = screen.getAllByTestId('display-json');
-    expect(dumps).toHaveLength(12);
+    expect(dumps).toHaveLength(18);
     for (const dump of dumps) {
       expect(() => JSON.parse(dump.textContent ?? '')).not.toThrow();
     }
@@ -53,7 +65,7 @@ describe('DebugQuestionsPage', () => {
     const before = questionIds();
     await user.click(screen.getByRole('button', { name: 'Regenerate' }));
     const after = questionIds();
-    expect(after).toHaveLength(12);
+    expect(after).toHaveLength(18);
     expect(after).not.toEqual(before);
   });
 

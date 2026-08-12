@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { PEAKS } from '../../engine/peaks';
 import { generateQuestionBatch } from '../../engine/questions/preview';
-import type { DisplaySpec } from '../../engine/questions';
+import type { AnswerSpec, DisplaySpec } from '../../engine/questions';
 import AnalogClock from '../widgets/AnalogClock';
 import CalendarMonth from '../widgets/CalendarMonth';
 import ChoiceGrid from '../widgets/ChoiceGrid';
+import NumberEntry from '../widgets/NumberEntry';
 
 const DIFFICULTIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
@@ -33,15 +34,17 @@ function renderDisplay(display: DisplaySpec) {
 
 /**
  * Cycles through a generated batch of questions one at a time, using the
- * real M3 widgets (AnalogClock, CalendarMonth, ChoiceGrid) rather than a
- * text gloss — so the question engine's output is visible the way it'll
- * actually be presented in the game, without the full climb state machine
- * (which arrives in a later milestone). Picking an option reveals whether
- * it was correct via ChoiceGrid, but — since there's no climb/scoring here
- * yet — Enter (or Next) always advances regardless of whether an answer was
- * picked at all. Deliberately reachable in production: this is what deploys
- * to GitHub Pages today, so progress on the question engine is visible
- * without a local checkout.
+ * real widgets (AnalogClock, CalendarMonth, ChoiceGrid, NumberEntry) rather
+ * than a text gloss — so the question engine's output is visible the way
+ * it'll actually be presented in the game, without the full climb state
+ * machine (which arrives in a later milestone). Choosing an option or
+ * checking a typed number reveals whether it was correct, but — since
+ * there's no climb/scoring here yet — Enter (or Next) always advances
+ * regardless of whether an answer was given at all. `setHands`/`pickDate`
+ * throw until their own generator PR gives them a real widget here, same as
+ * `number` just got. Deliberately reachable in production: this is what
+ * deploys to GitHub Pages today, so progress on the question engine is
+ * visible without a local checkout.
  */
 export default function PreviewPlayer({ initialSeed }: { initialSeed?: number }) {
   const [difficulty, setDifficulty] = useState(3);
@@ -49,19 +52,20 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
   const [seed, setSeed] = useState(() => initialSeed ?? Date.now());
   const [index, setIndex] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState<number | undefined>(undefined);
+  const [draftNumber, setDraftNumber] = useState<number | ''>('');
+  const [numberRevealed, setNumberRevealed] = useState(false);
 
   const batch = generateQuestionBatch(seed, peakId, difficulty);
   const question = batch[index];
-  if (question.answer.kind !== 'choice') {
-    // Every registered generator still produces a ChoiceAnswer today; this
-    // preview (like Climb.tsx) gets its own rendering for the other answer
-    // kinds in a later M5 task.
-    throw new Error(`PreviewPlayer: unsupported answer kind "${question.answer.kind}"`);
+
+  function resetAnswerState() {
+    setSelectedIndex(undefined);
+    setDraftNumber('');
+    setNumberRevealed(false);
   }
-  const answer = question.answer;
 
   function advance() {
-    setSelectedIndex(undefined);
+    resetAnswerState();
     if (index + 1 < batch.length) {
       setIndex(index + 1);
     } else {
@@ -79,6 +83,46 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   });
+
+  function renderAnswerSection(answer: AnswerSpec) {
+    switch (answer.kind) {
+      case 'choice':
+        return (
+          <ChoiceGrid
+            options={answer.options}
+            selectedIndex={selectedIndex}
+            correctIndex={selectedIndex !== undefined ? answer.correctIndex : undefined}
+            onSelect={setSelectedIndex}
+          />
+        );
+      case 'number':
+        return (
+          <div data-testid="preview-number-answer">
+            <NumberEntry value={draftNumber} onChange={setDraftNumber} unit={answer.unit} />
+            <button
+              type="button"
+              data-testid="preview-check"
+              disabled={draftNumber === ''}
+              onClick={() => setNumberRevealed(true)}
+            >
+              Check
+            </button>
+            {numberRevealed && (
+              <p data-testid="preview-number-result">
+                {draftNumber === answer.target
+                  ? 'Correct!'
+                  : `Not quite — the answer is ${answer.target}${answer.unit ? ` ${answer.unit}` : ''}.`}
+              </p>
+            )}
+          </div>
+        );
+      case 'setHands':
+      case 'pickDate':
+        // No generator produces these yet; the PR that adds one gives this
+        // its own real widget, like `number` just got here.
+        throw new Error(`PreviewPlayer: unsupported answer kind "${answer.kind}"`);
+    }
+  }
 
   return (
     <main>
@@ -105,7 +149,7 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
           onChange={(event) => {
             setDifficulty(Number(event.target.value));
             setIndex(0);
-            setSelectedIndex(undefined);
+            resetAnswerState();
           }}
         >
           {DIFFICULTIES.map((level) => (
@@ -122,7 +166,7 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
           onChange={(event) => {
             setPeakId(Number(event.target.value));
             setIndex(0);
-            setSelectedIndex(undefined);
+            resetAnswerState();
           }}
         >
           {PEAKS.map((peak) => (
@@ -136,7 +180,7 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
           onClick={() => {
             setSeed((current) => current + 1);
             setIndex(0);
-            setSelectedIndex(undefined);
+            resetAnswerState();
           }}
         >
           Regenerate
@@ -154,12 +198,7 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
         </p>
         <p data-testid="preview-prompt">{question.prompt}</p>
         <div data-testid="preview-display">{renderDisplay(question.display)}</div>
-        <ChoiceGrid
-          options={answer.options}
-          selectedIndex={selectedIndex}
-          correctIndex={selectedIndex !== undefined ? answer.correctIndex : undefined}
-          onSelect={setSelectedIndex}
-        />
+        {renderAnswerSection(question.answer)}
         <p data-testid="preview-explain">{question.explainCorrect}</p>
       </article>
 
