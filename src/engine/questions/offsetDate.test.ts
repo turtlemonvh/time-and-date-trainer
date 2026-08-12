@@ -3,7 +3,13 @@ import { formatDateLong } from '../dateMath';
 import { difficultyProfile } from '../difficulty';
 import { getPeak } from '../peaks';
 import { mulberry32 } from '../rng';
-import { generateOffsetDate, OFFSET_DATE_TYPE_ID, offsetDateType } from './offsetDate';
+import {
+  generateOffsetDate,
+  OFFSET_DATE_TYPE_ID,
+  offsetDateType,
+  OFFSET_DATE_TIME_LIMIT_MULTIPLIER,
+} from './offsetDate';
+import { timeLimitFor } from './support';
 import type { GeneratorContext } from './types';
 
 const ctx: GeneratorContext = { difficulty: 5, peak: getPeak(7) };
@@ -120,10 +126,12 @@ describe('generateOffsetDate', () => {
     expect(directions.size).toBe(2);
   });
 
-  it('uses the difficulty profile timer', () => {
+  it("uses the difficulty profile timer, scaled by this type's own multiplier", () => {
     for (const difficulty of [1, 5, 10]) {
       const q = generateOffsetDate(mulberry32(1), { ...ctx, difficulty });
-      expect(q.timeLimitMs).toBe(difficultyProfile(difficulty).timerMs);
+      expect(q.timeLimitMs).toBe(
+        timeLimitFor(difficultyProfile(difficulty), OFFSET_DATE_TIME_LIMIT_MULTIPLIER),
+      );
     }
   });
 

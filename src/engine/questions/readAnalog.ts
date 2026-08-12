@@ -7,10 +7,15 @@ import {
   formatClockFace,
   makeQuestionId,
   pickPrecision,
+  timeLimitFor,
 } from './support';
 import type { GeneratorContext, Question, QuestionType } from './types';
 
 export const READ_ANALOG_TYPE_ID = 'readAnalog';
+
+/** A single glance at a clock face — the baseline every other type's timer
+ * multiplier is relative to. */
+const TIME_LIMIT_MULTIPLIER = 1;
 
 /** Peak 1's bread and butter: an analog face, four candidate readings. */
 export function generateReadAnalog(rng: Rng, ctx: GeneratorContext): Question {
@@ -26,7 +31,7 @@ export function generateReadAnalog(rng: Rng, ctx: GeneratorContext): Question {
     prompt: 'What time does the clock show?',
     display: { kind: 'analogClock', time, showSeconds, showNumerals: profile.clockNumerals },
     answer: buildChoiceAnswer(rng, correct, candidates),
-    timeLimitMs: profile.timerMs,
+    timeLimitMs: timeLimitFor(profile, TIME_LIMIT_MULTIPLIER),
     explainCorrect: `The clock shows ${correct}.`,
   };
 }

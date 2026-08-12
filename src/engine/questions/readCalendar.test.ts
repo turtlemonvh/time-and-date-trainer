@@ -2,8 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { difficultyProfile } from '../difficulty';
 import { getPeak } from '../peaks';
 import { mulberry32 } from '../rng';
-import { generateReadCalendar, READ_CALENDAR_TYPE_ID, readCalendarType } from './readCalendar';
-import { weekdayName, WEEKDAY_NAMES } from './support';
+import {
+  generateReadCalendar,
+  READ_CALENDAR_TYPE_ID,
+  readCalendarType,
+  READ_CALENDAR_TIME_LIMIT_MULTIPLIER,
+} from './readCalendar';
+import { timeLimitFor, weekdayName, WEEKDAY_NAMES } from './support';
 import type { GeneratorContext } from './types';
 
 const ctx: GeneratorContext = { difficulty: 3, peak: getPeak(3) };
@@ -67,10 +72,12 @@ describe('generateReadCalendar', () => {
     expect(years.size).toBeGreaterThan(1);
   });
 
-  it('uses the difficulty profile timer', () => {
+  it("uses the difficulty profile timer, scaled by this type's own multiplier", () => {
     for (const difficulty of [1, 5, 10]) {
       const q = generateReadCalendar(mulberry32(1), { ...ctx, difficulty });
-      expect(q.timeLimitMs).toBe(difficultyProfile(difficulty).timerMs);
+      expect(q.timeLimitMs).toBe(
+        timeLimitFor(difficultyProfile(difficulty), READ_CALENDAR_TIME_LIMIT_MULTIPLIER),
+      );
     }
   });
 

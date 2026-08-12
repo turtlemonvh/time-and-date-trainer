@@ -1,10 +1,21 @@
 import { formatDateLong, offsetDate, type DateOffsetUnit } from '../dateMath';
 import { difficultyProfile, type DateSpan } from '../difficulty';
 import { pick, randInt, type Rng } from '../rng';
-import { buildChoiceAnswer, dateRangeForSpan, makeQuestionId, randomQuestionDate } from './support';
+import {
+  buildChoiceAnswer,
+  dateRangeForSpan,
+  makeQuestionId,
+  randomQuestionDate,
+  timeLimitFor,
+} from './support';
 import type { GeneratorContext, Question, QuestionType } from './types';
 
 export const OFFSET_DATE_TYPE_ID = 'offsetDate';
+
+/** Counting a jump across a calendar (and, at higher difficulty, across
+ * months or years) is genuinely multi-step compared to reading a single
+ * clock face — the slowest of the four existing generators. */
+export const OFFSET_DATE_TIME_LIMIT_MULTIPLIER = 1.4;
 
 interface OffsetPlan {
   start: Date;
@@ -99,7 +110,7 @@ export function generateOffsetDate(rng: Rng, ctx: GeneratorContext): Question {
     prompt: `What date is ${plan.amount} ${unitWord} ${direction} ${longStart}?`,
     display: { kind: 'none' },
     answer: buildChoiceAnswer(rng, correct, candidates),
-    timeLimitMs: profile.timerMs,
+    timeLimitMs: timeLimitFor(profile, OFFSET_DATE_TIME_LIMIT_MULTIPLIER),
     explainCorrect: `${plan.amount} ${unitWord} ${direction} ${longStart} is ${correct}.`,
   };
 }
