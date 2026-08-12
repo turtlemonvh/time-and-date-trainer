@@ -11,9 +11,11 @@ import {
   generateQuestion,
   isCorrectChoice,
   isCorrectNumber,
+  isCorrectSetHands,
   OFFSET_DATE_TYPE_ID,
   READ_ANALOG_TYPE_ID,
   READ_CALENDAR_TYPE_ID,
+  SET_HANDS_TYPE_ID,
   type AnswerSpec,
   type DisplaySpec,
   type Question,
@@ -37,6 +39,7 @@ const TIME_LIMIT_MULTIPLIERS: Record<string, number> = {
   [OFFSET_DATE_TYPE_ID]: 1.4,
   [ELAPSED_ADD_TYPE_ID]: 1.2,
   [ELAPSED_BETWEEN_TYPE_ID]: 1.3,
+  [SET_HANDS_TYPE_ID]: 1.3,
 };
 
 /** Distinct, reproducible seed per (difficulty, index) pair. */
@@ -107,9 +110,26 @@ function assertAnswerGrades(spec: AnswerSpec): void {
       expect(isCorrectNumber(spec, spec.target - 1)).toBe(false);
       return;
     }
-    case 'setHands':
+    case 'setHands': {
+      const { hour, minute, second } = spec.target;
+      expect(Number.isInteger(hour)).toBe(true);
+      expect(hour).toBeGreaterThanOrEqual(0);
+      expect(hour).toBeLessThanOrEqual(23);
+      expect(Number.isInteger(minute)).toBe(true);
+      expect(minute).toBeGreaterThanOrEqual(0);
+      expect(minute).toBeLessThanOrEqual(59);
+      // No draggable second hand — grading ignores seconds, and the
+      // generator never sets a nonzero one (see setHands.ts).
+      expect(second).toBe(0);
+      expect(spec.precision).not.toBe('second');
+
+      expect(isCorrectSetHands(spec, spec.target)).toBe(true);
+      expect(isCorrectSetHands(spec, { ...spec.target, minute: (minute + 1) % 60 })).toBe(false);
+      expect(isCorrectSetHands(spec, { ...spec.target, hour: (hour + 1) % 24 })).toBe(false);
+      return;
+    }
     case 'pickDate':
-      // No generator produces these yet; the PR that adds one extends this
+      // No generator produces this yet; the PR that adds one extends this
       // switch with its own grading assertions.
       return;
   }
@@ -121,10 +141,27 @@ function assertAnswerGrades(spec: AnswerSpec): void {
  * "the game marked her right answer wrong".
  */
 function assertDeclaredAnswerMatchesDisplay(q: Question): void {
-  // A typeId whose answer isn't choice-kind (elapsedBetween's `number`, and
-  // any future setHands/pickDate generator) handles its own re-derivation
-  // inside its switch case below, since `declared`/`answer.options` here
+  // A typeId whose answer isn't choice-kind (elapsedBetween's `number`,
+  // setHands' own `setHands`, and any future pickDate generator) handles
+  // its own re-derivation here, since `declared`/`answer.options` below
   // don't apply to those kinds.
+  if (q.typeId === SET_HANDS_TYPE_ID) {
+    expect(q.answer.kind).toBe('setHands');
+    if (q.answer.kind !== 'setHands') return;
+    expect(q.display.kind).toBe('none');
+    // Re-derive the target straight from the prompt's own clock-face label
+    // — only the 12-hour half-day position is recoverable (no AM/PM on a
+    // bare clock face), same limitation `readAnalog`'s cross-check works
+    // around by disallowing AM/PM in its options entirely.
+    const match = q.prompt.match(/^Set the clock to (\d{1,2}):(\d{2})\.$/);
+    expect(match).not.toBeNull();
+    if (!match) return;
+    const [, hourText, minuteText] = match;
+    const targetHour12 = q.answer.target.hour % 12 === 0 ? 12 : q.answer.target.hour % 12;
+    expect(Number(hourText)).toBe(targetHour12);
+    expect(Number(minuteText)).toBe(q.answer.target.minute);
+    return;
+  }
   if (q.typeId === ELAPSED_BETWEEN_TYPE_ID) {
     expect(q.answer.kind).toBe('number');
     if (q.answer.kind !== 'number') return;
@@ -248,6 +285,7 @@ describe('generator contract', () => {
       OFFSET_DATE_TYPE_ID,
       ELAPSED_ADD_TYPE_ID,
       ELAPSED_BETWEEN_TYPE_ID,
+      SET_HANDS_TYPE_ID,
     ];
     for (const type of BUILT_IN_QUESTION_TYPES) {
       expect(covered).toContain(type.typeId);

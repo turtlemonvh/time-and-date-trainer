@@ -1,12 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PreviewPlayer from './PreviewPlayer';
 
 describe('PreviewPlayer', () => {
-  it('renders the first question of an 18-question batch', () => {
+  it('renders the first question of a 21-question batch', () => {
     render(<PreviewPlayer initialSeed={1} />);
-    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 18');
+    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 21');
   });
 
   it('shows the prompt, the answer choices, and the explanation', () => {
@@ -63,6 +63,33 @@ describe('PreviewPlayer', () => {
     expect(screen.getByTestId('preview-number-result')).toBeInTheDocument();
   });
 
+  it('renders the real interactive AnalogClock for setHands questions, and reveals on Check', async () => {
+    const CENTER = 129; // AnalogClock's default target size (260) snaps to actualSize 258.
+    vi.spyOn(SVGElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      width: CENTER * 2,
+      height: CENTER * 2,
+      right: CENTER * 2,
+      bottom: CENTER * 2,
+      x: 0,
+      y: 0,
+      toJSON: () => {},
+    } as DOMRect);
+    const user = userEvent.setup();
+    render(<PreviewPlayer initialSeed={1} />);
+    // ...elapsedAdd(12-14), elapsedBetween(15-17), setHands(18-20): 18 clicks reaches index 18.
+    for (let i = 0; i < 18; i++) {
+      await user.click(screen.getByTestId('preview-next'));
+    }
+    const answerSection = screen.getByTestId('preview-set-hands');
+    expect(within(answerSection).getByTestId('analog-clock')).toBeInTheDocument();
+    expect(screen.queryByTestId('preview-hands-result')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('preview-check'));
+    expect(screen.getByTestId('preview-hands-result')).toBeInTheDocument();
+  });
+
   it('reveals correctness when an option is picked, and resets on the next question', async () => {
     const user = userEvent.setup();
     render(<PreviewPlayer initialSeed={1} />);
@@ -82,7 +109,7 @@ describe('PreviewPlayer', () => {
     render(<PreviewPlayer initialSeed={1} />);
     const firstPrompt = screen.getByTestId('preview-prompt').textContent;
     await user.click(screen.getByTestId('preview-next'));
-    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 2 of 18');
+    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 2 of 21');
     // Not a strict requirement that the prompt text differs (two generators could
     // coincidentally produce the same prompt), but the progress counter moving is.
     void firstPrompt;
@@ -92,32 +119,32 @@ describe('PreviewPlayer', () => {
     const user = userEvent.setup();
     render(<PreviewPlayer initialSeed={1} />);
     await user.keyboard('{Enter}');
-    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 2 of 18');
+    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 2 of 21');
   });
 
   it('does not advance when Enter is pressed inside a select', () => {
     render(<PreviewPlayer initialSeed={1} />);
     fireEvent.keyDown(screen.getByTestId('preview-difficulty'), { key: 'Enter' });
-    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 18');
+    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 21');
   });
 
   it('wraps to a fresh batch after the last question', async () => {
     const user = userEvent.setup();
     render(<PreviewPlayer initialSeed={1} />);
-    for (let i = 0; i < 18; i++) {
+    for (let i = 0; i < 21; i++) {
       await user.click(screen.getByTestId('preview-next'));
     }
-    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 18');
+    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 21');
   });
 
   it('resets to question 1 and regenerates when difficulty changes', async () => {
     const user = userEvent.setup();
     render(<PreviewPlayer initialSeed={1} />);
     await user.click(screen.getByTestId('preview-next'));
-    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 2 of 18');
+    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 2 of 21');
     await user.selectOptions(screen.getByTestId('preview-difficulty'), '9');
     expect(screen.getByTestId('preview-difficulty')).toHaveValue('9');
-    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 18');
+    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 21');
   });
 
   it('resets to question 1 and regenerates when peak changes', async () => {
@@ -127,7 +154,7 @@ describe('PreviewPlayer', () => {
     await user.click(screen.getByTestId('preview-next'));
     await user.selectOptions(screen.getByTestId('preview-peak'), '3');
     expect(screen.getByTestId('preview-peak')).toHaveValue('3');
-    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 18');
+    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 21');
     // Same seed, different peak: the batch content must actually change, not
     // just the index — otherwise the Peak selector silently does nothing.
     expect(screen.getByTestId('preview-id').textContent).not.toBe(firstQuestionId);
@@ -138,7 +165,7 @@ describe('PreviewPlayer', () => {
     render(<PreviewPlayer initialSeed={1} />);
     await user.click(screen.getByTestId('preview-next'));
     await user.click(screen.getByRole('button', { name: 'Regenerate' }));
-    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 18');
+    expect(screen.getByTestId('preview-progress').textContent).toBe('Question 1 of 21');
   });
 
   it('offers all ten difficulties and all ten peaks', () => {

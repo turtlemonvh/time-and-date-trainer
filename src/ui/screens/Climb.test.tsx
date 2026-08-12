@@ -19,15 +19,15 @@ const FIXED_QUESTION: Question = {
   explainCorrect: 'Because Right is right.',
 };
 
-// No registered generator produces these three kinds yet (M5 is still
-// building them out), so these fixtures are hand-built the same way
-// FIXED_QUESTION is, to prove Climb.tsx's own rendering/grading for each
-// kind is correct ahead of any real generator existing.
-// Target is PM (hour 15, not 3) so it's reachable by dragging from
-// `Climb.tsx`'s own DEFAULT_DRAFT_TIME (noon) — the hour hand's drag
-// preserves whichever half of the day the current draft is already in
-// (the same AM/PM-ambiguity-of-a-12-hour-face logic `AnalogClock` itself
-// uses), and the default starts PM.
+// No registered generator produces pickDate yet, so that one fixture is
+// hand-built the same way FIXED_QUESTION is. setHands and number now have
+// real generators (setHands.ts, elapsedBetween.ts), but these fixtures are
+// still used so Climb.tsx's rendering/grading is pinned to exact,
+// hand-picked values independent of generator internals.
+// Target is PM (hour 15, not 3): `Climb.tsx`'s `defaultDraftTime` starts the
+// draft in the *same* AM/PM half as the target (noon for PM, midnight for
+// AM) precisely so both halves are reachable — see the AM fixture below,
+// which exercises the other half.
 const SET_HANDS_QUESTION: Question = {
   id: 'test-sethands',
   typeId: 'testSetHands',
@@ -36,6 +36,16 @@ const SET_HANDS_QUESTION: Question = {
   answer: { kind: 'setHands', target: { hour: 15, minute: 15, second: 0 }, precision: 'quarter' },
   timeLimitMs: 5000,
   explainCorrect: 'The clock should show 3:15 PM.',
+};
+
+const SET_HANDS_QUESTION_AM: Question = {
+  id: 'test-sethands-am',
+  typeId: 'testSetHands',
+  prompt: 'Set the clock to 3:15 AM',
+  display: { kind: 'none' },
+  answer: { kind: 'setHands', target: { hour: 3, minute: 15, second: 0 }, precision: 'quarter' },
+  timeLimitMs: 5000,
+  explainCorrect: 'The clock should show 3:15 AM.',
 };
 
 const NUMBER_QUESTION: Question = {
@@ -303,6 +313,27 @@ describe('Climb — setHands answer kind', () => {
       pointerId: 1,
     });
     // Hour hand to the "3" position -> hour 15, preserving the default's PM half.
+    fireEvent.pointerDown(screen.getByTestId('analog-clock-hour-hand'), {
+      clientX: CENTER + RADIUS,
+      clientY: CENTER,
+      pointerId: 1,
+    });
+    fireEvent.click(screen.getByTestId('climb-submit'));
+    expect(onQuestionAnswered).toHaveBeenCalledWith('testSetHands', true, expect.any(Number));
+  });
+
+  it("an AM target is reachable too — the default draft starts in the target's own half", () => {
+    vi.mocked(generateQuestion).mockReturnValue(SET_HANDS_QUESTION_AM);
+    const onQuestionAnswered = renderClimb();
+    // Minute hand to the "3" position -> snaps to minute 15 at quarter precision.
+    fireEvent.pointerDown(screen.getByTestId('analog-clock-minute-hand'), {
+      clientX: CENTER + RADIUS,
+      clientY: CENTER,
+      pointerId: 1,
+    });
+    // Hour hand to the "3" position -> hour 3, preserving the default's AM half
+    // (midnight, since the target itself is AM) — this is exactly the case that
+    // was unreachable before `defaultDraftTime` matched the target's half.
     fireEvent.pointerDown(screen.getByTestId('analog-clock-hour-hand'), {
       clientX: CENTER + RADIUS,
       clientY: CENTER,

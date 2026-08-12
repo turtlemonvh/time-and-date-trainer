@@ -1,11 +1,24 @@
 import { useEffect, useState } from 'react';
 import { PEAKS } from '../../engine/peaks';
 import { generateQuestionBatch } from '../../engine/questions/preview';
-import type { AnswerSpec, DisplaySpec } from '../../engine/questions';
+import {
+  isCorrectSetHands,
+  type AnswerSpec,
+  type DisplaySpec,
+  type Question,
+} from '../../engine/questions';
+import type { TimeOfDay } from '../../engine/timeMath';
+import { defaultSetHandsDraft } from '../questionDisplay';
 import AnalogClock from '../widgets/AnalogClock';
 import CalendarMonth from '../widgets/CalendarMonth';
 import ChoiceGrid from '../widgets/ChoiceGrid';
 import NumberEntry from '../widgets/NumberEntry';
+
+const NOON: TimeOfDay = { hour: 12, minute: 0, second: 0 };
+
+function draftTimeFor(question: Question): TimeOfDay {
+  return question.answer.kind === 'setHands' ? defaultSetHandsDraft(question.answer.target) : NOON;
+}
 
 const DIFFICULTIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
@@ -38,38 +51,50 @@ function renderDisplay(display: DisplaySpec) {
  * than a text gloss — so the question engine's output is visible the way
  * it'll actually be presented in the game, without the full climb state
  * machine (which arrives in a later milestone). Choosing an option or
- * checking a typed number reveals whether it was correct, but — since
- * there's no climb/scoring here yet — Enter (or Next) always advances
- * regardless of whether an answer was given at all. `setHands`/`pickDate`
- * throw until their own generator PR gives them a real widget here, same as
- * `number` just got. Deliberately reachable in production: this is what
- * deploys to GitHub Pages today, so progress on the question engine is
- * visible without a local checkout.
+ * checking a typed number or dragging the clock hands reveals whether it
+ * was correct, but — since there's no climb/scoring here yet — Enter (or
+ * Next) always advances regardless of whether an answer was given at all.
+ * `pickDate` throws until its own generator PR gives it a real widget here,
+ * same as `number` and `setHands` just got. Deliberately reachable in
+ * production: this is what deploys to GitHub Pages today, so progress on
+ * the question engine is visible without a local checkout.
  */
 export default function PreviewPlayer({ initialSeed }: { initialSeed?: number }) {
   const [difficulty, setDifficulty] = useState(3);
   const [peakId, setPeakId] = useState(PEAKS[0].id);
   const [seed, setSeed] = useState(() => initialSeed ?? Date.now());
   const [index, setIndex] = useState(0);
-  const [selectedIndex, setSelectedIndex] = useState<number | undefined>(undefined);
-  const [draftNumber, setDraftNumber] = useState<number | ''>('');
-  const [numberRevealed, setNumberRevealed] = useState(false);
 
   const batch = generateQuestionBatch(seed, peakId, difficulty);
   const question = batch[index];
 
-  function resetAnswerState() {
+  const [selectedIndex, setSelectedIndex] = useState<number | undefined>(undefined);
+  const [draftNumber, setDraftNumber] = useState<number | ''>('');
+  const [numberRevealed, setNumberRevealed] = useState(false);
+  const [draftTime, setDraftTime] = useState<TimeOfDay>(() => draftTimeFor(question));
+  const [handsRevealed, setHandsRevealed] = useState(false);
+
+  /** Every answer-related bit of state is scoped to "the current question",
+   * so every place that moves to a different one resets them all together
+   * here — passing the question being moved *to* explicitly, since `batch`
+   * (and so `question`) is recomputed fresh every render rather than read
+   * back after the state change that produces it. */
+  function resetAnswerState(next: Question) {
     setSelectedIndex(undefined);
     setDraftNumber('');
     setNumberRevealed(false);
+    setDraftTime(draftTimeFor(next));
+    setHandsRevealed(false);
   }
 
   function advance() {
-    resetAnswerState();
     if (index + 1 < batch.length) {
+      resetAnswerState(batch[index + 1]);
       setIndex(index + 1);
     } else {
-      setSeed((current) => current + 1);
+      const nextSeed = seed + 1;
+      resetAnswerState(generateQuestionBatch(nextSeed, peakId, difficulty)[0]);
+      setSeed(nextSeed);
       setIndex(0);
     }
   }
@@ -117,9 +142,30 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
           </div>
         );
       case 'setHands':
+        return (
+          <div data-testid="preview-set-hands">
+            <AnalogClock
+              time={draftTime}
+              precision={answer.precision}
+              onHandChange={setDraftTime}
+            />
+            <button
+              type="button"
+              data-testid="preview-check"
+              onClick={() => setHandsRevealed(true)}
+            >
+              Check
+            </button>
+            {handsRevealed && (
+              <p data-testid="preview-hands-result">
+                {isCorrectSetHands(answer, draftTime) ? 'Correct!' : 'Not quite — try again.'}
+              </p>
+            )}
+          </div>
+        );
       case 'pickDate':
-        // No generator produces these yet; the PR that adds one gives this
-        // its own real widget, like `number` just got here.
+        // No generator produces this yet; the PR that adds one gives this
+        // its own real widget, like `number` and `setHands` just got here.
         throw new Error(`PreviewPlayer: unsupported answer kind "${answer.kind}"`);
     }
   }
@@ -147,9 +193,10 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
           data-testid="preview-difficulty"
           value={difficulty}
           onChange={(event) => {
-            setDifficulty(Number(event.target.value));
+            const nextDifficulty = Number(event.target.value);
+            resetAnswerState(generateQuestionBatch(seed, peakId, nextDifficulty)[0]);
+            setDifficulty(nextDifficulty);
             setIndex(0);
-            resetAnswerState();
           }}
         >
           {DIFFICULTIES.map((level) => (
@@ -164,9 +211,10 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
           data-testid="preview-peak"
           value={peakId}
           onChange={(event) => {
-            setPeakId(Number(event.target.value));
+            const nextPeakId = Number(event.target.value);
+            resetAnswerState(generateQuestionBatch(seed, nextPeakId, difficulty)[0]);
+            setPeakId(nextPeakId);
             setIndex(0);
-            resetAnswerState();
           }}
         >
           {PEAKS.map((peak) => (
@@ -178,9 +226,10 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
         <button
           type="button"
           onClick={() => {
-            setSeed((current) => current + 1);
+            const nextSeed = seed + 1;
+            resetAnswerState(generateQuestionBatch(nextSeed, peakId, difficulty)[0]);
+            setSeed(nextSeed);
             setIndex(0);
-            resetAnswerState();
           }}
         >
           Regenerate
