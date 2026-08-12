@@ -8,7 +8,11 @@ import Intro from '../screens/Intro';
 import Map from '../screens/Map';
 import ProfileSelect from '../screens/ProfileSelect';
 import Summit from '../screens/Summit';
+import AnalogClock from '../widgets/AnalogClock';
+import DatePicker from '../widgets/DatePicker';
+import NumberEntry from '../widgets/NumberEntry';
 import type { Profile } from '../../storage/types';
+import type { TimeOfDay } from '../../engine/timeMath';
 
 const SAMPLE_PROFILES: Profile[] = [
   {
@@ -49,6 +53,8 @@ export default function DebugScreensPage() {
   const [mapAction, setMapAction] = useState<string | null>(null);
   const [climbKey, setClimbKey] = useState(0);
   const [climbStatus, setClimbStatus] = useState<string | null>(null);
+  const [galleryTime, setGalleryTime] = useState<TimeOfDay>({ hour: 12, minute: 0, second: 0 });
+  const [galleryNumber, setGalleryNumber] = useState<number | ''>('');
   const [summitAction, setSummitAction] = useState<string | null>(null);
   const [fellAction, setFellAction] = useState<string | null>(null);
 
@@ -125,6 +131,34 @@ export default function DebugScreensPage() {
         }
         onFall={(state) => setClimbStatus(`Fell at position ${state.position}`)}
       />
+
+      <h2>Answer kinds</h2>
+      <p>
+        No registered generator produces <code>setHands</code>/<code>number</code>/
+        <code>pickDate</code> questions yet (M5 is still building them out) — these are static
+        fixtures showing how <code>Climb.tsx</code> renders and captures each answer kind, ahead of
+        any real generator existing to drive it live.
+      </p>
+      <h3>setHands</h3>
+      <div data-testid="gallery-set-hands">
+        <AnalogClock time={galleryTime} precision="quarter" onHandChange={setGalleryTime} />
+        <p>
+          <button type="button">Submit</button>
+        </p>
+      </div>
+      <h3>number</h3>
+      <div data-testid="gallery-number">
+        <NumberEntry value={galleryNumber} onChange={setGalleryNumber} unit="minutes" />
+        <p>
+          <button type="button" disabled={galleryNumber === ''}>
+            Submit
+          </button>
+        </p>
+      </div>
+      <h3>pickDate</h3>
+      <div data-testid="gallery-pick-date">
+        <DatePicker initialYear={2026} initialMonthIndex={5} />
+      </div>
 
       <h2>Summit</h2>
       <p data-testid="screens-summit-action">{summitAction ?? 'No action yet'}</p>
