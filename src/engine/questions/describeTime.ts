@@ -1,4 +1,4 @@
-import { difficultyProfile } from '../difficulty';
+import { difficultyProfile, type DescribePhrasingTier } from '../difficulty';
 import type { Rng } from '../rng';
 import { describeTime, randomTime, type TimePrecision } from '../timeMath';
 import {
@@ -6,7 +6,6 @@ import {
   distractorTimes,
   formatClockFace,
   makeQuestionId,
-  pickPrecision,
   timeLimitFor,
 } from './support';
 import type { GeneratorContext, Question, QuestionType } from './types';
@@ -17,17 +16,43 @@ export const DESCRIBE_TIME_TYPE_ID = 'describeTime';
  * as digits. */
 const TIME_LIMIT_MULTIPLIER = 1;
 
+/**
+ * The minute precision to *draw* for each phrasing tier — this is what
+ * actually restricts which minute values appear, not a distractor concern.
+ * `'minute'` for `anyMinute` draws any of the 60 values; the others draw
+ * exactly the minutes that tier's phrasing covers (half/quarter/five-minute
+ * marks), so every question this type asks is phrased idiomatically for its
+ * tier by construction — there's no separate filter needed.
+ */
+const DRAW_PRECISION: Record<DescribePhrasingTier, TimePrecision> = {
+  halves: 'half',
+  quarters: 'quarter',
+  fives: 'five',
+  anyMinute: 'minute',
+};
+
+/**
+ * The step distractors are offset by. Matches `DRAW_PRECISION` for every
+ * tier except `anyMinute`: a 1-minute gap between two odd-minute phrasings
+ * ("sixteen past two" vs "seventeen past two") is a coin flip, not a
+ * question, so that tier keeps a 5-minute distractor step even though its
+ * draw isn't restricted to multiples of 5.
+ */
+const DISTRACTOR_PRECISION: Record<DescribePhrasingTier, TimePrecision> = {
+  halves: 'half',
+  quarters: 'quarter',
+  fives: 'five',
+  anyMinute: 'five',
+};
+
 /** Peak 2's emphasis: turning a clock face into "quarter past three". */
 export function generateDescribeTime(rng: Rng, ctx: GeneratorContext): Question {
   const profile = difficultyProfile(ctx.difficulty);
-  // `describeTime` speaks only in minutes, so a seconds-precision time would be
-  // described as though the seconds were not there — two different clocks would
-  // then share one correct wording. Cap this type at minute precision instead.
-  const drawn = pickPrecision(rng, profile);
-  const precision: TimePrecision = drawn === 'second' ? 'minute' : drawn;
-  const time = randomTime(rng, precision);
+  const time = randomTime(rng, DRAW_PRECISION[profile.describePhrasing]);
   const correct = describeTime(time);
-  const candidates = distractorTimes(time, precision).map((t) => describeTime(t));
+  const candidates = distractorTimes(time, DISTRACTOR_PRECISION[profile.describePhrasing]).map(
+    (t) => describeTime(t),
+  );
   return {
     id: makeQuestionId(rng, DESCRIBE_TIME_TYPE_ID),
     typeId: DESCRIBE_TIME_TYPE_ID,

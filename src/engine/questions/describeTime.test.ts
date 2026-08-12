@@ -62,6 +62,45 @@ describe('generateDescribeTime', () => {
     }
   });
 
+  describe('phrasing tiers', () => {
+    function minutesAt(difficulty: number, seeds: number): number[] {
+      const minutes: number[] = [];
+      for (let seed = 0; seed < seeds; seed++) {
+        const q = generateDescribeTime(mulberry32(seed), { ...ctx, difficulty });
+        if (q.display.kind !== 'analogClock') throw new Error('expected an analogClock display');
+        minutes.push(q.display.time.minute);
+      }
+      return minutes;
+    }
+
+    it("D1 only ever draws o'clock or half past", () => {
+      for (const minute of minutesAt(1, 100)) {
+        expect([0, 30]).toContain(minute);
+      }
+    });
+
+    it('D2 adds quarter phrasings but stays off the five-minute marks', () => {
+      for (const minute of minutesAt(2, 100)) {
+        expect([0, 15, 30, 45]).toContain(minute);
+      }
+    });
+
+    it('D3-D8 restrict to five-minute multiples', () => {
+      for (const difficulty of [3, 4, 5, 6, 7, 8]) {
+        for (const minute of minutesAt(difficulty, 60)) {
+          expect(minute % 5).toBe(0);
+        }
+      }
+    });
+
+    it('D9-D10 can land on a minute that is not a multiple of five', () => {
+      for (const difficulty of [9, 10]) {
+        const minutes = minutesAt(difficulty, 100);
+        expect(minutes.some((m) => m % 5 !== 0)).toBe(true);
+      }
+    });
+  });
+
   it('explains the correct answer', () => {
     const q = generateDescribeTime(mulberry32(1), ctx);
     expect(q.explainCorrect).toContain(q.answer.options[q.answer.correctIndex]);
