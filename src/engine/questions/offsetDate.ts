@@ -88,7 +88,8 @@ export function generateOffsetDate(rng: Rng, ctx: GeneratorContext): Question {
   const profile = difficultyProfile(ctx.difficulty);
   const plan = planOffset(rng, profile.dateSpan);
   const sign = plan.forward ? 1 : -1;
-  const correct = formatDateLong(offsetDate(plan.start, sign * plan.amount, plan.unit));
+  const correctDate = offsetDate(plan.start, sign * plan.amount, plan.unit);
+  const correct = formatDateLong(correctDate);
   const altUnit: DateOffsetUnit = plan.unit === 'day' ? 'week' : 'day';
   const candidates = [
     offsetDate(plan.start, sign * (plan.amount + 1), plan.unit),
@@ -98,7 +99,7 @@ export function generateOffsetDate(rng: Rng, ctx: GeneratorContext): Question {
     offsetDate(plan.start, sign * plan.amount, altUnit),
     offsetDate(plan.start, sign * (plan.amount + 3), plan.unit),
     offsetDate(plan.start, sign * (plan.amount + 7), plan.unit),
-  ].map((d) => formatDateLong(d));
+  ].map((d) => ({ label: formatDateLong(d), sort: d.getTime() }));
 
   const label = UNIT_LABELS[plan.unit];
   const unitWord = plan.amount === 1 ? label.one : label.many;
@@ -109,7 +110,9 @@ export function generateOffsetDate(rng: Rng, ctx: GeneratorContext): Question {
     typeId: OFFSET_DATE_TYPE_ID,
     prompt: `What date is ${plan.amount} ${unitWord} ${direction} ${longStart}?`,
     display: { kind: 'none' },
-    answer: buildChoiceAnswer(rng, correct, candidates),
+    answer: buildChoiceAnswer(rng, { label: correct, sort: correctDate.getTime() }, candidates, {
+      ordered: profile.orderedChoices,
+    }),
     timeLimitMs: timeLimitFor(profile, OFFSET_DATE_TIME_LIMIT_MULTIPLIER),
     explainCorrect: `${plan.amount} ${unitWord} ${direction} ${longStart} is ${correct}.`,
   };

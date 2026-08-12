@@ -58,6 +58,17 @@ export function formatClockFace(t: TimeOfDay, showSeconds: boolean): string {
   return `${hour12}:${mm}:${String(t.second).padStart(2, '0')}`;
 }
 
+/**
+ * Sort key for ordered choice lists on clock-face question types: 12-hour
+ * position, so 12:xx sorts first (matching how `formatClockFace` itself
+ * reads, and how the face's own numerals are arranged) rather than 24-hour
+ * order, which an AM/PM-less clock face has no way to express anyway.
+ */
+export function clockSortKey(t: TimeOfDay): number {
+  const hour12 = t.hour % 12;
+  return hour12 * 3600 + t.minute * 60 + t.second;
+}
+
 const SECONDS_PER_DAY = 86_400;
 
 /** Moves a time by `deltaSeconds`, wrapping around midnight in both directions. */
@@ -145,38 +156,60 @@ export function randomQuestionDate(rng: Rng, span: DateSpan): Date {
 }
 
 /**
- * Assembles a multiple-choice answer from an ordered candidate pool.
+ * A candidate option paired with the key it sorts by when the difficulty
+ * profile calls for ordered choices. `sort` is carried alongside `label`
+ * rather than derived from it because a formatted label (`"3:05"`,
+ * `"March 5, 2026"`) isn't reliably comparable as text — the caller already
+ * has the underlying value (a time, a date, a weekday index) and knows how
+ * it should sort.
+ */
+export interface ChoiceCandidate {
+  label: string;
+  sort: number;
+}
+
+/**
+ * Assembles a multiple-choice answer from a candidate pool.
  *
  * Rather than rejection-sampling until the options happen to be distinct, the
  * caller hands over a pool it knows is large enough and this function takes the
  * first `optionCount - 1` *distinct* entries that are not the correct answer.
  * That makes a duplicate option, or a distractor that is secretly correct,
  * structurally impossible, and makes an undersized pool a loud, deterministic
- * crash that the contract test in Task 9 catches across every type, difficulty,
- * and seed rather than something a player discovers mid-climb.
+ * crash that the contract test catches across every type, difficulty, and
+ * seed rather than something a player discovers mid-climb.
+ *
+ * `ordered` (from `DifficultyProfile.orderedChoices`, on for the easier
+ * levels) sorts the final four by `sort` instead of shuffling them — removes
+ * the scanning burden while a concept is new. With symmetric ±k distractors
+ * this does mean the correct answer lands in one of the middle two slots
+ * more often than the ends; acceptable at the levels this applies to.
  */
 export function buildChoiceAnswer(
   rng: Rng,
-  correct: string,
-  candidates: readonly string[],
-  optionCount: number = OPTION_COUNT,
+  correct: ChoiceCandidate,
+  candidates: readonly ChoiceCandidate[],
+  opts: { ordered?: boolean; optionCount?: number } = {},
 ): ChoiceAnswer {
-  const seen = new Set<string>([correct]);
-  const distinct: string[] = [];
+  const { ordered = false, optionCount = OPTION_COUNT } = opts;
+  const seen = new Set<string>([correct.label]);
+  const distinct: ChoiceCandidate[] = [];
   for (const candidate of candidates) {
-    if (seen.has(candidate)) continue;
-    seen.add(candidate);
+    if (seen.has(candidate.label)) continue;
+    seen.add(candidate.label);
     distinct.push(candidate);
   }
   if (distinct.length < optionCount - 1) {
     throw new Error(
       `buildChoiceAnswer: needed ${optionCount - 1} distinct distractors for ` +
-        `"${correct}" but only got ${distinct.length}`,
+        `"${correct.label}" but only got ${distinct.length}`,
     );
   }
   const chosen = shuffle(rng, distinct).slice(0, optionCount - 1);
-  const options = shuffle(rng, [correct, ...chosen]);
-  return { kind: 'choice', options, correctIndex: options.indexOf(correct) };
+  const pool = [correct, ...chosen];
+  const arranged = ordered ? [...pool].sort((a, b) => a.sort - b.sort) : shuffle(rng, pool);
+  const options = arranged.map((c) => c.label);
+  return { kind: 'choice', options, correctIndex: options.indexOf(correct.label) };
 }
 
 /** `"readAnalog-1f8x3k"` — stable for a seed, unique enough for a React key. */

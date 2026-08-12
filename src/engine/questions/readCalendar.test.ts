@@ -81,6 +81,31 @@ describe('generateReadCalendar', () => {
     }
   });
 
+  describe('choice ordering', () => {
+    it('sorts options Sunday-first at D1 (ordered)', () => {
+      for (let seed = 0; seed < 50; seed++) {
+        const { options } = generateReadCalendar(mulberry32(seed), {
+          ...ctx,
+          difficulty: 1,
+        }).answer;
+        const keys = options.map((name) => WEEKDAY_NAMES.indexOf(name));
+        expect(keys).toEqual([...keys].sort((a, b) => a - b));
+      }
+    });
+
+    it('does not always produce sorted options at D10 (shuffled)', () => {
+      const anySeedUnsorted = Array.from({ length: 50 }, (_, seed) => {
+        const { options } = generateReadCalendar(mulberry32(seed), {
+          ...ctx,
+          difficulty: 10,
+        }).answer;
+        const keys = options.map((name) => WEEKDAY_NAMES.indexOf(name));
+        return JSON.stringify(keys) !== JSON.stringify([...keys].sort((a, b) => a - b));
+      }).some(Boolean);
+      expect(anySeedUnsorted).toBe(true);
+    });
+  });
+
   it('explains the correct answer', () => {
     const q = generateReadCalendar(mulberry32(1), ctx);
     expect(q.explainCorrect).toContain(q.answer.options[q.answer.correctIndex]);

@@ -66,6 +66,32 @@ describe('generateReadAnalog', () => {
     }
   });
 
+  describe('choice ordering', () => {
+    /** Parses "H:MM" (no AM/PM) back into a 12-hour-position sort key,
+     * matching `clockSortKey`'s own convention (12 o'clock sorts first). */
+    function clockLabelKey(label: string): number {
+      const [hour, minute] = label.split(':').map(Number);
+      return (hour % 12) * 60 + minute;
+    }
+
+    it('sorts options by clock position at D1 (ordered)', () => {
+      for (let seed = 0; seed < 50; seed++) {
+        const { options } = generateReadAnalog(mulberry32(seed), { ...ctx, difficulty: 1 }).answer;
+        const keys = options.map(clockLabelKey);
+        expect(keys).toEqual([...keys].sort((a, b) => a - b));
+      }
+    });
+
+    it('does not always produce sorted options at D10 (shuffled)', () => {
+      const anySeedUnsorted = Array.from({ length: 50 }, (_, seed) => {
+        const { options } = generateReadAnalog(mulberry32(seed), { ...ctx, difficulty: 10 }).answer;
+        const keys = options.map(clockLabelKey);
+        return JSON.stringify(keys) !== JSON.stringify([...keys].sort((a, b) => a - b));
+      }).some(Boolean);
+      expect(anySeedUnsorted).toBe(true);
+    });
+  });
+
   it('explains the correct answer', () => {
     const q = generateReadAnalog(mulberry32(1), ctx);
     expect(q.explainCorrect).toContain(q.answer.options[q.answer.correctIndex]);
