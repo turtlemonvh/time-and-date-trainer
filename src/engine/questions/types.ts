@@ -2,11 +2,17 @@ import type { Peak } from '../peaks';
 import type { Rng } from '../rng';
 import type { TimeOfDay } from '../timeMath';
 
-/** An analog clock face set to `time`. `showSeconds` drives the second hand. */
+/**
+ * An analog clock face set to `time`. `showSeconds` drives the second hand;
+ * `showNumerals` drives whether 1-12 are printed around the face — on for
+ * most difficulty levels, off at the top per `clockNumerals` in
+ * `difficulty.ts`, turning "read the clock" into a harder positional task.
+ */
 export interface AnalogClockDisplay {
   kind: 'analogClock';
   time: TimeOfDay;
   showSeconds: boolean;
+  showNumerals: boolean;
 }
 
 /** A month grid (weeks start Sunday) with exactly one day cell highlighted. */

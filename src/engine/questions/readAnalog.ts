@@ -24,7 +24,7 @@ export function generateReadAnalog(rng: Rng, ctx: GeneratorContext): Question {
     id: makeQuestionId(rng, READ_ANALOG_TYPE_ID),
     typeId: READ_ANALOG_TYPE_ID,
     prompt: 'What time does the clock show?',
-    display: { kind: 'analogClock', time, showSeconds },
+    display: { kind: 'analogClock', time, showSeconds, showNumerals: profile.clockNumerals },
     answer: buildChoiceAnswer(rng, correct, candidates),
     timeLimitMs: profile.timerMs,
     explainCorrect: `The clock shows ${correct}.`,

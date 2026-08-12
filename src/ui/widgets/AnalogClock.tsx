@@ -6,17 +6,22 @@ import { generateClockFace } from '../pixel/clockFace';
 
 // Higher than the 33-cell grid used elsewhere in the pixel-art system
 // (characters, mountains) — a circle is the hardest shape for chunky pixel
-// art to render legibly, and the low-density first version read as too
-// blocky. `clockFace.ts`'s band widths scale with diameter, so this stays
-// proportioned the same way, just finer-grained.
-const FACE_DIAMETER = 65;
+// art to render legibly, and a lower-density face read as too blocky to
+// place minute ticks and numerals on. `clockFace.ts`'s band widths scale
+// with diameter, so this stays proportioned the same way, just
+// finer-grained. At 129 the circumference is ~405 cells, ~6.75 apart at
+// the 60 minute-tick positions — dense enough for clean 1-cell ticks.
+const FACE_DIAMETER = 129;
 const FACE_PALETTE = {
   face: '#fdf6e3',
   rim: '#3a2e1f',
   tick: '#8a7960',
   majorTick: '#3a2e1f',
+  minuteTick: '#c9bda3',
 };
 const SECOND_HAND_COLOR = '#c0392b';
+const NUMERAL_RADIUS_FRACTION = 0.34;
+const NUMERALS = ['12', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'];
 
 const PRECISION_STEP_MINUTES: Record<TimePrecision, number> = {
   hour: 60,
@@ -30,7 +35,19 @@ const PRECISION_STEP_MINUTES: Record<TimePrecision, number> = {
 export interface AnalogClockProps {
   time: TimeOfDay;
   showSeconds?: boolean;
+  /**
+   * Target on-screen size in px. `PixelCanvas` only renders crisply at an
+   * integer `scale` (see its own doc comment), so the actual rendered size
+   * is `FACE_DIAMETER` times the nearest integer scale to `size /
+   * FACE_DIAMETER` — not necessarily `size` itself. Everything else in this
+   * component (hands, numerals) lays out against that actual size, not the
+   * requested one, so the whole widget stays pixel-aligned.
+   */
   size?: number;
+  /** Numerals 1-12 around the face. Defaults on; difficulty turns this off
+   * at high levels as a deliberate challenge, per `clockNumerals` in
+   * `difficulty.ts`. */
+  showNumerals?: boolean;
   /** Minute-hand drag snapping. Only relevant when `onHandChange` is set. */
   precision?: TimePrecision;
   /** Presence makes the hour and minute hands draggable. */
@@ -41,14 +58,17 @@ type Dragging = 'hour' | 'minute' | null;
 
 /**
  * A pixel-art clock face (`PixelCanvas` + `generateClockFace`) with hands
- * drawn as an SVG overlay in the same coordinate space. Hands are SVG, not
- * pixel-grid, because dragging needs a real hit-testable element and
- * fractional angles — a raster redraw-per-frame would fight both.
+ * and numerals drawn as an SVG overlay in the same coordinate space. Hands
+ * are SVG, not pixel-grid, because dragging needs a real hit-testable
+ * element and fractional angles — a raster redraw-per-frame would fight
+ * both. Numerals are SVG text for the same reason chunky pixel digits were
+ * rejected for the body font (see M4.5): a legible face is the point.
  */
 export default function AnalogClock({
   time,
   showSeconds = false,
-  size = 160,
+  size = 260,
+  showNumerals = true,
   precision = 'minute',
   onHandChange,
 }: AnalogClockProps) {
@@ -57,7 +77,8 @@ export default function AnalogClock({
   const interactive = Boolean(onHandChange);
 
   const face = useMemo(() => generateClockFace(FACE_DIAMETER), []);
-  const scale = size / FACE_DIAMETER;
+  const scale = Math.max(1, Math.round(size / FACE_DIAMETER));
+  const actualSize = scale * FACE_DIAMETER;
 
   const hourAngle = ((time.hour % 12) + time.minute / 60) * 30;
   const minuteAngle = time.minute * 6 + time.second / 10;
@@ -108,29 +129,53 @@ export default function AnalogClock({
     setDragging(null);
   }
 
-  const center = size / 2;
+  const center = actualSize / 2;
 
   function handPoint(angleDeg: number, length: number) {
     const rad = (angleDeg * Math.PI) / 180;
     return { x: center + Math.sin(rad) * length, y: center - Math.cos(rad) * length };
   }
 
-  const hourPoint = handPoint(hourAngle, size * 0.28);
-  const minutePoint = handPoint(minuteAngle, size * 0.4);
-  const secondPoint = handPoint(secondAngle, size * 0.42);
+  const hourPoint = handPoint(hourAngle, actualSize * 0.28);
+  const minutePoint = handPoint(minuteAngle, actualSize * 0.4);
+  const secondPoint = handPoint(secondAngle, actualSize * 0.42);
+  const numeralRadius = actualSize * NUMERAL_RADIUS_FRACTION;
 
   return (
-    <div style={{ position: 'relative', width: size, height: size }} data-testid="analog-clock">
+    <div
+      style={{ position: 'relative', width: actualSize, height: actualSize }}
+      data-testid="analog-clock"
+    >
       <PixelCanvas sprite={face} palette={FACE_PALETTE} scale={scale} />
       <svg
         ref={svgRef}
-        width={size}
-        height={size}
+        width={actualSize}
+        height={actualSize}
         style={{ position: 'absolute', inset: 0, touchAction: 'none' }}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
       >
+        {showNumerals &&
+          NUMERALS.map((label, i) => {
+            const point = handPoint(i * 30, numeralRadius);
+            return (
+              <text
+                key={label}
+                data-testid="analog-clock-numeral"
+                x={point.x}
+                y={point.y}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontFamily="var(--sans)"
+                fontWeight={700}
+                fontSize={actualSize * 0.09}
+                fill={FACE_PALETTE.rim}
+              >
+                {label}
+              </text>
+            );
+          })}
         {showSeconds && (
           <line
             data-testid="analog-clock-second-hand"
@@ -139,7 +184,7 @@ export default function AnalogClock({
             x2={secondPoint.x}
             y2={secondPoint.y}
             stroke={SECOND_HAND_COLOR}
-            strokeWidth={size * 0.012}
+            strokeWidth={actualSize * 0.012}
           />
         )}
         <line
@@ -149,7 +194,7 @@ export default function AnalogClock({
           x2={hourPoint.x}
           y2={hourPoint.y}
           stroke={FACE_PALETTE.rim}
-          strokeWidth={size * 0.045}
+          strokeWidth={actualSize * 0.045}
           strokeLinecap="round"
           onPointerDown={startDrag('hour')}
           style={{
@@ -164,7 +209,7 @@ export default function AnalogClock({
           x2={minutePoint.x}
           y2={minutePoint.y}
           stroke={FACE_PALETTE.rim}
-          strokeWidth={size * 0.03}
+          strokeWidth={actualSize * 0.03}
           strokeLinecap="round"
           onPointerDown={startDrag('minute')}
           style={{
@@ -172,7 +217,7 @@ export default function AnalogClock({
             pointerEvents: interactive ? 'stroke' : 'none',
           }}
         />
-        <circle cx={center} cy={center} r={size * 0.02} fill={FACE_PALETTE.rim} />
+        <circle cx={center} cy={center} r={actualSize * 0.02} fill={FACE_PALETTE.rim} />
       </svg>
     </div>
   );

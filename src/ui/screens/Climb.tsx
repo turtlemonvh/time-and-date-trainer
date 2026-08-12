@@ -40,7 +40,13 @@ const POSE_SPRITES = { idle: bodyIdle, climb: bodyClimb, slip: bodySlip, cheer: 
 function renderDisplay(display: DisplaySpec) {
   switch (display.kind) {
     case 'analogClock':
-      return <AnalogClock time={display.time} showSeconds={display.showSeconds} />;
+      return (
+        <AnalogClock
+          time={display.time}
+          showSeconds={display.showSeconds}
+          showNumerals={display.showNumerals}
+        />
+      );
     case 'calendar':
       return (
         <CalendarMonth

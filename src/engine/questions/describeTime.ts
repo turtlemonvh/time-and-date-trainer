@@ -27,7 +27,7 @@ export function generateDescribeTime(rng: Rng, ctx: GeneratorContext): Question 
     id: makeQuestionId(rng, DESCRIBE_TIME_TYPE_ID),
     typeId: DESCRIBE_TIME_TYPE_ID,
     prompt: 'Which words describe the time on the clock?',
-    display: { kind: 'analogClock', time, showSeconds: false },
+    display: { kind: 'analogClock', time, showSeconds: false, showNumerals: profile.clockNumerals },
     answer: buildChoiceAnswer(rng, correct, candidates),
     timeLimitMs: profile.timerMs,
     explainCorrect: `${formatClockFace(time, false)} is ${correct}.`,

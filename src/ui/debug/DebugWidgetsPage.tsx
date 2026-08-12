@@ -59,6 +59,22 @@ export default function DebugWidgetsPage() {
         ))}
       </div>
 
+      <h2>AnalogClock — numerals on vs off</h2>
+      <p>
+        Numerals turn off at difficulty 9-10 (<code>clockNumerals</code> in
+        <code>difficulty.ts</code>) as a deliberate positional-reading challenge.
+      </p>
+      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <div>
+          <AnalogClock time={{ hour: 10, minute: 10, second: 0 }} />
+          <p>showNumerals (default)</p>
+        </div>
+        <div>
+          <AnalogClock time={{ hour: 10, minute: 10, second: 0 }} showNumerals={false} />
+          <p>showNumerals={'{false}'}</p>
+        </div>
+      </div>
+
       <h2>AnalogClock — draggable hands</h2>
       <p>
         <label htmlFor="widgets-precision">Snap precision</label>{' '}
