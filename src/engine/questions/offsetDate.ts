@@ -14,7 +14,7 @@ export const OFFSET_DATE_TYPE_ID = 'offsetDate';
 
 /** Counting a jump across a calendar (and, at higher difficulty, across
  * months or years) is genuinely multi-step compared to reading a single
- * clock face — the slowest of the four existing generators. */
+ * clock face. */
 export const OFFSET_DATE_TIME_LIMIT_MULTIPLIER = 1.4;
 
 interface OffsetPlan {

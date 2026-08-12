@@ -21,10 +21,11 @@ export function pad(value: number): string {
 }
 
 /**
- * A one-line, human-readable gloss of a display spec. Text only — the real
- * widgets (AnalogClock, CalendarMonth) arrive in a later milestone. Shared
- * between the production preview player and the dev-only debug page so the
- * two don't drift.
+ * A one-line, human-readable gloss of a display spec. Text only, even
+ * though real widgets (AnalogClock, CalendarMonth) exist and render this
+ * same data elsewhere (`PreviewPlayer.tsx`, `Climb.tsx`) — used by
+ * `DebugQuestionsPage`, whose whole purpose is a compact, scannable dump
+ * of raw generator output, not a rendered preview.
  */
 export function describeDisplay(display: DisplaySpec): string {
   switch (display.kind) {

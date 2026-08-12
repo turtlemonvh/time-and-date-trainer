@@ -7,12 +7,13 @@ import { PEAKS, type Peak } from '../peaks';
  * matching generator more heavily than a non-matching one (see
  * `PEAK_MATCH_WEIGHT_MULTIPLIER` in `registry.ts`).
  *
- * A peak whose dedicated generator hasn't landed yet gets an empty array;
- * until then, `selectGenerator` falls back to `answerModeWeights` alone
- * for that peak. Peak 10 ("Everything, mixed") is deliberately left empty
- * here too — `isOnThemeForPeak` special-cases it to match every
- * registered typeId, since hardcoding "all typeIds" in this table would
- * need updating every time a new generator ships.
+ * Every peak but one has a dedicated generator (or generators) here. Peak
+ * 10 ("Everything, mixed") is the exception, left empty on purpose —
+ * `isOnThemeForPeak` special-cases it to match every registered typeId
+ * instead, since hardcoding "all typeIds" in this table would need
+ * updating every time a new generator ships. A future peak added without
+ * an entry here falls back to `selectGenerator` weighting by
+ * `answerModeWeights` alone until one is added.
  */
 export const PEAK_TYPE_IDS: Readonly<Record<number, readonly string[]>> = {
   1: ['readAnalog'], // Basecamp Bluff

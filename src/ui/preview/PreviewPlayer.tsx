@@ -51,13 +51,14 @@ function renderDisplay(display: DisplaySpec) {
  * Cycles through a generated batch of questions one at a time, using the
  * real widgets (AnalogClock, CalendarMonth, ChoiceGrid, NumberEntry) rather
  * than a text gloss — so the question engine's output is visible the way
- * it'll actually be presented in the game, without the full climb state
- * machine (which arrives in a later milestone). Choosing an option or
- * checking a typed number, dragging the clock hands, or picking a calendar
- * date reveals whether it was correct, but — since there's no climb/scoring
- * here yet — Enter (or Next) always advances regardless of whether an
- * answer was given at all. Deliberately reachable in production: this is
- * what deploys to GitHub Pages today, so progress on the question engine is
+ * it'll actually be presented in the game, without `Climb.tsx`'s full
+ * boost/fall-risk/HUD state machine (deliberately lighter-weight than that
+ * screen, not a stand-in for it). Choosing an option or checking a typed
+ * number, dragging the clock hands, or picking a calendar date reveals
+ * whether it was correct, but — since there's no climb/scoring here —
+ * Enter (or Next) always advances regardless of whether an answer was
+ * given at all. Deliberately reachable in production: this is what
+ * deploys to GitHub Pages today, so progress on the question engine is
  * visible without a local checkout.
  */
 export default function PreviewPlayer({ initialSeed }: { initialSeed?: number }) {
@@ -193,11 +194,12 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
         Next) to move on — advancing doesn't require answering, since there's no scoring here yet.
       </p>
       <p>
-        Every batch shows one of each question type, regardless of peak — the peak-to-question-type
-        weighting described in each peak's name isn't wired up yet (most peaks don't have a matching
-        generator built yet). Changing Peak reseeds the batch, so the specific values shown change,
-        but not which types appear. That lands with the rest of a peak's content in a later
-        milestone.
+        This preview always shows one of every question type per batch, regardless of peak —
+        deliberately, so every generator stays inspectable no matter which peak you pick. Real
+        gameplay draws from the full weighted mix instead: a peak-matching generator (see each
+        peak's emphasis below) is drawn more often than an off-theme one, and the difficulty further
+        skews which answer modes show up. Changing Peak here reseeds the batch, so the specific
+        values shown change, but not which types appear.
       </p>
 
       <p>

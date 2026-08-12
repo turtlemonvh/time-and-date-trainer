@@ -48,8 +48,8 @@ export function pickPrecision(rng: Rng, profile: DifficultyProfile): TimePrecisi
  *
  * Deliberately carries no AM/PM: an analog clock face cannot show it, so an
  * option list containing both "3:15 AM" and "3:15 PM" would offer two answers
- * the player cannot tell apart, one of them marked wrong. AM/PM gets its own
- * question type on Peak 8 in a later milestone, not here.
+ * the player cannot tell apart, one of them marked wrong. AM/PM has its own
+ * question type on Peak 8 (`hour24.ts`), not here.
  */
 export function formatClockFace(t: TimeOfDay, showSeconds: boolean): string {
   const hour12 = t.hour % 12 === 0 ? 12 : t.hour % 12;
