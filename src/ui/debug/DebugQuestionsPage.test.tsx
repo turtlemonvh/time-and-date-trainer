@@ -8,9 +8,9 @@ function questionIds(): string[] {
 }
 
 describe('DebugQuestionsPage', () => {
-  it('renders three questions for each of the eleven generators', () => {
+  it('renders three questions for each of the twelve generators', () => {
     render(<DebugQuestionsPage initialSeed={1} />);
-    expect(screen.getAllByTestId('question-card')).toHaveLength(33);
+    expect(screen.getAllByTestId('question-card')).toHaveLength(36);
   });
 
   it('shows every registered question type', () => {
@@ -27,6 +27,7 @@ describe('DebugQuestionsPage', () => {
       'nthWeekday',
       'countWeekdays',
       'hour24',
+      'countBetween',
     ]) {
       expect(screen.getAllByText(typeId).length).toBe(3);
     }
@@ -58,7 +59,7 @@ describe('DebugQuestionsPage', () => {
   it('dumps the raw display spec as JSON for inspection', () => {
     render(<DebugQuestionsPage initialSeed={1} />);
     const dumps = screen.getAllByTestId('display-json');
-    expect(dumps).toHaveLength(33);
+    expect(dumps).toHaveLength(36);
     for (const dump of dumps) {
       expect(() => JSON.parse(dump.textContent ?? '')).not.toThrow();
     }
@@ -70,7 +71,7 @@ describe('DebugQuestionsPage', () => {
     const before = questionIds();
     await user.click(screen.getByRole('button', { name: 'Regenerate' }));
     const after = questionIds();
-    expect(after).toHaveLength(33);
+    expect(after).toHaveLength(36);
     expect(after).not.toEqual(before);
   });
 

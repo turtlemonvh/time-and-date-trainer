@@ -1,3 +1,4 @@
+import { differenceInCalendarDays } from 'date-fns';
 import { describe, expect, it } from 'vitest';
 import { difficultyProfile } from '../difficulty';
 import { PEAKS } from '../peaks';
@@ -5,6 +6,7 @@ import { mulberry32 } from '../rng';
 import { describeTime, to24Hour } from '../timeMath';
 import {
   BUILT_IN_QUESTION_TYPES,
+  COUNT_BETWEEN_TYPE_ID,
   COUNT_WEEKDAYS_TYPE_ID,
   DAY_OF_WEEK_TYPE_ID,
   DESCRIBE_TIME_TYPE_ID,
@@ -64,6 +66,7 @@ const TIME_LIMIT_MULTIPLIERS: Record<string, number> = {
   [NTH_WEEKDAY_TYPE_ID]: 1.5,
   [COUNT_WEEKDAYS_TYPE_ID]: 1.4,
   [HOUR24_TYPE_ID]: 1.2,
+  [COUNT_BETWEEN_TYPE_ID]: 1.5,
 };
 
 /** Distinct, reproducible seed per (difficulty, index) pair. */
@@ -177,8 +180,8 @@ function assertAnswerGrades(spec: AnswerSpec): void {
  * "the game marked her right answer wrong".
  */
 function assertDeclaredAnswerMatchesDisplay(q: Question): void {
-  // A typeId whose answer isn't choice-kind (elapsedBetween's and
-  // countWeekdays' `number`, setHands' own `setHands`, nthWeekday's
+  // A typeId whose answer isn't choice-kind (elapsedBetween's, countWeekdays'
+  // and countBetween's `number`, setHands' own `setHands`, nthWeekday's
   // `pickDate`) handles its own re-derivation here, since
   // `declared`/`answer.options` below don't apply to those kinds.
   if (q.typeId === SET_HANDS_TYPE_ID) {
@@ -230,6 +233,24 @@ function assertDeclaredAnswerMatchesDisplay(q: Question): void {
     expect(q.answer.year).toBe(expected.getFullYear());
     expect(q.answer.monthIndex).toBe(expected.getMonth());
     expect(q.answer.day).toBe(expected.getDate());
+    return;
+  }
+  if (q.typeId === COUNT_BETWEEN_TYPE_ID) {
+    expect(q.answer.kind).toBe('number');
+    if (q.answer.kind !== 'number') return;
+    expect(q.display.kind).toBe('none');
+    // Re-derive via date-fns' own `differenceInCalendarDays` — a
+    // well-tested library primitive, not the generator's own arithmetic —
+    // applied to the two long-form dates parsed straight from the prompt.
+    const match = q.prompt.match(
+      /^How many days are there from ([A-Z][a-z]+) (\d{1,2}), (\d{4}) to ([A-Z][a-z]+) (\d{1,2}), (\d{4})\?$/,
+    );
+    expect(match).not.toBeNull();
+    if (!match) return;
+    const [, startMonth, startDay, startYear, endMonth, endDay, endYear] = match;
+    const start = new Date(Number(startYear), MONTH_NAMES.indexOf(startMonth), Number(startDay));
+    const end = new Date(Number(endYear), MONTH_NAMES.indexOf(endMonth), Number(endDay));
+    expect(q.answer.target).toBe(differenceInCalendarDays(end, start));
     return;
   }
   if (q.typeId === COUNT_WEEKDAYS_TYPE_ID) {
@@ -413,6 +434,7 @@ describe('generator contract', () => {
       NTH_WEEKDAY_TYPE_ID,
       COUNT_WEEKDAYS_TYPE_ID,
       HOUR24_TYPE_ID,
+      COUNT_BETWEEN_TYPE_ID,
     ];
     for (const type of BUILT_IN_QUESTION_TYPES) {
       expect(covered).toContain(type.typeId);
