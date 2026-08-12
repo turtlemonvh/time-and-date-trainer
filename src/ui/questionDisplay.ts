@@ -1,4 +1,4 @@
-import type { DisplaySpec } from '../engine/questions';
+import type { AnswerSpec, DisplaySpec } from '../engine/questions';
 
 export const MONTH_NAMES = [
   'January',
@@ -36,5 +36,31 @@ export function describeDisplay(display: DisplaySpec): string {
       return `calendar for ${MONTH_NAMES[display.monthIndex]} ${display.year}, day ${display.highlightDay} highlighted`;
     case 'none':
       return 'no visual — the prompt carries everything';
+  }
+}
+
+/**
+ * A one-line, human-readable gloss of an answer spec's *grading data* — not
+ * a rendering of the actual answer widget (`ChoiceGrid`/`AnalogClock`/
+ * `NumberEntry`/`DatePicker` handle that in production and in
+ * `PreviewPlayer`). Exists for `DebugQuestionsPage`, whose whole purpose is
+ * inspecting raw generator output regardless of answer kind — unlike
+ * `Climb.tsx`/`PreviewPlayer`, which fail loudly on a kind they don't yet
+ * render, this is dev-only tooling that should keep working for every
+ * generator PR as M5 adds new kinds, not break until each one's real UI
+ * lands.
+ */
+export function describeAnswer(answer: AnswerSpec): string {
+  switch (answer.kind) {
+    case 'choice':
+      return `choice: ${answer.options.join(' | ')} (correct: ${answer.options[answer.correctIndex]})`;
+    case 'setHands': {
+      const { hour, minute } = answer.target;
+      return `setHands: target ${pad(hour)}:${pad(minute)} (${answer.precision} precision)`;
+    }
+    case 'number':
+      return `number: target ${answer.target}${answer.unit ? ` ${answer.unit}` : ''}`;
+    case 'pickDate':
+      return `pickDate: target ${MONTH_NAMES[answer.monthIndex]} ${answer.day}, ${answer.year}`;
   }
 }

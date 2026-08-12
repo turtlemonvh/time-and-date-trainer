@@ -120,5 +120,6 @@ export function generateOffsetDate(rng: Rng, ctx: GeneratorContext): Question {
 
 export const offsetDateType: QuestionType = {
   typeId: OFFSET_DATE_TYPE_ID,
+  answerMode: 'choice',
   generate: generateOffsetDate,
 };

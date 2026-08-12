@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { PEAKS } from '../../engine/peaks';
 import { BUILT_IN_QUESTION_TYPES } from '../../engine/questions';
 import { generateQuestionBatch } from '../../engine/questions/preview';
-import { describeDisplay } from '../questionDisplay';
+import { describeAnswer, describeDisplay } from '../questionDisplay';
 
 const SAMPLES_PER_TYPE = 3;
 const DIFFICULTIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -74,16 +74,25 @@ export default function DebugQuestionsPage({ initialSeed }: { initialSeed?: numb
               <summary>Raw display spec</summary>
               <pre data-testid="display-json">{JSON.stringify(question.display, null, 2)}</pre>
             </details>
-            <ul>
-              {question.answer.options.map((option, optionIndex) => {
-                const correct = optionIndex === question.answer.correctIndex;
+            {question.answer.kind === 'choice' ? (
+              (() => {
+                const { options, correctIndex } = question.answer;
                 return (
-                  <li key={option} data-testid={correct ? 'correct-option' : 'option'}>
-                    {correct ? `${option} (correct)` : option}
-                  </li>
+                  <ul>
+                    {options.map((option, optionIndex) => {
+                      const correct = optionIndex === correctIndex;
+                      return (
+                        <li key={option} data-testid={correct ? 'correct-option' : 'option'}>
+                          {correct ? `${option} (correct)` : option}
+                        </li>
+                      );
+                    })}
+                  </ul>
                 );
-              })}
-            </ul>
+              })()
+            ) : (
+              <p data-testid="question-answer">{describeAnswer(question.answer)}</p>
+            )}
             <p data-testid="question-explain">{question.explainCorrect}</p>
             <p data-testid="question-time-limit">Time limit: {question.timeLimitMs} ms</p>
           </li>

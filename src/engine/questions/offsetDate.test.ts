@@ -10,6 +10,7 @@ import {
   OFFSET_DATE_TIME_LIMIT_MULTIPLIER,
 } from './offsetDate';
 import { timeLimitFor } from './support';
+import { expectChoiceAnswer } from './testSupport';
 import type { GeneratorContext } from './types';
 
 const ctx: GeneratorContext = { difficulty: 5, peak: getPeak(7) };
@@ -49,7 +50,8 @@ describe('generateOffsetDate', () => {
 
   it('offers four distinct long-form dates', () => {
     for (let seed = 0; seed < 100; seed++) {
-      const { options } = generateOffsetDate(mulberry32(seed), ctx).answer;
+      const q = generateOffsetDate(mulberry32(seed), ctx);
+      const { options } = expectChoiceAnswer(q);
       expect(options).toHaveLength(4);
       expect(new Set(options).size).toBe(4);
       for (const option of options) expect(option).toMatch(/^[A-Z][a-z]+ \d{1,2}, \d{4}$/);
@@ -69,7 +71,8 @@ describe('generateOffsetDate', () => {
       const match = /^What date is (\d+) (day|days) after (.+)\?$/.exec(q.prompt);
       if (!match) throw new Error(`unexpected prompt: ${q.prompt}`);
       const start = parseLongDate(match[3]);
-      const correct = parseLongDate(q.answer.options[q.answer.correctIndex]);
+      const answer = expectChoiceAnswer(q);
+      const correct = parseLongDate(answer.options[answer.correctIndex]);
       expect(correct.getMonth()).toBe(start.getMonth());
       expect(correct.getFullYear()).toBe(start.getFullYear());
     }
@@ -100,7 +103,8 @@ describe('generateOffsetDate', () => {
             : unit === 'week'
               ? new Date(start.getFullYear(), start.getMonth(), start.getDate() + sign * amount * 7)
               : new Date(start.getFullYear(), start.getMonth() + sign * amount, start.getDate());
-        expect(q.answer.options[q.answer.correctIndex]).toBe(formatDateLong(expected));
+        const answer = expectChoiceAnswer(q);
+        expect(answer.options[answer.correctIndex]).toBe(formatDateLong(expected));
       }
     }
   });
@@ -138,7 +142,8 @@ describe('generateOffsetDate', () => {
   describe('choice ordering', () => {
     it('sorts options chronologically at D1 (ordered)', () => {
       for (let seed = 0; seed < 50; seed++) {
-        const { options } = generateOffsetDate(mulberry32(seed), { ...ctx, difficulty: 1 }).answer;
+        const q = generateOffsetDate(mulberry32(seed), { ...ctx, difficulty: 1 });
+        const { options } = expectChoiceAnswer(q);
         const keys = options.map((o) => parseLongDate(o).getTime());
         expect(keys).toEqual([...keys].sort((a, b) => a - b));
       }
@@ -146,7 +151,8 @@ describe('generateOffsetDate', () => {
 
     it('does not always produce sorted options at D10 (shuffled)', () => {
       const anySeedUnsorted = Array.from({ length: 50 }, (_, seed) => {
-        const { options } = generateOffsetDate(mulberry32(seed), { ...ctx, difficulty: 10 }).answer;
+        const q = generateOffsetDate(mulberry32(seed), { ...ctx, difficulty: 10 });
+        const { options } = expectChoiceAnswer(q);
         const keys = options.map((o) => parseLongDate(o).getTime());
         return JSON.stringify(keys) !== JSON.stringify([...keys].sort((a, b) => a - b));
       }).some(Boolean);
@@ -156,7 +162,8 @@ describe('generateOffsetDate', () => {
 
   it('restates the question in the explanation', () => {
     const q = generateOffsetDate(mulberry32(1), ctx);
-    expect(q.explainCorrect).toContain(q.answer.options[q.answer.correctIndex]);
+    const answer = expectChoiceAnswer(q);
+    expect(q.explainCorrect).toContain(answer.options[answer.correctIndex]);
   });
 
   it('is deterministic for a given seed', () => {

@@ -4,6 +4,7 @@ import { getPeak } from '../peaks';
 import { mulberry32 } from '../rng';
 import { generateReadAnalog, READ_ANALOG_TYPE_ID, readAnalogType } from './readAnalog';
 import { formatClockFace } from './support';
+import { expectChoiceAnswer } from './testSupport';
 import type { GeneratorContext } from './types';
 
 const ctx: GeneratorContext = { difficulty: 3, peak: getPeak(1) };
@@ -20,7 +21,8 @@ describe('generateReadAnalog', () => {
     for (let seed = 0; seed < 50; seed++) {
       const q = generateReadAnalog(mulberry32(seed), ctx);
       if (q.display.kind !== 'analogClock') throw new Error('expected an analogClock display');
-      expect(q.answer.options[q.answer.correctIndex]).toBe(
+      const answer = expectChoiceAnswer(q);
+      expect(answer.options[answer.correctIndex]).toBe(
         formatClockFace(q.display.time, q.display.showSeconds),
       );
     }
@@ -28,7 +30,8 @@ describe('generateReadAnalog', () => {
 
   it('never offers AM or PM, which a clock face cannot show', () => {
     for (let seed = 0; seed < 50; seed++) {
-      for (const option of generateReadAnalog(mulberry32(seed), ctx).answer.options) {
+      const q = generateReadAnalog(mulberry32(seed), ctx);
+      for (const option of expectChoiceAnswer(q).options) {
         expect(option).not.toMatch(/AM|PM/);
       }
     }
@@ -36,7 +39,8 @@ describe('generateReadAnalog', () => {
 
   it('offers four distinct options', () => {
     for (let seed = 0; seed < 50; seed++) {
-      const { options } = generateReadAnalog(mulberry32(seed), ctx).answer;
+      const q = generateReadAnalog(mulberry32(seed), ctx);
+      const { options } = expectChoiceAnswer(q);
       expect(options).toHaveLength(4);
       expect(new Set(options).size).toBe(4);
     }
@@ -76,7 +80,8 @@ describe('generateReadAnalog', () => {
 
     it('sorts options by clock position at D1 (ordered)', () => {
       for (let seed = 0; seed < 50; seed++) {
-        const { options } = generateReadAnalog(mulberry32(seed), { ...ctx, difficulty: 1 }).answer;
+        const q = generateReadAnalog(mulberry32(seed), { ...ctx, difficulty: 1 });
+        const { options } = expectChoiceAnswer(q);
         const keys = options.map(clockLabelKey);
         expect(keys).toEqual([...keys].sort((a, b) => a - b));
       }
@@ -84,7 +89,8 @@ describe('generateReadAnalog', () => {
 
     it('does not always produce sorted options at D10 (shuffled)', () => {
       const anySeedUnsorted = Array.from({ length: 50 }, (_, seed) => {
-        const { options } = generateReadAnalog(mulberry32(seed), { ...ctx, difficulty: 10 }).answer;
+        const q = generateReadAnalog(mulberry32(seed), { ...ctx, difficulty: 10 });
+        const { options } = expectChoiceAnswer(q);
         const keys = options.map(clockLabelKey);
         return JSON.stringify(keys) !== JSON.stringify([...keys].sort((a, b) => a - b));
       }).some(Boolean);
@@ -94,7 +100,8 @@ describe('generateReadAnalog', () => {
 
   it('explains the correct answer', () => {
     const q = generateReadAnalog(mulberry32(1), ctx);
-    expect(q.explainCorrect).toContain(q.answer.options[q.answer.correctIndex]);
+    const answer = expectChoiceAnswer(q);
+    expect(q.explainCorrect).toContain(answer.options[answer.correctIndex]);
   });
 
   it('is deterministic for a given seed', () => {

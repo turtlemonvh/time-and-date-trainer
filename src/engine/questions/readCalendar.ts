@@ -54,5 +54,6 @@ export function generateReadCalendar(rng: Rng, ctx: GeneratorContext): Question 
 
 export const readCalendarType: QuestionType = {
   typeId: READ_CALENDAR_TYPE_ID,
+  answerMode: 'choice',
   generate: generateReadCalendar,
 };

@@ -17,6 +17,7 @@ const ctx: GeneratorContext = { difficulty: 3, peak: getPeak(1) };
 function fakeType(typeId: string): QuestionType {
   return {
     typeId,
+    answerMode: 'choice',
     generate: (_rng, generatorCtx): Question => ({
       id: `${typeId}-fixed`,
       typeId,

@@ -69,8 +69,10 @@ function assertDisplayWellFormed(display: DisplaySpec): void {
   }
 }
 
-function assertAnswerGrades(answer: AnswerSpec): void {
-  expect(answer.kind).toBe('choice');
+function assertAnswerGrades(spec: AnswerSpec): void {
+  expect(spec.kind).toBe('choice');
+  if (spec.kind !== 'choice') return;
+  const answer = spec;
   expect(answer.options).toHaveLength(OPTION_COUNT);
   for (const option of answer.options) {
     expect(typeof option).toBe('string');
@@ -99,14 +101,20 @@ function assertAnswerGrades(answer: AnswerSpec): void {
  * "the game marked her right answer wrong".
  */
 function assertDeclaredAnswerMatchesDisplay(q: Question): void {
-  const declared = q.answer.options[q.answer.correctIndex];
+  // Every registered generator is still choice-mode today. A generator that
+  // produces setHands/number/pickDate needs its own re-derivation assertion
+  // here (the options[correctIndex] lookup below doesn't apply to those
+  // kinds) — add one in that generator's own PR, not a bare early return.
+  if (q.answer.kind !== 'choice') return;
+  const answer = q.answer;
+  const declared = answer.options[answer.correctIndex];
   switch (q.typeId) {
     case READ_ANALOG_TYPE_ID: {
       expect(q.display.kind).toBe('analogClock');
       if (q.display.kind !== 'analogClock') return;
       expect(declared).toBe(formatClockFace(q.display.time, q.display.showSeconds));
       // A clock face cannot show AM/PM, so no option may claim it.
-      for (const option of q.answer.options) expect(option).not.toMatch(/AM|PM/);
+      for (const option of answer.options) expect(option).not.toMatch(/AM|PM/);
       return;
     }
     case DESCRIBE_TIME_TYPE_ID: {

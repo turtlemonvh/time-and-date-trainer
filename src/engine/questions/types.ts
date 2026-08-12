@@ -1,6 +1,7 @@
+import type { AnswerMode } from '../difficulty';
 import type { Peak } from '../peaks';
 import type { Rng } from '../rng';
-import type { TimeOfDay } from '../timeMath';
+import type { TimeOfDay, TimePrecision } from '../timeMath';
 
 /**
  * An analog clock face set to `time`. `showSeconds` drives the second hand;
@@ -41,11 +42,14 @@ export type DisplaySpec = AnalogClockDisplay | CalendarDisplay | NoDisplay;
  * only grading data required, so the spec grades itself — nothing outside the
  * `AnswerSpec` needs to be consulted to mark an answer.
  *
- * Convention for the answer kinds later milestones add (setHands, pickDate,
- * number): each new union member carries its own grading data inline — a target
- * `TimeOfDay`, a target `Date`, a numeric answer plus tolerance — and gets its
- * own `isCorrect*` helper next to `isCorrectChoice` below. `Question` itself
- * never changes shape to accommodate them.
+ * Convention every answer kind follows: each union member carries its own
+ * grading data inline — a target `TimeOfDay`, a target date, a target number
+ * — and gets its own `isCorrect*` helper next to `isCorrectChoice` below.
+ * `Question` itself never changes shape to accommodate a new kind. None of
+ * these grade with a tolerance window: a snapped clock-hand position, a
+ * whole-number count, and a specific calendar day are all exact, discrete
+ * values, not continuous measurements, so exact equality is the correct
+ * rule — not an approximation that would need a magic-number margin.
  */
 export interface ChoiceAnswer {
   kind: 'choice';
@@ -53,7 +57,46 @@ export interface ChoiceAnswer {
   correctIndex: number;
 }
 
-export type AnswerSpec = ChoiceAnswer;
+/**
+ * Player drags the analog clock's hands to match `target`. `precision`
+ * carries the snap granularity `Climb.tsx` hands to the interactive
+ * `AnalogClock` (see its own `precision` prop) — the generator that builds
+ * this answer already drew `target`'s minute at that same precision, so a
+ * correct drag is always reachable. Only hour and minute are graded: the
+ * widget's hands don't include a draggable second hand.
+ */
+export interface SetHandsAnswer {
+  kind: 'setHands';
+  target: TimeOfDay;
+  precision: TimePrecision;
+}
+
+/**
+ * A free-typed numeric answer (an elapsed-time count, a day count, etc.).
+ * `unit` is presentational only, shown by `NumberEntry` next to the field —
+ * grading never looks at it.
+ */
+export interface NumberAnswer {
+  kind: 'number';
+  target: number;
+  unit?: string;
+}
+
+/**
+ * Player picks a specific calendar date via `DatePicker`. Field names match
+ * that widget's own `PickedDate` shape one-for-one (`year`, `monthIndex`,
+ * `day`) so `Climb.tsx` can hand a `DatePicker` selection straight to the
+ * grader with no reshaping — this type doesn't import the UI widget's type
+ * itself, since engine code stays independent of `src/ui`.
+ */
+export interface PickDateAnswer {
+  kind: 'pickDate';
+  year: number;
+  monthIndex: number;
+  day: number;
+}
+
+export type AnswerSpec = ChoiceAnswer | SetHandsAnswer | NumberAnswer | PickDateAnswer;
 
 export interface Question {
   /** Unique-per-generation id, prefixed with `typeId`. Usable as a React key. */
@@ -77,6 +120,11 @@ export type QuestionGenerator = (rng: Rng, ctx: GeneratorContext) => Question;
 
 export interface QuestionType {
   typeId: string;
+  /** Which answer widget this type uses — drives `selectGenerator`'s
+   * weighting against `DifficultyProfile.answerModeWeights` and tells
+   * `Climb.tsx` how to render/grade the answer. Fixed per type, not drawn
+   * per question. */
+  answerMode: AnswerMode;
   generate: QuestionGenerator;
 }
 
@@ -86,5 +134,27 @@ export function isCorrectChoice(answer: ChoiceAnswer, selectedIndex: number): bo
     selectedIndex >= 0 &&
     selectedIndex < answer.options.length &&
     selectedIndex === answer.correctIndex
+  );
+}
+
+/** Grades a dragged-clock-hands answer. See the `SetHandsAnswer` doc comment. */
+export function isCorrectSetHands(answer: SetHandsAnswer, submitted: TimeOfDay): boolean {
+  return submitted.hour === answer.target.hour && submitted.minute === answer.target.minute;
+}
+
+/** Grades a free-typed numeric answer. See the `NumberAnswer` doc comment. */
+export function isCorrectNumber(answer: NumberAnswer, submitted: number): boolean {
+  return submitted === answer.target;
+}
+
+/** Grades a picked-date answer. See the `PickDateAnswer` doc comment. */
+export function isCorrectPickDate(
+  answer: PickDateAnswer,
+  submitted: { year: number; monthIndex: number; day: number },
+): boolean {
+  return (
+    submitted.year === answer.year &&
+    submitted.monthIndex === answer.monthIndex &&
+    submitted.day === answer.day
   );
 }
