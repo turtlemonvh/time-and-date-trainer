@@ -5,13 +5,16 @@ import { mulberry32 } from '../rng';
 import { describeTime } from '../timeMath';
 import {
   BUILT_IN_QUESTION_TYPES,
+  DAY_OF_WEEK_TYPE_ID,
   DESCRIBE_TIME_TYPE_ID,
   ELAPSED_ADD_TYPE_ID,
   ELAPSED_BETWEEN_TYPE_ID,
   generateQuestion,
   isCorrectChoice,
   isCorrectNumber,
+  isCorrectPickDate,
   isCorrectSetHands,
+  NTH_WEEKDAY_TYPE_ID,
   OFFSET_DATE_TYPE_ID,
   READ_ANALOG_TYPE_ID,
   READ_CALENDAR_TYPE_ID,
@@ -20,10 +23,25 @@ import {
   type DisplaySpec,
   type Question,
 } from './index';
-import { formatClockFace, OPTION_COUNT, timeLimitFor, weekdayName } from './support';
+import { formatClockFace, OPTION_COUNT, timeLimitFor, WEEKDAY_NAMES, weekdayName } from './support';
 
 const SEED_COUNT = 200;
 const DIFFICULTIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
 
 /**
  * Each generator's own `TIME_LIMIT_MULTIPLIER` constant, mirrored here so
@@ -40,6 +58,8 @@ const TIME_LIMIT_MULTIPLIERS: Record<string, number> = {
   [ELAPSED_ADD_TYPE_ID]: 1.2,
   [ELAPSED_BETWEEN_TYPE_ID]: 1.3,
   [SET_HANDS_TYPE_ID]: 1.3,
+  [DAY_OF_WEEK_TYPE_ID]: 1.1,
+  [NTH_WEEKDAY_TYPE_ID]: 1.5,
 };
 
 /** Distinct, reproducible seed per (difficulty, index) pair. */
@@ -128,10 +148,22 @@ function assertAnswerGrades(spec: AnswerSpec): void {
       expect(isCorrectSetHands(spec, { ...spec.target, hour: (hour + 1) % 24 })).toBe(false);
       return;
     }
-    case 'pickDate':
-      // No generator produces this yet; the PR that adds one extends this
-      // switch with its own grading assertions.
+    case 'pickDate': {
+      expect(Number.isInteger(spec.year)).toBe(true);
+      expect(spec.monthIndex).toBeGreaterThanOrEqual(0);
+      expect(spec.monthIndex).toBeLessThanOrEqual(11);
+      // The declared day must exist in the declared month.
+      const date = new Date(spec.year, spec.monthIndex, spec.day);
+      expect(date.getFullYear()).toBe(spec.year);
+      expect(date.getMonth()).toBe(spec.monthIndex);
+      expect(date.getDate()).toBe(spec.day);
+
+      expect(isCorrectPickDate(spec, spec)).toBe(true);
+      expect(isCorrectPickDate(spec, { ...spec, day: spec.day === 1 ? 2 : spec.day - 1 })).toBe(
+        false,
+      );
       return;
+    }
   }
 }
 
@@ -142,9 +174,9 @@ function assertAnswerGrades(spec: AnswerSpec): void {
  */
 function assertDeclaredAnswerMatchesDisplay(q: Question): void {
   // A typeId whose answer isn't choice-kind (elapsedBetween's `number`,
-  // setHands' own `setHands`, and any future pickDate generator) handles
-  // its own re-derivation here, since `declared`/`answer.options` below
-  // don't apply to those kinds.
+  // setHands' own `setHands`, nthWeekday's `pickDate`) handles its own
+  // re-derivation here, since `declared`/`answer.options` below don't apply
+  // to those kinds.
   if (q.typeId === SET_HANDS_TYPE_ID) {
     expect(q.answer.kind).toBe('setHands');
     if (q.answer.kind !== 'setHands') return;
@@ -160,6 +192,40 @@ function assertDeclaredAnswerMatchesDisplay(q: Question): void {
     const targetHour12 = q.answer.target.hour % 12 === 0 ? 12 : q.answer.target.hour % 12;
     expect(Number(hourText)).toBe(targetHour12);
     expect(Number(minuteText)).toBe(q.answer.target.minute);
+    return;
+  }
+  if (q.typeId === NTH_WEEKDAY_TYPE_ID) {
+    expect(q.answer.kind).toBe('pickDate');
+    if (q.answer.kind !== 'pickDate') return;
+    expect(q.display.kind).toBe('none');
+    // Re-derive by brute-force scanning the stated month for the stated
+    // weekday, independent of the generator's own `nthWeekdayOfMonth` —
+    // this is the check that actually catches "the picker's target isn't
+    // really the Nth Tuesday it claims to be".
+    const match = q.prompt.match(
+      /^What is the (1st|2nd|3rd|4th|last) ([A-Z][a-z]+) of ([A-Z][a-z]+) (\d{4})\?$/,
+    );
+    expect(match).not.toBeNull();
+    if (!match) return;
+    const [, ordinalText, weekdayText, monthText, yearText] = match;
+    const weekdayIndex = WEEKDAY_NAMES.indexOf(weekdayText);
+    expect(weekdayIndex).toBeGreaterThanOrEqual(0);
+    const monthIndex = MONTH_NAMES.indexOf(monthText);
+    expect(monthIndex).toBeGreaterThanOrEqual(0);
+    const year = Number(yearText);
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+    const matches: Date[] = [];
+    for (let day = 1; day <= daysInMonth; day++) {
+      const candidate = new Date(year, monthIndex, day);
+      if (candidate.getDay() === weekdayIndex) matches.push(candidate);
+    }
+    const expected =
+      ordinalText === 'last' ? matches[matches.length - 1] : matches[Number(ordinalText[0]) - 1];
+    expect(expected).toBeDefined();
+    if (!expected) return;
+    expect(q.answer.year).toBe(expected.getFullYear());
+    expect(q.answer.monthIndex).toBe(expected.getMonth());
+    expect(q.answer.day).toBe(expected.getDate());
     return;
   }
   if (q.typeId === ELAPSED_BETWEEN_TYPE_ID) {
@@ -219,6 +285,13 @@ function assertDeclaredAnswerMatchesDisplay(q: Question): void {
       // re-computes the arithmetic straight from the prompt instead.
       expect(q.display.kind).toBe('none');
       expect(declared).toMatch(/^\d{1,2}:\d{2}$/);
+      return;
+    }
+    case DAY_OF_WEEK_TYPE_ID: {
+      // No display to re-derive from; dayOfWeek.test.ts re-computes the
+      // mod-7 arithmetic straight from the prompt instead.
+      expect(q.display.kind).toBe('none');
+      expect(WEEKDAY_NAMES).toContain(declared);
       return;
     }
     default:
@@ -286,6 +359,8 @@ describe('generator contract', () => {
       ELAPSED_ADD_TYPE_ID,
       ELAPSED_BETWEEN_TYPE_ID,
       SET_HANDS_TYPE_ID,
+      DAY_OF_WEEK_TYPE_ID,
+      NTH_WEEKDAY_TYPE_ID,
     ];
     for (const type of BUILT_IN_QUESTION_TYPES) {
       expect(covered).toContain(type.typeId);
