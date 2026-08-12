@@ -3,6 +3,7 @@ import { dayOfWeekType } from './dayOfWeek';
 import { describeTimeType } from './describeTime';
 import { elapsedAddType } from './elapsedAdd';
 import { elapsedBetweenType } from './elapsedBetween';
+import { hour24Type } from './hour24';
 import { nthWeekdayType } from './nthWeekday';
 import { offsetDateType } from './offsetDate';
 import { readAnalogType } from './readAnalog';
@@ -29,6 +30,7 @@ export const BUILT_IN_QUESTION_TYPES: readonly QuestionType[] = [
   dayOfWeekType,
   nthWeekdayType,
   countWeekdaysType,
+  hour24Type,
 ];
 
 for (const type of BUILT_IN_QUESTION_TYPES) {
@@ -60,3 +62,4 @@ export * from './setHands';
 export * from './dayOfWeek';
 export * from './nthWeekday';
 export * from './countWeekdays';
+export * from './hour24';

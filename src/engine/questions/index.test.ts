@@ -22,6 +22,7 @@ describe('questions barrel', () => {
       'dayOfWeek',
       'nthWeekday',
       'countWeekdays',
+      'hour24',
     ]);
   });
 

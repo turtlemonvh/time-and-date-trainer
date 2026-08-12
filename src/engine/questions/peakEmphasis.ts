@@ -21,7 +21,7 @@ export const PEAK_TYPE_IDS: Readonly<Record<number, readonly string[]>> = {
   5: ['dayOfWeek', 'nthWeekday', 'countWeekdays'], // Weekday Wall
   6: ['elapsedAdd', 'elapsedBetween'], // Elapsed Escarpment
   7: ['offsetDate'], // Monthfall Pass
-  8: [], // The Meridian — hour24 lands in M5 item 8
+  8: ['hour24'], // The Meridian
   9: [], // Leap Crag — countBetween lands in M5 item 9
   10: [], // Summit of Hours — mixed peak, see isOnThemeForPeak
 };
