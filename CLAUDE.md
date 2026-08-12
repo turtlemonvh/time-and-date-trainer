@@ -21,13 +21,17 @@ especially by a fresh subagent with no prior context on this repo.
 
 ## Question engine
 
-- **No generator currently reads `ctx.peak`.** Only `registry.ts`'s `selectGenerator` consumes
-  `peak.emphasis` (for the eventual weighted-by-peak selection in the real game). Any UI that
-  iterates `BUILT_IN_QUESTION_TYPES` directly (bypassing `selectGenerator`) will see _no_ change in
-  which question types appear when the peak changes — only `generateQuestionBatch`'s internal
+- **Individual generators don't read `ctx.peak`** for their own content — peak weighting lives
+  entirely in `registry.ts`'s `selectGenerator`, which draws a generator on-theme for `ctx.peak`
+  (per `peakEmphasis.ts`) more often than an off-theme one, on top of the difficulty profile's
+  `answerModeWeights`. Any UI that iterates `BUILT_IN_QUESTION_TYPES` directly instead of going
+  through `selectGenerator`/`generateQuestion` — e.g. `generateQuestionBatch`, which the debug and
+  preview pages use so every generator stays inspectable regardless of peak — bypasses that
+  weighting entirely and shows _every_ type no matter which peak is selected; only its internal
   peak-derived seed mixing makes the _sampled values_ vary by peak. Don't assume changing peak ID
-  alone does anything; if you need genuine per-peak variation, mix `peakId` into the RNG seed
-  explicitly (see `peakSeed` in `src/engine/questions/preview.ts`).
+  alone does anything in code that takes this shortcut; if you need genuine per-peak type variation
+  there too, mix `peakId` into the RNG seed explicitly (see `peakSeed` in
+  `src/engine/questions/preview.ts`).
 - Always import from the `src/engine/questions` barrel (`./index`), never `./registry` directly —
   the barrel is what actually registers the built-in generators as a side effect of being imported.
 
@@ -49,6 +53,13 @@ especially by a fresh subagent with no prior context on this repo.
 - **Dependabot PRs always show a `claude-review` check failure.** This is the Claude Code GitHub
   Action intentionally declining to run for a bot-triggered PR, not a real problem — check `test`
   instead, and merge once that's green.
+- **`claude-review` can also fail from its own infra hiccups on a normal (non-Dependabot) PR** —
+  seen both as a mid-run crash (`is_error:true`, no review comments posted, a permission-denial
+  count in the JSON result) and as a setup failure (`bun: command not found` after a `socket hang
+up` during the action's own dependency install). Neither leaves any review comment on the PR —
+  check `gh api repos/<owner>/<repo>/pulls/<N>/reviews` (empty array) and the run log
+  (`gh run view <id> --log-failed`) to confirm it's infra, not a real finding, before merging on
+  `test: pass` alone.
 - **The Claude Code GitHub App (the one triggered by `@claude` in issue/PR comments) cannot
   currently push _any_ branch in this repo.** `main` contains `.github/workflows/*` files, and
   pushing a new branch ref that contains workflow files (even byte-identical ones) requires a

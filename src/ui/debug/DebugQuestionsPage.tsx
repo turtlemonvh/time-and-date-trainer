@@ -22,9 +22,11 @@ export default function DebugQuestionsPage({ initialSeed }: { initialSeed?: numb
       <h1>Debug: questions</h1>
       <p>
         Dev-only. {SAMPLES_PER_TYPE} freshly generated questions from each of the{' '}
-        {BUILT_IN_QUESTION_TYPES.length} registered generators. Generators currently ignore{' '}
-        <code>ctx.peak</code>, so the Peak selector below reseeds the batch rather than changing
-        which question types appear.
+        {BUILT_IN_QUESTION_TYPES.length} registered generators — every type, regardless of peak, so
+        every generator's output stays inspectable here no matter which peak you pick. Real gameplay
+        instead weights the draw toward each peak's own matching generator(s) (see
+        <code> peakEmphasis.ts</code>); the Peak selector below only reseeds this batch, it doesn't
+        change which question types appear in it.
       </p>
 
       <p>
