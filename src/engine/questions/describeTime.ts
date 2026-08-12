@@ -3,6 +3,7 @@ import type { Rng } from '../rng';
 import { describeTime, randomTime, type TimePrecision } from '../timeMath';
 import {
   buildChoiceAnswer,
+  clockSortKey,
   distractorTimes,
   formatClockFace,
   makeQuestionId,
@@ -51,14 +52,16 @@ export function generateDescribeTime(rng: Rng, ctx: GeneratorContext): Question 
   const time = randomTime(rng, DRAW_PRECISION[profile.describePhrasing]);
   const correct = describeTime(time);
   const candidates = distractorTimes(time, DISTRACTOR_PRECISION[profile.describePhrasing]).map(
-    (t) => describeTime(t),
+    (t) => ({ label: describeTime(t), sort: clockSortKey(t) }),
   );
   return {
     id: makeQuestionId(rng, DESCRIBE_TIME_TYPE_ID),
     typeId: DESCRIBE_TIME_TYPE_ID,
     prompt: 'Which words describe the time on the clock?',
     display: { kind: 'analogClock', time, showSeconds: false, showNumerals: profile.clockNumerals },
-    answer: buildChoiceAnswer(rng, correct, candidates),
+    answer: buildChoiceAnswer(rng, { label: correct, sort: clockSortKey(time) }, candidates, {
+      ordered: profile.orderedChoices,
+    }),
     timeLimitMs: timeLimitFor(profile, TIME_LIMIT_MULTIPLIER),
     explainCorrect: `${formatClockFace(time, false)} is ${correct}.`,
   };

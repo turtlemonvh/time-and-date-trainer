@@ -3,6 +3,7 @@ import { difficultyProfile } from '../difficulty';
 import { mulberry32 } from '../rng';
 import {
   buildChoiceAnswer,
+  clockSortKey,
   dateRangeForSpan,
   distractorTimes,
   formatClockFace,
@@ -13,7 +14,14 @@ import {
   shiftTime,
   weekdayName,
   WEEKDAY_NAMES,
+  type ChoiceCandidate,
 } from './support';
+
+/** Builds a `ChoiceCandidate` with a default sort key of 0 for tests that
+ * don't care about ordering. */
+function cand(label: string, sort = 0): ChoiceCandidate {
+  return { label, sort };
+}
 
 describe('formatClockFace', () => {
   it('formats without AM/PM because a clock face cannot show it', () => {
@@ -154,7 +162,12 @@ describe('dateRangeForSpan / randomQuestionDate', () => {
 
 describe('buildChoiceAnswer', () => {
   it('produces the requested number of distinct options containing the correct one', () => {
-    const answer = buildChoiceAnswer(mulberry32(1), 'a', ['b', 'c', 'd', 'e']);
+    const answer = buildChoiceAnswer(mulberry32(1), cand('a'), [
+      cand('b'),
+      cand('c'),
+      cand('d'),
+      cand('e'),
+    ]);
     expect(answer.kind).toBe('choice');
     expect(answer.options).toHaveLength(OPTION_COUNT);
     expect(new Set(answer.options).size).toBe(OPTION_COUNT);
@@ -162,34 +175,105 @@ describe('buildChoiceAnswer', () => {
   });
 
   it('drops candidates equal to the correct answer', () => {
-    const answer = buildChoiceAnswer(mulberry32(2), 'a', ['a', 'b', 'a', 'c', 'd']);
+    const answer = buildChoiceAnswer(mulberry32(2), cand('a'), [
+      cand('a'),
+      cand('b'),
+      cand('a'),
+      cand('c'),
+      cand('d'),
+    ]);
     expect(answer.options).toHaveLength(OPTION_COUNT);
     expect(answer.options.filter((o) => o === 'a')).toHaveLength(1);
   });
 
   it('drops duplicate candidates', () => {
-    const answer = buildChoiceAnswer(mulberry32(3), 'a', ['b', 'b', 'c', 'c', 'd', 'd']);
+    const answer = buildChoiceAnswer(mulberry32(3), cand('a'), [
+      cand('b'),
+      cand('b'),
+      cand('c'),
+      cand('c'),
+      cand('d'),
+      cand('d'),
+    ]);
     expect(new Set(answer.options).size).toBe(OPTION_COUNT);
   });
 
   it('throws loudly when a generator supplies too few distinct distractors', () => {
-    expect(() => buildChoiceAnswer(mulberry32(4), 'a', ['a', 'b', 'b'])).toThrow(
-      /distinct distractors/,
-    );
+    expect(() =>
+      buildChoiceAnswer(mulberry32(4), cand('a'), [cand('a'), cand('b'), cand('b')]),
+    ).toThrow(/distinct distractors/);
   });
 
-  it('does not always put the correct answer in the same slot', () => {
+  it('does not always put the correct answer in the same slot when unordered', () => {
     const positions = new Set<number>();
     for (let seed = 0; seed < 40; seed++) {
-      positions.add(buildChoiceAnswer(mulberry32(seed), 'a', ['b', 'c', 'd', 'e']).correctIndex);
+      const answer = buildChoiceAnswer(mulberry32(seed), cand('a'), [
+        cand('b'),
+        cand('c'),
+        cand('d'),
+        cand('e'),
+      ]);
+      positions.add(answer.correctIndex);
     }
     expect(positions.size).toBeGreaterThan(1);
   });
 
   it('is deterministic for a given seed', () => {
-    const a = buildChoiceAnswer(mulberry32(11), 'a', ['b', 'c', 'd', 'e']);
-    const b = buildChoiceAnswer(mulberry32(11), 'a', ['b', 'c', 'd', 'e']);
+    const candidates = [cand('b'), cand('c'), cand('d'), cand('e')];
+    const a = buildChoiceAnswer(mulberry32(11), cand('a'), candidates);
+    const b = buildChoiceAnswer(mulberry32(11), cand('a'), candidates);
     expect(a).toEqual(b);
+  });
+
+  describe('ordered option', () => {
+    it('sorts options by their sort key instead of shuffling', () => {
+      const candidates = [cand('d', 4), cand('b', 2), cand('a', 1)];
+      const answer = buildChoiceAnswer(mulberry32(1), cand('c', 3), candidates, {
+        ordered: true,
+      });
+      expect(answer.options).toEqual(['a', 'b', 'c', 'd']);
+      expect(answer.options[answer.correctIndex]).toBe('c');
+    });
+
+    it('stays sorted across seeds — no randomness leaks into ordered output', () => {
+      const candidates = [cand('d', 4), cand('b', 2), cand('a', 1)];
+      for (let seed = 0; seed < 10; seed++) {
+        const answer = buildChoiceAnswer(mulberry32(seed), cand('c', 3), candidates, {
+          ordered: true,
+        });
+        expect(answer.options).toEqual(['a', 'b', 'c', 'd']);
+      }
+    });
+
+    it('shuffles when ordered is false (the default)', () => {
+      const candidates = [cand('d', 4), cand('b', 2), cand('a', 1)];
+      const positions = new Set<number>();
+      for (let seed = 0; seed < 40; seed++) {
+        const answer = buildChoiceAnswer(mulberry32(seed), cand('c', 3), candidates);
+        positions.add(answer.correctIndex);
+      }
+      expect(positions.size).toBeGreaterThan(1);
+    });
+  });
+});
+
+describe('clockSortKey', () => {
+  it('sorts 12 oclock first, ahead of 1 oclock, regardless of 24h hour', () => {
+    const noon = clockSortKey({ hour: 12, minute: 0, second: 0 });
+    const midnight = clockSortKey({ hour: 0, minute: 0, second: 0 });
+    const onePm = clockSortKey({ hour: 13, minute: 0, second: 0 });
+    const oneAm = clockSortKey({ hour: 1, minute: 0, second: 0 });
+    expect(noon).toBe(midnight);
+    expect(onePm).toBe(oneAm);
+    expect(noon).toBeLessThan(onePm);
+  });
+
+  it('orders within an hour by minute, then second', () => {
+    const a = clockSortKey({ hour: 3, minute: 5, second: 0 });
+    const b = clockSortKey({ hour: 3, minute: 10, second: 0 });
+    const c = clockSortKey({ hour: 3, minute: 10, second: 30 });
+    expect(a).toBeLessThan(b);
+    expect(b).toBeLessThan(c);
   });
 });
 

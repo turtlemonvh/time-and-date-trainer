@@ -21,6 +21,10 @@ export interface DifficultyProfile {
    * turning "read the clock" into a harder positional-only task. */
   clockNumerals: boolean;
   describePhrasing: DescribePhrasingTier;
+  /** Multiple-choice options presented in natural (sorted) order instead of
+   * shuffled. Removes the scanning burden while a question type is new; off
+   * from D6 on, where shuffling returns as a deliberate difficulty lever. */
+  orderedChoices: boolean;
 }
 
 interface DifficultyRow {
@@ -31,6 +35,7 @@ interface DifficultyRow {
   hour24: boolean;
   clockNumerals: boolean;
   describePhrasing: DescribePhrasingTier;
+  orderedChoices: boolean;
 }
 
 // One row per difficulty level 1-10. Values are hand-tuned to match the
@@ -47,6 +52,7 @@ const TABLE: readonly DifficultyRow[] = [
     hour24: false,
     clockNumerals: true,
     describePhrasing: 'halves',
+    orderedChoices: true,
   },
   {
     timePrecisionWeights: { hour: 7, half: 3, quarter: 0, five: 0, minute: 0, second: 0 },
@@ -56,6 +62,7 @@ const TABLE: readonly DifficultyRow[] = [
     hour24: false,
     clockNumerals: true,
     describePhrasing: 'quarters',
+    orderedChoices: true,
   },
   {
     timePrecisionWeights: { hour: 3, half: 6, quarter: 1, five: 0, minute: 0, second: 0 },
@@ -65,6 +72,7 @@ const TABLE: readonly DifficultyRow[] = [
     hour24: false,
     clockNumerals: true,
     describePhrasing: 'fives',
+    orderedChoices: true,
   },
   {
     timePrecisionWeights: { hour: 1, half: 4, quarter: 4, five: 1, minute: 0, second: 0 },
@@ -74,6 +82,7 @@ const TABLE: readonly DifficultyRow[] = [
     hour24: false,
     clockNumerals: true,
     describePhrasing: 'fives',
+    orderedChoices: true,
   },
   {
     timePrecisionWeights: { hour: 0, half: 2, quarter: 3, five: 5, minute: 0, second: 0 },
@@ -83,6 +92,7 @@ const TABLE: readonly DifficultyRow[] = [
     hour24: false,
     clockNumerals: true,
     describePhrasing: 'fives',
+    orderedChoices: true,
   },
   {
     timePrecisionWeights: { hour: 0, half: 1, quarter: 2, five: 6, minute: 1, second: 0 },
@@ -92,6 +102,7 @@ const TABLE: readonly DifficultyRow[] = [
     hour24: false,
     clockNumerals: true,
     describePhrasing: 'fives',
+    orderedChoices: false,
   },
   {
     timePrecisionWeights: { hour: 0, half: 0, quarter: 1, five: 5, minute: 4, second: 0 },
@@ -101,6 +112,7 @@ const TABLE: readonly DifficultyRow[] = [
     hour24: false,
     clockNumerals: true,
     describePhrasing: 'fives',
+    orderedChoices: false,
   },
   {
     timePrecisionWeights: { hour: 0, half: 0, quarter: 0, five: 3, minute: 6, second: 1 },
@@ -110,6 +122,7 @@ const TABLE: readonly DifficultyRow[] = [
     hour24: true,
     clockNumerals: true,
     describePhrasing: 'fives',
+    orderedChoices: false,
   },
   {
     timePrecisionWeights: { hour: 0, half: 0, quarter: 0, five: 1, minute: 6, second: 3 },
@@ -119,6 +132,7 @@ const TABLE: readonly DifficultyRow[] = [
     hour24: true,
     clockNumerals: false,
     describePhrasing: 'anyMinute',
+    orderedChoices: false,
   },
   {
     timePrecisionWeights: { hour: 0, half: 0, quarter: 0, five: 0, minute: 4, second: 6 },
@@ -128,6 +142,7 @@ const TABLE: readonly DifficultyRow[] = [
     hour24: true,
     clockNumerals: false,
     describePhrasing: 'anyMinute',
+    orderedChoices: false,
   },
 ];
 

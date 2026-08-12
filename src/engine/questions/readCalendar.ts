@@ -26,7 +26,10 @@ export function generateReadCalendar(rng: Rng, ctx: GeneratorContext): Question 
   const profile = difficultyProfile(ctx.difficulty);
   const date = randomQuestionDate(rng, profile.dateSpan);
   const correct = weekdayName(date);
-  const candidates = WEEKDAY_NAMES.filter((name) => name !== correct);
+  const candidates = WEEKDAY_NAMES.filter((name) => name !== correct).map((name) => ({
+    label: name,
+    sort: WEEKDAY_NAMES.indexOf(name),
+  }));
   const longDate = formatDateLong(date);
   return {
     id: makeQuestionId(rng, READ_CALENDAR_TYPE_ID),
@@ -38,7 +41,12 @@ export function generateReadCalendar(rng: Rng, ctx: GeneratorContext): Question 
       monthIndex: date.getMonth(),
       highlightDay: date.getDate(),
     },
-    answer: buildChoiceAnswer(rng, correct, candidates),
+    answer: buildChoiceAnswer(
+      rng,
+      { label: correct, sort: WEEKDAY_NAMES.indexOf(correct) },
+      candidates,
+      { ordered: profile.orderedChoices },
+    ),
     timeLimitMs: timeLimitFor(profile, READ_CALENDAR_TIME_LIMIT_MULTIPLIER),
     explainCorrect: `${longDate} is a ${correct}.`,
   };

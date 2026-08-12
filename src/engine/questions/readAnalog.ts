@@ -3,6 +3,7 @@ import type { Rng } from '../rng';
 import { randomTime } from '../timeMath';
 import {
   buildChoiceAnswer,
+  clockSortKey,
   distractorTimes,
   formatClockFace,
   makeQuestionId,
@@ -24,13 +25,18 @@ export function generateReadAnalog(rng: Rng, ctx: GeneratorContext): Question {
   const showSeconds = precision === 'second';
   const time = randomTime(rng, precision);
   const correct = formatClockFace(time, showSeconds);
-  const candidates = distractorTimes(time, precision).map((t) => formatClockFace(t, showSeconds));
+  const candidates = distractorTimes(time, precision).map((t) => ({
+    label: formatClockFace(t, showSeconds),
+    sort: clockSortKey(t),
+  }));
   return {
     id: makeQuestionId(rng, READ_ANALOG_TYPE_ID),
     typeId: READ_ANALOG_TYPE_ID,
     prompt: 'What time does the clock show?',
     display: { kind: 'analogClock', time, showSeconds, showNumerals: profile.clockNumerals },
-    answer: buildChoiceAnswer(rng, correct, candidates),
+    answer: buildChoiceAnswer(rng, { label: correct, sort: clockSortKey(time) }, candidates, {
+      ordered: profile.orderedChoices,
+    }),
     timeLimitMs: timeLimitFor(profile, TIME_LIMIT_MULTIPLIER),
     explainCorrect: `The clock shows ${correct}.`,
   };
