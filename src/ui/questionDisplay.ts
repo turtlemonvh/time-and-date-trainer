@@ -1,4 +1,5 @@
 import type { AnswerSpec, DisplaySpec } from '../engine/questions';
+import type { TimeOfDay } from '../engine/timeMath';
 
 export const MONTH_NAMES = [
   'January',
@@ -50,6 +51,22 @@ export function describeDisplay(display: DisplaySpec): string {
  * generator PR as M5 adds new kinds, not break until each one's real UI
  * lands.
  */
+/**
+ * Starting hand position for a `setHands` answer's interactive widget.
+ * Matches `target`'s AM/PM half (noon if PM, midnight if AM) —
+ * `AnalogClock`'s 12-hour face can't show which half the hour hand is in,
+ * so a drag always preserves whichever half the draft starts in (see the
+ * widget's own doc comment). Starting in the wrong half would make the
+ * target structurally unreachable by dragging, not just a harder question.
+ * Shared between `Climb.tsx` and `PreviewPlayer.tsx`, the two places that
+ * render this answer kind interactively, so the reachability fix can't
+ * drift out of sync between them.
+ */
+export function defaultSetHandsDraft(target: TimeOfDay): TimeOfDay {
+  const isPM = target.hour >= 12;
+  return { hour: isPM ? 12 : 0, minute: 0, second: 0 };
+}
+
 export function describeAnswer(answer: AnswerSpec): string {
   switch (answer.kind) {
     case 'choice':

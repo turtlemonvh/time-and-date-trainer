@@ -5,6 +5,7 @@ import { offsetDateType } from './offsetDate';
 import { readAnalogType } from './readAnalog';
 import { readCalendarType } from './readCalendar';
 import { registerGenerator } from './registry';
+import { setHandsType } from './setHands';
 import type { QuestionType } from './types';
 
 /**
@@ -21,6 +22,7 @@ export const BUILT_IN_QUESTION_TYPES: readonly QuestionType[] = [
   offsetDateType,
   elapsedAddType,
   elapsedBetweenType,
+  setHandsType,
 ];
 
 for (const type of BUILT_IN_QUESTION_TYPES) {
@@ -48,3 +50,4 @@ export * from './readCalendar';
 export * from './offsetDate';
 export * from './elapsedAdd';
 export * from './elapsedBetween';
+export * from './setHands';

@@ -18,6 +18,7 @@ describe('questions barrel', () => {
       'offsetDate',
       'elapsedAdd',
       'elapsedBetween',
+      'setHands',
     ]);
   });
 

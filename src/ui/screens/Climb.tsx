@@ -26,6 +26,7 @@ import MiniMap from '../hud/MiniMap';
 import TimerBar from '../hud/TimerBar';
 import PixelLayers from '../pixel/PixelLayers';
 import { bodyCheer, bodyClimb, bodyIdle, bodySlip } from '../pixel/sprites/body';
+import { defaultSetHandsDraft } from '../questionDisplay';
 import AnalogClock from '../widgets/AnalogClock';
 import CalendarMonth from '../widgets/CalendarMonth';
 import ChoiceGrid from '../widgets/ChoiceGrid';
@@ -39,10 +40,14 @@ const REVEAL_MS = 1500;
 const TICK_MS = 100;
 const CHARACTER_SCALE = 6;
 
-/** Starting hand position for a `setHands` question. Fixed rather than
- * randomized: it's not meant to hint at the answer either way, just give the
- * player *something* to drag from every time, deterministically. */
-const DEFAULT_DRAFT_TIME: TimeOfDay = { hour: 12, minute: 0, second: 0 };
+const NOON: TimeOfDay = { hour: 12, minute: 0, second: 0 };
+
+/** `defaultSetHandsDraft` needs a target; non-`setHands` questions never
+ * render the draft, so this arbitrary (but always-PM) fallback is never
+ * actually shown. */
+function defaultDraftTime(question: Question): TimeOfDay {
+  return question.answer.kind === 'setHands' ? defaultSetHandsDraft(question.answer.target) : NOON;
+}
 
 type Pose = 'idle' | 'climb' | 'slip' | 'cheer';
 
@@ -110,7 +115,7 @@ export default function Climb({
     generateQuestion(rng, { difficulty, peak }),
   );
   const [selectedIndex, setSelectedIndex] = useState<number | undefined>(undefined);
-  const [draftTime, setDraftTime] = useState<TimeOfDay>(DEFAULT_DRAFT_TIME);
+  const [draftTime, setDraftTime] = useState<TimeOfDay>(() => defaultDraftTime(question));
   const [draftNumber, setDraftNumber] = useState<number | ''>('');
   const [revealing, setRevealing] = useState(false);
   const [pose, setPose] = useState<Pose>('idle');
@@ -163,7 +168,7 @@ export default function Climb({
       setQuestion(nextQuestion);
       setTimeLeftMs(nextQuestion.timeLimitMs);
       setSelectedIndex(undefined);
-      setDraftTime(DEFAULT_DRAFT_TIME);
+      setDraftTime(defaultDraftTime(nextQuestion));
       setDraftNumber('');
       setRevealing(false);
       setPose('idle');
