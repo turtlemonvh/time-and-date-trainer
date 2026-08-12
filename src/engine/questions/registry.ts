@@ -5,6 +5,17 @@ import type { GeneratorContext, Question, QuestionType } from './types';
 
 const generators = new Map<string, QuestionType>();
 
+/**
+ * How much more likely an on-theme generator is to be drawn than an
+ * off-theme one. Originally 5x; `pacingSimulation.test.ts`'s tuning pass
+ * found 5x compounded too strongly with peak-matched types that also carry
+ * an above-1.0 `TIME_LIMIT_MULTIPLIER` (a matched type being both "this
+ * peak's flavor" and "a slower question type" pushed those peaks' average
+ * completion time past the design spec's 2-5 minute target), so it's
+ * lowered to 3x here — still a clearly noticeable peak-flavor bias.
+ */
+const PEAK_MATCH_WEIGHT_MULTIPLIER = 3;
+
 export function registerGenerator(type: QuestionType): void {
   if (generators.has(type.typeId)) {
     throw new Error(`registerGenerator: duplicate typeId "${type.typeId}"`);
@@ -36,10 +47,11 @@ export function resetGenerators(): void {
  * Picks the generator for the next question.
  *
  * Weighted by peak match (a generator on-theme for `ctx.peak`, per
- * `peakEmphasis.ts`, is 5x more likely) and by the difficulty profile's
- * `answerModeWeights` (e.g. a `free`-mode generator is undrawable at
- * difficulty 1, where that weight is 0). A generator's total weight is
- * `(peak match ? 5 : 1) * profile.answerModeWeights[type.answerMode]`.
+ * `peakEmphasis.ts`, is `PEAK_MATCH_WEIGHT_MULTIPLIER`x more likely) and by
+ * the difficulty profile's `answerModeWeights` (e.g. a `free`-mode
+ * generator is undrawable at difficulty 1, where that weight is 0). A
+ * generator's total weight is `(peak match ? PEAK_MATCH_WEIGHT_MULTIPLIER
+ * : 1) * profile.answerModeWeights[type.answerMode]`.
  */
 export function selectGenerator(rng: Rng, ctx: GeneratorContext): QuestionType {
   const types = listGenerators();
@@ -56,7 +68,7 @@ export function selectGenerator(rng: Rng, ctx: GeneratorContext): QuestionType {
     types.map((type) => ({
       value: type,
       weight:
-        (isOnThemeForPeak(ctx.peak, type.typeId) ? 5 : 1) *
+        (isOnThemeForPeak(ctx.peak, type.typeId) ? PEAK_MATCH_WEIGHT_MULTIPLIER : 1) *
         profile.answerModeWeights[type.answerMode],
     })),
   );
