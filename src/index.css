@@ -12,9 +12,12 @@
   --social-bg: rgba(244, 243, 236, 0.5);
   --shadow: rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-  /* Pixel fonts (see assets/fonts/fonts.css) — swap either family here to
-     retheme the whole app; nothing else needs to change. */
-  --sans: 'Pixelify Sans', system-ui, 'Segoe UI', Roboto, sans-serif;
+  /* Fonts (see assets/fonts/fonts.css) — swap either family here to
+     retheme the whole app; nothing else needs to change. --heading is the
+     app title (h1) only now — it's the one place Press Start 2P's retro
+     look is worth its legibility cost; every other heading uses --sans,
+     the same legibility-tuned face as body copy. */
+  --sans: 'Atkinson Hyperlegible', system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: 'Press Start 2P', system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
@@ -68,19 +71,15 @@ body {
   margin: 0;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
 h1 {
+  font-family: var(--heading);
+  color: var(--text-h);
   /* Press Start 2P is much wider per character than a normal font — the
      old 56px/-1.68px letter-spacing (tuned for a proportional font) made
      longer titles overlap themselves. Sized down, and letter-spacing
      reset to normal since squeezing a monospace pixel font fights its
      own glyph grid. */
+  font-weight: 400;
   font-size: 28px;
   line-height: 140%;
   letter-spacing: normal;
@@ -91,6 +90,13 @@ h1 {
   }
 }
 h2 {
+  /* Section headings read Atkinson Hyperlegible at a bolder weight, not
+     Press Start 2P — that font is the single worst offender for reading
+     under time pressure, and it was previously on every screen's section
+     headings, not just the app title. */
+  font-family: var(--sans);
+  font-weight: 700;
+  color: var(--text-h);
   font-size: 20px;
   line-height: 140%;
   letter-spacing: normal;
