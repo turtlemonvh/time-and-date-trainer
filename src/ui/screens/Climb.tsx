@@ -125,10 +125,20 @@ export default function Climb({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeftMs, revealing]);
 
+  if (question.answer.kind !== 'choice') {
+    // Every registered generator still produces a ChoiceAnswer today —
+    // interactive/free-answer generators land in a later M5 task alongside
+    // this screen's own rendering/grading for those kinds. Fail loud rather
+    // than silently mis-grading if that invariant is ever broken before this
+    // screen catches up.
+    throw new Error(`Climb: unsupported answer kind "${question.answer.kind}"`);
+  }
+  const answer = question.answer;
+
   function handleAnswer(index: number | undefined) {
     if (revealing) return;
     const elapsedMs = Date.now() - questionStartRef.current;
-    const correct = index !== undefined && isCorrectChoice(question.answer, index);
+    const correct = index !== undefined && isCorrectChoice(answer, index);
     const fast = isFastAnswer(elapsedMs, question.timeLimitMs);
     const nextState = correct ? applyCorrect(climbState, fast) : applyMiss(climbState);
 
@@ -176,9 +186,9 @@ export default function Climb({
       <p data-testid="climb-prompt">{question.prompt}</p>
       <div data-testid="climb-display">{renderDisplay(question.display)}</div>
       <ChoiceGrid
-        options={question.answer.options}
+        options={answer.options}
         selectedIndex={selectedIndex}
-        correctIndex={revealing ? question.answer.correctIndex : undefined}
+        correctIndex={revealing ? answer.correctIndex : undefined}
         disabled={revealing}
         onSelect={handleAnswer}
       />

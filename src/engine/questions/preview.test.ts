@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { generateQuestionBatch } from './preview';
+import { expectChoiceAnswer } from './testSupport';
 
 describe('generateQuestionBatch', () => {
   it('returns samplesPerType questions per registered generator type', () => {
@@ -37,9 +38,10 @@ describe('generateQuestionBatch', () => {
   it('every question in the batch carries a valid choice answer', () => {
     const batch = generateQuestionBatch(7, 3, 8);
     for (const q of batch) {
-      expect(q.answer.options.length).toBeGreaterThan(0);
-      expect(q.answer.correctIndex).toBeGreaterThanOrEqual(0);
-      expect(q.answer.correctIndex).toBeLessThan(q.answer.options.length);
+      const answer = expectChoiceAnswer(q);
+      expect(answer.options.length).toBeGreaterThan(0);
+      expect(answer.correctIndex).toBeGreaterThanOrEqual(0);
+      expect(answer.correctIndex).toBeLessThan(answer.options.length);
     }
   });
 });

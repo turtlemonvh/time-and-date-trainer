@@ -4,6 +4,7 @@ import { getPeak } from '../peaks';
 import { mulberry32 } from '../rng';
 import { describeTime } from '../timeMath';
 import { DESCRIBE_TIME_TYPE_ID, describeTimeType, generateDescribeTime } from './describeTime';
+import { expectChoiceAnswer } from './testSupport';
 import type { GeneratorContext } from './types';
 
 const ctx: GeneratorContext = { difficulty: 3, peak: getPeak(2) };
@@ -20,7 +21,8 @@ describe('generateDescribeTime', () => {
     for (let seed = 0; seed < 50; seed++) {
       const q = generateDescribeTime(mulberry32(seed), ctx);
       if (q.display.kind !== 'analogClock') throw new Error('expected an analogClock display');
-      expect(q.answer.options[q.answer.correctIndex]).toBe(describeTime(q.display.time));
+      const answer = expectChoiceAnswer(q);
+      expect(answer.options[answer.correctIndex]).toBe(describeTime(q.display.time));
     }
   });
 
@@ -35,7 +37,8 @@ describe('generateDescribeTime', () => {
 
   it('offers four distinct wordings', () => {
     for (let seed = 0; seed < 50; seed++) {
-      const { options } = generateDescribeTime(mulberry32(seed), ctx).answer;
+      const q = generateDescribeTime(mulberry32(seed), ctx);
+      const { options } = expectChoiceAnswer(q);
       expect(options).toHaveLength(4);
       expect(new Set(options).size).toBe(4);
     }
@@ -44,8 +47,8 @@ describe('generateDescribeTime', () => {
   it('produces recognisable clock language', () => {
     const wordings = new Set<string>();
     for (let seed = 0; seed < 60; seed++) {
-      for (const option of generateDescribeTime(mulberry32(seed), { ...ctx, difficulty: 4 }).answer
-        .options) {
+      const q = generateDescribeTime(mulberry32(seed), { ...ctx, difficulty: 4 });
+      for (const option of expectChoiceAnswer(q).options) {
         wordings.add(option);
       }
     }
@@ -103,7 +106,8 @@ describe('generateDescribeTime', () => {
 
   it('explains the correct answer', () => {
     const q = generateDescribeTime(mulberry32(1), ctx);
-    expect(q.explainCorrect).toContain(q.answer.options[q.answer.correctIndex]);
+    const answer = expectChoiceAnswer(q);
+    expect(q.explainCorrect).toContain(answer.options[answer.correctIndex]);
   });
 
   it('is deterministic for a given seed', () => {

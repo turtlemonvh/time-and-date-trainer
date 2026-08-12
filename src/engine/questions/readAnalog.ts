@@ -44,5 +44,6 @@ export function generateReadAnalog(rng: Rng, ctx: GeneratorContext): Question {
 
 export const readAnalogType: QuestionType = {
   typeId: READ_ANALOG_TYPE_ID,
+  answerMode: 'choice',
   generate: generateReadAnalog,
 };

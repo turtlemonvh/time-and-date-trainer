@@ -69,5 +69,6 @@ export function generateDescribeTime(rng: Rng, ctx: GeneratorContext): Question 
 
 export const describeTimeType: QuestionType = {
   typeId: DESCRIBE_TIME_TYPE_ID,
+  answerMode: 'choice',
   generate: generateDescribeTime,
 };

@@ -52,6 +52,13 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
 
   const batch = generateQuestionBatch(seed, peakId, difficulty);
   const question = batch[index];
+  if (question.answer.kind !== 'choice') {
+    // Every registered generator still produces a ChoiceAnswer today; this
+    // preview (like Climb.tsx) gets its own rendering for the other answer
+    // kinds in a later M5 task.
+    throw new Error(`PreviewPlayer: unsupported answer kind "${question.answer.kind}"`);
+  }
+  const answer = question.answer;
 
   function advance() {
     setSelectedIndex(undefined);
@@ -148,9 +155,9 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
         <p data-testid="preview-prompt">{question.prompt}</p>
         <div data-testid="preview-display">{renderDisplay(question.display)}</div>
         <ChoiceGrid
-          options={question.answer.options}
+          options={answer.options}
           selectedIndex={selectedIndex}
-          correctIndex={selectedIndex !== undefined ? question.answer.correctIndex : undefined}
+          correctIndex={selectedIndex !== undefined ? answer.correctIndex : undefined}
           onSelect={setSelectedIndex}
         />
         <p data-testid="preview-explain">{question.explainCorrect}</p>
