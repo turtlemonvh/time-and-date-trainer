@@ -21,6 +21,13 @@ export function formatDateLong(d: Date): string {
   return format(d, 'MMMM d, yyyy');
 }
 
+/** Whole calendar days from `start` to `end` (DST- and leap-year-safe, via
+ * date-fns' own calendar-aware arithmetic rather than raw millisecond math,
+ * which is not safe across a DST transition). */
+export function daysBetween(start: Date, end: Date): number {
+  return differenceInCalendarDays(end, start);
+}
+
 export function formatMonthYear(year: number, monthIndex: number): string {
   return format(new Date(year, monthIndex, 1), 'MMMM yyyy');
 }

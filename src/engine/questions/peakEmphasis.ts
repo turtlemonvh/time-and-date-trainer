@@ -22,7 +22,7 @@ export const PEAK_TYPE_IDS: Readonly<Record<number, readonly string[]>> = {
   6: ['elapsedAdd', 'elapsedBetween'], // Elapsed Escarpment
   7: ['offsetDate'], // Monthfall Pass
   8: ['hour24'], // The Meridian
-  9: [], // Leap Crag — countBetween lands in M5 item 9
+  9: ['countBetween'], // Leap Crag
   10: [], // Summit of Hours — mixed peak, see isOnThemeForPeak
 };
 

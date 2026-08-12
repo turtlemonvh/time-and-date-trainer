@@ -1,3 +1,4 @@
+import { countBetweenType } from './countBetween';
 import { countWeekdaysType } from './countWeekdays';
 import { dayOfWeekType } from './dayOfWeek';
 import { describeTimeType } from './describeTime';
@@ -31,6 +32,7 @@ export const BUILT_IN_QUESTION_TYPES: readonly QuestionType[] = [
   nthWeekdayType,
   countWeekdaysType,
   hour24Type,
+  countBetweenType,
 ];
 
 for (const type of BUILT_IN_QUESTION_TYPES) {
@@ -63,3 +65,4 @@ export * from './dayOfWeek';
 export * from './nthWeekday';
 export * from './countWeekdays';
 export * from './hour24';
+export * from './countBetween';
