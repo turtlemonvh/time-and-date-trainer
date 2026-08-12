@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Climb from './Climb';
 import { CHARACTER_PRESETS } from '../character/presets';
 import type { Peak } from '../../engine/peaks';
-import type { Question } from '../../engine/questions';
+import { generateQuestion, type Question } from '../../engine/questions';
 
 // Matches Climb.tsx's internal REVEAL_MS — kept as a separate constant here
 // since the component doesn't export it.
@@ -17,6 +17,45 @@ const FIXED_QUESTION: Question = {
   answer: { kind: 'choice', options: ['Right', 'Wrong'], correctIndex: 0 },
   timeLimitMs: 5000,
   explainCorrect: 'Because Right is right.',
+};
+
+// No registered generator produces these three kinds yet (M5 is still
+// building them out), so these fixtures are hand-built the same way
+// FIXED_QUESTION is, to prove Climb.tsx's own rendering/grading for each
+// kind is correct ahead of any real generator existing.
+// Target is PM (hour 15, not 3) so it's reachable by dragging from
+// `Climb.tsx`'s own DEFAULT_DRAFT_TIME (noon) — the hour hand's drag
+// preserves whichever half of the day the current draft is already in
+// (the same AM/PM-ambiguity-of-a-12-hour-face logic `AnalogClock` itself
+// uses), and the default starts PM.
+const SET_HANDS_QUESTION: Question = {
+  id: 'test-sethands',
+  typeId: 'testSetHands',
+  prompt: 'Set the clock to 3:15 PM',
+  display: { kind: 'none' },
+  answer: { kind: 'setHands', target: { hour: 15, minute: 15, second: 0 }, precision: 'quarter' },
+  timeLimitMs: 5000,
+  explainCorrect: 'The clock should show 3:15 PM.',
+};
+
+const NUMBER_QUESTION: Question = {
+  id: 'test-number',
+  typeId: 'testNumber',
+  prompt: 'How many minutes between 2:00 and 2:45?',
+  display: { kind: 'none' },
+  answer: { kind: 'number', target: 45, unit: 'minutes' },
+  timeLimitMs: 5000,
+  explainCorrect: 'The answer is 45 minutes.',
+};
+
+const PICK_DATE_QUESTION: Question = {
+  id: 'test-pickdate',
+  typeId: 'testPickDate',
+  prompt: 'What is the 3rd Tuesday of June 2026?',
+  display: { kind: 'none' },
+  answer: { kind: 'pickDate', year: 2026, monthIndex: 5, day: 16 },
+  timeLimitMs: 5000,
+  explainCorrect: 'The 3rd Tuesday of June 2026 is June 16.',
 };
 
 vi.mock('../../engine/questions', async (importOriginal) => {
@@ -43,6 +82,7 @@ function answerWrong() {
 
 beforeEach(() => {
   vi.useFakeTimers();
+  vi.mocked(generateQuestion).mockReturnValue(FIXED_QUESTION);
 });
 
 afterEach(() => {
@@ -203,5 +243,161 @@ describe('Climb', () => {
     });
     answerCorrect();
     expect(screen.getAllByTestId('boost-pip-filled')).toHaveLength(1);
+  });
+});
+
+describe('Climb — setHands answer kind', () => {
+  const CENTER = 129; // AnalogClock's default target size (260) snaps to actualSize 258.
+  const RADIUS = 50;
+  const RECT = {
+    left: 0,
+    top: 0,
+    width: CENTER * 2,
+    height: CENTER * 2,
+    right: CENTER * 2,
+    bottom: CENTER * 2,
+    x: 0,
+    y: 0,
+    toJSON: () => {},
+  } as DOMRect;
+
+  beforeEach(() => {
+    vi.mocked(generateQuestion).mockReturnValue(SET_HANDS_QUESTION);
+    vi.spyOn(SVGElement.prototype, 'getBoundingClientRect').mockReturnValue(RECT);
+  });
+
+  function renderClimb(onQuestionAnswered = vi.fn()) {
+    render(
+      <Climb
+        peak={shortPeak}
+        difficulty={5}
+        characterPreset={preset}
+        seed={1}
+        onSummit={vi.fn()}
+        onFall={vi.fn()}
+        onQuestionAnswered={onQuestionAnswered}
+      />,
+    );
+    return onQuestionAnswered;
+  }
+
+  it('renders an interactive AnalogClock and a Submit button', () => {
+    renderClimb();
+    expect(screen.getByTestId('analog-clock')).toBeInTheDocument();
+    expect(screen.getByTestId('analog-clock-minute-hand')).toBeInTheDocument();
+    expect(screen.getByTestId('climb-submit')).toBeInTheDocument();
+  });
+
+  it('submitting without dragging (the default noon) misses against a different target', () => {
+    const onQuestionAnswered = renderClimb();
+    fireEvent.click(screen.getByTestId('climb-submit'));
+    expect(onQuestionAnswered).toHaveBeenCalledWith('testSetHands', false, expect.any(Number));
+  });
+
+  it('dragging both hands to the target and submitting grades correct', () => {
+    const onQuestionAnswered = renderClimb();
+    // Minute hand to the "3" position -> snaps to minute 15 at quarter precision.
+    fireEvent.pointerDown(screen.getByTestId('analog-clock-minute-hand'), {
+      clientX: CENTER + RADIUS,
+      clientY: CENTER,
+      pointerId: 1,
+    });
+    // Hour hand to the "3" position -> hour 15, preserving the default's PM half.
+    fireEvent.pointerDown(screen.getByTestId('analog-clock-hour-hand'), {
+      clientX: CENTER + RADIUS,
+      clientY: CENTER,
+      pointerId: 1,
+    });
+    fireEvent.click(screen.getByTestId('climb-submit'));
+    expect(onQuestionAnswered).toHaveBeenCalledWith('testSetHands', true, expect.any(Number));
+  });
+});
+
+describe('Climb — number answer kind', () => {
+  beforeEach(() => {
+    vi.mocked(generateQuestion).mockReturnValue(NUMBER_QUESTION);
+  });
+
+  function renderClimb(onQuestionAnswered = vi.fn()) {
+    render(
+      <Climb
+        peak={shortPeak}
+        difficulty={5}
+        characterPreset={preset}
+        seed={1}
+        onSummit={vi.fn()}
+        onFall={vi.fn()}
+        onQuestionAnswered={onQuestionAnswered}
+      />,
+    );
+    return onQuestionAnswered;
+  }
+
+  it('renders a NumberEntry and a Submit button, disabled until a value is entered', () => {
+    renderClimb();
+    expect(screen.getByTestId('number-entry-input')).toBeInTheDocument();
+    expect(screen.getByTestId('number-entry-unit')).toHaveTextContent('minutes');
+    expect(screen.getByTestId('climb-submit')).toBeDisabled();
+  });
+
+  it('submitting the correct number grades correct', () => {
+    const onQuestionAnswered = renderClimb();
+    fireEvent.change(screen.getByTestId('number-entry-input'), { target: { value: '45' } });
+    expect(screen.getByTestId('climb-submit')).not.toBeDisabled();
+    fireEvent.click(screen.getByTestId('climb-submit'));
+    expect(onQuestionAnswered).toHaveBeenCalledWith('testNumber', true, expect.any(Number));
+  });
+
+  it('submitting a wrong number misses', () => {
+    const onQuestionAnswered = renderClimb();
+    fireEvent.change(screen.getByTestId('number-entry-input'), { target: { value: '10' } });
+    fireEvent.click(screen.getByTestId('climb-submit'));
+    expect(onQuestionAnswered).toHaveBeenCalledWith('testNumber', false, expect.any(Number));
+  });
+});
+
+describe('Climb — pickDate answer kind', () => {
+  beforeEach(() => {
+    vi.mocked(generateQuestion).mockReturnValue(PICK_DATE_QUESTION);
+  });
+
+  function renderClimb(onQuestionAnswered = vi.fn()) {
+    render(
+      <Climb
+        peak={shortPeak}
+        difficulty={5}
+        characterPreset={preset}
+        seed={1}
+        onSummit={vi.fn()}
+        onFall={vi.fn()}
+        onQuestionAnswered={onQuestionAnswered}
+      />,
+    );
+    return onQuestionAnswered;
+  }
+
+  function clickDay(day: number) {
+    const cell = screen.getAllByTestId('calendar-day').find((el) => el.textContent === String(day));
+    if (!cell) throw new Error(`no calendar day cell for ${day}`);
+    fireEvent.click(cell);
+  }
+
+  it('renders a DatePicker opened on the target month, with no separate Submit button', () => {
+    renderClimb();
+    expect(screen.getByTestId('date-picker')).toBeInTheDocument();
+    expect(screen.getByTestId('calendar-month-label')).toHaveTextContent('June 2026');
+    expect(screen.queryByTestId('climb-submit')).not.toBeInTheDocument();
+  });
+
+  it('clicking the target day immediately grades correct — a click is the whole gesture', () => {
+    const onQuestionAnswered = renderClimb();
+    clickDay(16);
+    expect(onQuestionAnswered).toHaveBeenCalledWith('testPickDate', true, expect.any(Number));
+  });
+
+  it('clicking a different day immediately misses', () => {
+    const onQuestionAnswered = renderClimb();
+    clickDay(17);
+    expect(onQuestionAnswered).toHaveBeenCalledWith('testPickDate', false, expect.any(Number));
   });
 });

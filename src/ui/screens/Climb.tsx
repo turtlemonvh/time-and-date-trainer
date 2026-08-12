@@ -10,10 +10,14 @@ import type { Peak } from '../../engine/peaks';
 import {
   generateQuestion,
   isCorrectChoice,
+  isCorrectNumber,
+  isCorrectPickDate,
+  isCorrectSetHands,
   type DisplaySpec,
   type Question,
 } from '../../engine/questions';
 import { mulberry32 } from '../../engine/rng';
+import type { TimeOfDay } from '../../engine/timeMath';
 import { buildCharacterLayers } from '../character/buildCharacterLayers';
 import type { CharacterPreset } from '../character/presets';
 import BoostMeter from '../hud/BoostMeter';
@@ -25,6 +29,8 @@ import { bodyCheer, bodyClimb, bodyIdle, bodySlip } from '../pixel/sprites/body'
 import AnalogClock from '../widgets/AnalogClock';
 import CalendarMonth from '../widgets/CalendarMonth';
 import ChoiceGrid from '../widgets/ChoiceGrid';
+import DatePicker from '../widgets/DatePicker';
+import NumberEntry from '../widgets/NumberEntry';
 
 /** Matches the design spec's ~1.5s post-answer beat, applied to both correct and wrong answers
  * (the spec only calls it out for wrong ones, but the reveal/pose change needs the same beat
@@ -32,6 +38,11 @@ import ChoiceGrid from '../widgets/ChoiceGrid';
 const REVEAL_MS = 1500;
 const TICK_MS = 100;
 const CHARACTER_SCALE = 6;
+
+/** Starting hand position for a `setHands` question. Fixed rather than
+ * randomized: it's not meant to hint at the answer either way, just give the
+ * player *something* to drag from every time, deterministically. */
+const DEFAULT_DRAFT_TIME: TimeOfDay = { hour: 12, minute: 0, second: 0 };
 
 type Pose = 'idle' | 'climb' | 'slip' | 'cheer';
 
@@ -75,11 +86,14 @@ export interface ClimbProps {
 
 /**
  * The core gameplay loop: generate a question, let the player answer (or
- * time out), apply the result to `climb.ts`'s state machine, show a
- * reveal beat, then either summit/fall out or move to the next question.
- * Only handles `ChoiceAnswer` questions — the only kind any registered
- * generator produces today (M1b); `interactive`/`free` answer modes have
- * no generators yet (M5).
+ * time out), apply the result to `climb.ts`'s state machine, show a reveal
+ * beat, then either summit/fall out or move to the next question. Handles
+ * all four `AnswerSpec` kinds: `choice` and `pickDate` are click-to-answer
+ * (a click IS the discrete gesture); `setHands` and `number` need an
+ * explicit Submit button, since dragging hands or typing a number has no
+ * natural "this is my final answer" moment the way a click does. All four
+ * route through the same `applyCorrect`/`applyMiss`/reveal/pose logic below
+ * — only how the answer is captured and graded differs per kind.
  */
 export default function Climb({
   peak,
@@ -96,53 +110,40 @@ export default function Climb({
     generateQuestion(rng, { difficulty, peak }),
   );
   const [selectedIndex, setSelectedIndex] = useState<number | undefined>(undefined);
+  const [draftTime, setDraftTime] = useState<TimeOfDay>(DEFAULT_DRAFT_TIME);
+  const [draftNumber, setDraftNumber] = useState<number | ''>('');
   const [revealing, setRevealing] = useState(false);
   const [pose, setPose] = useState<Pose>('idle');
   const [timeLeftMs, setTimeLeftMs] = useState(question.timeLimitMs);
 
-  const questionStartRef = useRef(Date.now());
-  const climbStartRef = useRef(Date.now());
+  // `Date.now()` is impure and refs can't be read or written during render
+  // (only in effects/handlers), so both start times are set from a
+  // mount-only effect rather than a `useRef(Date.now())` initializer —
+  // that expression would re-evaluate on every render even though only the
+  // first result is kept, and reading `.current` back to guard it would
+  // itself be a render-time ref access.
+  const questionStartRef = useRef(0);
+  const climbStartRef = useRef(0);
   const revealTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
+    const now = Date.now();
+    questionStartRef.current = now;
+    climbStartRef.current = now;
     return () => {
       if (revealTimeoutRef.current) clearTimeout(revealTimeoutRef.current);
     };
   }, []);
 
-  useEffect(() => {
-    if (revealing) return;
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - questionStartRef.current;
-      setTimeLeftMs(Math.max(0, question.timeLimitMs - elapsed));
-    }, TICK_MS);
-    return () => clearInterval(interval);
-  }, [revealing, question]);
-
-  useEffect(() => {
-    if (revealing || timeLeftMs > 0) return;
-    handleAnswer(undefined);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeftMs, revealing]);
-
-  if (question.answer.kind !== 'choice') {
-    // Every registered generator still produces a ChoiceAnswer today —
-    // interactive/free-answer generators land in a later M5 task alongside
-    // this screen's own rendering/grading for those kinds. Fail loud rather
-    // than silently mis-grading if that invariant is ever broken before this
-    // screen catches up.
-    throw new Error(`Climb: unsupported answer kind "${question.answer.kind}"`);
-  }
   const answer = question.answer;
 
-  function handleAnswer(index: number | undefined) {
-    if (revealing) return;
-    const elapsedMs = Date.now() - questionStartRef.current;
-    const correct = index !== undefined && isCorrectChoice(answer, index);
+  /** Shared tail of every answer path: apply the climb rules, start the
+   * reveal beat, and either finish the climb or advance to the next
+   * question once it ends. */
+  function finishAnswer(correct: boolean, elapsedMs: number) {
     const fast = isFastAnswer(elapsedMs, question.timeLimitMs);
     const nextState = correct ? applyCorrect(climbState, fast) : applyMiss(climbState);
 
-    setSelectedIndex(index);
     setRevealing(true);
     setPose(correct ? (nextState.status === 'summited' ? 'cheer' : 'climb') : 'slip');
     setClimbState(nextState);
@@ -162,9 +163,118 @@ export default function Climb({
       setQuestion(nextQuestion);
       setTimeLeftMs(nextQuestion.timeLimitMs);
       setSelectedIndex(undefined);
+      setDraftTime(DEFAULT_DRAFT_TIME);
+      setDraftNumber('');
       setRevealing(false);
       setPose('idle');
     }, REVEAL_MS);
+  }
+
+  function handleTimeout() {
+    if (revealing) return;
+    finishAnswer(false, Date.now() - questionStartRef.current);
+  }
+
+  // Ticks the countdown and, once it reaches zero, triggers the timeout
+  // path from inside the interval callback itself rather than a second
+  // effect reacting to `timeLeftMs` hitting 0 — calling `handleTimeout`
+  // (several `setState`s) synchronously in an effect's own body causes
+  // cascading renders; calling it from an async interval/timeout callback,
+  // same as `finishAnswer`'s own `setTimeout` above, does not.
+  useEffect(() => {
+    if (revealing) return;
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - questionStartRef.current;
+      const remaining = Math.max(0, question.timeLimitMs - elapsed);
+      setTimeLeftMs(remaining);
+      if (remaining <= 0) {
+        clearInterval(interval);
+        handleTimeout();
+      }
+    }, TICK_MS);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revealing, question]);
+
+  function handleChoiceAnswer(index: number | undefined) {
+    if (revealing || answer.kind !== 'choice') return;
+    const elapsedMs = Date.now() - questionStartRef.current;
+    const correct = index !== undefined && isCorrectChoice(answer, index);
+    setSelectedIndex(index);
+    finishAnswer(correct, elapsedMs);
+  }
+
+  function handleSetHandsSubmit() {
+    if (revealing || answer.kind !== 'setHands') return;
+    const elapsedMs = Date.now() - questionStartRef.current;
+    finishAnswer(isCorrectSetHands(answer, draftTime), elapsedMs);
+  }
+
+  function handleNumberSubmit() {
+    if (revealing || answer.kind !== 'number' || draftNumber === '') return;
+    const elapsedMs = Date.now() - questionStartRef.current;
+    finishAnswer(isCorrectNumber(answer, draftNumber), elapsedMs);
+  }
+
+  function handlePickDateAnswer(date: { year: number; monthIndex: number; day: number }) {
+    if (revealing || answer.kind !== 'pickDate') return;
+    const elapsedMs = Date.now() - questionStartRef.current;
+    finishAnswer(isCorrectPickDate(answer, date), elapsedMs);
+  }
+
+  function renderAnswerSection() {
+    switch (answer.kind) {
+      case 'choice':
+        return (
+          <ChoiceGrid
+            options={answer.options}
+            selectedIndex={selectedIndex}
+            correctIndex={revealing ? answer.correctIndex : undefined}
+            disabled={revealing}
+            onSelect={handleChoiceAnswer}
+          />
+        );
+      case 'setHands':
+        return (
+          <div data-testid="climb-set-hands">
+            <AnalogClock
+              time={draftTime}
+              precision={answer.precision}
+              onHandChange={revealing ? undefined : setDraftTime}
+            />
+            <button
+              type="button"
+              data-testid="climb-submit"
+              onClick={handleSetHandsSubmit}
+              disabled={revealing}
+            >
+              Submit
+            </button>
+          </div>
+        );
+      case 'number':
+        return (
+          <div data-testid="climb-number">
+            <NumberEntry value={draftNumber} onChange={setDraftNumber} unit={answer.unit} />
+            <button
+              type="button"
+              data-testid="climb-submit"
+              onClick={handleNumberSubmit}
+              disabled={revealing || draftNumber === ''}
+            >
+              Submit
+            </button>
+          </div>
+        );
+      case 'pickDate':
+        return (
+          <DatePicker
+            initialYear={answer.year}
+            initialMonthIndex={answer.monthIndex}
+            onChange={revealing ? undefined : handlePickDateAnswer}
+          />
+        );
+    }
   }
 
   return (
@@ -185,13 +295,7 @@ export default function Climb({
       />
       <p data-testid="climb-prompt">{question.prompt}</p>
       <div data-testid="climb-display">{renderDisplay(question.display)}</div>
-      <ChoiceGrid
-        options={answer.options}
-        selectedIndex={selectedIndex}
-        correctIndex={revealing ? answer.correctIndex : undefined}
-        disabled={revealing}
-        onSelect={handleAnswer}
-      />
+      <div data-testid="climb-answer">{renderAnswerSection()}</div>
       {revealing && <p data-testid="climb-explain">{question.explainCorrect}</p>}
     </main>
   );
