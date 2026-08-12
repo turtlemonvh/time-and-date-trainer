@@ -21,6 +21,7 @@ describe('questions barrel', () => {
       'setHands',
       'dayOfWeek',
       'nthWeekday',
+      'countWeekdays',
     ]);
   });
 
