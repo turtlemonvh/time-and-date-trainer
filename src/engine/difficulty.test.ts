@@ -7,7 +7,7 @@ describe('difficultyProfile', () => {
     expect(p.level).toBe(1);
     expect(p.timePrecisionWeights.hour).toBeGreaterThan(0);
     expect(p.timePrecisionWeights.second).toBe(0);
-    expect(p.timerMs).toBe(20000);
+    expect(p.timerMs).toBe(30000);
     expect(p.answerModeWeights.choice).toBeGreaterThan(p.answerModeWeights.interactive);
     expect(p.answerModeWeights.choice).toBeGreaterThan(p.answerModeWeights.free);
     expect(p.dateSpan).toBe('withinMonth');
@@ -34,7 +34,7 @@ describe('difficultyProfile', () => {
   });
 
   it('D10 has the fastest timer', () => {
-    expect(difficultyProfile(10).timerMs).toBe(7000);
+    expect(difficultyProfile(10).timerMs).toBe(12000);
   });
 
   it('timer decreases monotonically from D1 to D10', () => {
@@ -59,6 +59,11 @@ describe('difficultyProfile', () => {
   it('enables 24-hour clock only at D8 and above', () => {
     for (const d of [1, 2, 3, 4, 5, 6, 7]) expect(difficultyProfile(d).hour24).toBe(false);
     for (const d of [8, 9, 10]) expect(difficultyProfile(d).hour24).toBe(true);
+  });
+
+  it('shows clock numerals through D8, hides them at D9-10', () => {
+    for (const d of [1, 2, 3, 4, 5, 6, 7, 8]) expect(difficultyProfile(d).clockNumerals).toBe(true);
+    for (const d of [9, 10]) expect(difficultyProfile(d).clockNumerals).toBe(false);
   });
 
   it('clamps out-of-range levels', () => {

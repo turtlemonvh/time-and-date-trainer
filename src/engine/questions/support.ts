@@ -7,6 +7,20 @@ import type { ChoiceAnswer } from './types';
 /** Every multiple-choice question offers this many options. */
 export const OPTION_COUNT = 4;
 
+/**
+ * Scales the difficulty profile's base timer by a question type's own
+ * multiplier. `difficulty.ts`'s `timerMs` is tuned for a "read one clock
+ * face" question; a type that takes genuinely longer to work out (e.g. a
+ * multi-step date offset) declares a multiplier above 1 in its own file so
+ * switching between question types mid-climb doesn't feel like a
+ * discontinuity in how much time was "supposed" to be enough. No central
+ * typeId -> multiplier table, so a new generator can't forget to update one
+ * it doesn't know exists — it just sets its own constant.
+ */
+export function timeLimitFor(profile: DifficultyProfile, multiplier: number): number {
+  return Math.round(profile.timerMs * multiplier);
+}
+
 export const PRECISIONS: readonly TimePrecision[] = [
   'hour',
   'half',

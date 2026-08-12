@@ -5,12 +5,17 @@ import {
   buildChoiceAnswer,
   makeQuestionId,
   randomQuestionDate,
+  timeLimitFor,
   weekdayName,
   WEEKDAY_NAMES,
 } from './support';
 import type { GeneratorContext, Question, QuestionType } from './types';
 
 export const READ_CALENDAR_TYPE_ID = 'readCalendar';
+
+/** Finding a highlighted day on a month grid, then reading its column
+ * heading, takes a bit longer than a glance at a clock face. */
+export const READ_CALENDAR_TIME_LIMIT_MULTIPLIER = 1.15;
 
 /**
  * Peak 3's emphasis: find a date on a month grid and read its column heading.
@@ -34,7 +39,7 @@ export function generateReadCalendar(rng: Rng, ctx: GeneratorContext): Question 
       highlightDay: date.getDate(),
     },
     answer: buildChoiceAnswer(rng, correct, candidates),
-    timeLimitMs: profile.timerMs,
+    timeLimitMs: timeLimitFor(profile, READ_CALENDAR_TIME_LIMIT_MULTIPLIER),
     explainCorrect: `${longDate} is a ${correct}.`,
   };
 }

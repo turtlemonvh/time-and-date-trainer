@@ -15,10 +15,24 @@ import {
   type DisplaySpec,
   type Question,
 } from './index';
-import { formatClockFace, OPTION_COUNT, weekdayName } from './support';
+import { formatClockFace, OPTION_COUNT, timeLimitFor, weekdayName } from './support';
 
 const SEED_COUNT = 200;
 const DIFFICULTIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+/**
+ * Each generator's own `TIME_LIMIT_MULTIPLIER` constant, mirrored here so
+ * this test can independently verify `timeLimitMs` rather than trusting the
+ * generator's own arithmetic. Extend this alongside
+ * `assertDeclaredAnswerMatchesDisplay`'s switch and the `covered` list
+ * below whenever a new generator is added.
+ */
+const TIME_LIMIT_MULTIPLIERS: Record<string, number> = {
+  [READ_ANALOG_TYPE_ID]: 1,
+  [DESCRIBE_TIME_TYPE_ID]: 1,
+  [READ_CALENDAR_TYPE_ID]: 1.15,
+  [OFFSET_DATE_TYPE_ID]: 1.4,
+};
 
 /** Distinct, reproducible seed per (difficulty, index) pair. */
 function seedFor(difficulty: number, index: number): number {
@@ -129,13 +143,14 @@ function assertWellFormed(q: Question, typeId: string, difficulty: number): void
   expect(q.prompt.trim().length).toBeGreaterThan(0);
   expect(q.explainCorrect.trim().length).toBeGreaterThan(0);
 
-  // The time limit is sane: a whole number of ms, exactly what the difficulty
-  // table declares for a multiple-choice question, and inside a band a child
-  // can actually work within.
+  // The time limit is sane: a whole number of ms, exactly the difficulty
+  // table's base timer scaled by this type's own multiplier, and inside a
+  // band a child can actually work within.
   expect(Number.isInteger(q.timeLimitMs)).toBe(true);
-  expect(q.timeLimitMs).toBe(difficultyProfile(difficulty).timerMs);
+  const multiplier = TIME_LIMIT_MULTIPLIERS[typeId] ?? 1;
+  expect(q.timeLimitMs).toBe(timeLimitFor(difficultyProfile(difficulty), multiplier));
   expect(q.timeLimitMs).toBeGreaterThanOrEqual(5_000);
-  expect(q.timeLimitMs).toBeLessThanOrEqual(30_000);
+  expect(q.timeLimitMs).toBeLessThanOrEqual(45_000);
 
   assertDisplayWellFormed(q.display);
   assertAnswerGrades(q.answer);
@@ -179,6 +194,12 @@ describe('generator contract', () => {
     ];
     for (const type of BUILT_IN_QUESTION_TYPES) {
       expect(covered).toContain(type.typeId);
+    }
+  });
+
+  it('has a declared time-limit multiplier for every registered type', () => {
+    for (const type of BUILT_IN_QUESTION_TYPES) {
+      expect(Object.keys(TIME_LIMIT_MULTIPLIERS)).toContain(type.typeId);
     }
   });
 });

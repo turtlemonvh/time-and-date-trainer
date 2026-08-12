@@ -32,7 +32,7 @@ interface DifficultyRow {
 const TABLE: readonly DifficultyRow[] = [
   {
     timePrecisionWeights: { hour: 10, half: 0, quarter: 0, five: 0, minute: 0, second: 0 },
-    timerMs: 20000,
+    timerMs: 30000,
     answerModeWeights: { choice: 10, interactive: 0, free: 0 },
     dateSpan: 'withinMonth',
     hour24: false,
@@ -40,7 +40,7 @@ const TABLE: readonly DifficultyRow[] = [
   },
   {
     timePrecisionWeights: { hour: 7, half: 3, quarter: 0, five: 0, minute: 0, second: 0 },
-    timerMs: 18500,
+    timerMs: 28000,
     answerModeWeights: { choice: 10, interactive: 0, free: 0 },
     dateSpan: 'withinMonth',
     hour24: false,
@@ -48,7 +48,7 @@ const TABLE: readonly DifficultyRow[] = [
   },
   {
     timePrecisionWeights: { hour: 3, half: 6, quarter: 1, five: 0, minute: 0, second: 0 },
-    timerMs: 17000,
+    timerMs: 26000,
     answerModeWeights: { choice: 9, interactive: 1, free: 0 },
     dateSpan: 'withinMonth',
     hour24: false,
@@ -56,7 +56,7 @@ const TABLE: readonly DifficultyRow[] = [
   },
   {
     timePrecisionWeights: { hour: 1, half: 4, quarter: 4, five: 1, minute: 0, second: 0 },
-    timerMs: 15500,
+    timerMs: 24000,
     answerModeWeights: { choice: 7, interactive: 3, free: 0 },
     dateSpan: 'acrossMonths',
     hour24: false,
@@ -64,7 +64,7 @@ const TABLE: readonly DifficultyRow[] = [
   },
   {
     timePrecisionWeights: { hour: 0, half: 2, quarter: 3, five: 5, minute: 0, second: 0 },
-    timerMs: 14000,
+    timerMs: 22000,
     answerModeWeights: { choice: 6, interactive: 4, free: 0 },
     dateSpan: 'acrossMonths',
     hour24: false,
@@ -72,7 +72,7 @@ const TABLE: readonly DifficultyRow[] = [
   },
   {
     timePrecisionWeights: { hour: 0, half: 1, quarter: 2, five: 6, minute: 1, second: 0 },
-    timerMs: 12500,
+    timerMs: 20000,
     answerModeWeights: { choice: 5, interactive: 5, free: 0 },
     dateSpan: 'acrossMonths',
     hour24: false,
@@ -80,7 +80,7 @@ const TABLE: readonly DifficultyRow[] = [
   },
   {
     timePrecisionWeights: { hour: 0, half: 0, quarter: 1, five: 5, minute: 4, second: 0 },
-    timerMs: 11000,
+    timerMs: 18000,
     answerModeWeights: { choice: 4, interactive: 5, free: 1 },
     dateSpan: 'acrossMonths',
     hour24: false,
@@ -88,7 +88,7 @@ const TABLE: readonly DifficultyRow[] = [
   },
   {
     timePrecisionWeights: { hour: 0, half: 0, quarter: 0, five: 3, minute: 6, second: 1 },
-    timerMs: 9500,
+    timerMs: 16000,
     answerModeWeights: { choice: 2, interactive: 5, free: 3 },
     dateSpan: 'acrossYears',
     hour24: true,
@@ -96,7 +96,7 @@ const TABLE: readonly DifficultyRow[] = [
   },
   {
     timePrecisionWeights: { hour: 0, half: 0, quarter: 0, five: 1, minute: 6, second: 3 },
-    timerMs: 8000,
+    timerMs: 14000,
     answerModeWeights: { choice: 1, interactive: 4, free: 5 },
     dateSpan: 'acrossYears',
     hour24: true,
@@ -104,7 +104,7 @@ const TABLE: readonly DifficultyRow[] = [
   },
   {
     timePrecisionWeights: { hour: 0, half: 0, quarter: 0, five: 0, minute: 4, second: 6 },
-    timerMs: 7000,
+    timerMs: 12000,
     answerModeWeights: { choice: 1, interactive: 3, free: 6 },
     dateSpan: 'acrossYears',
     hour24: true,
