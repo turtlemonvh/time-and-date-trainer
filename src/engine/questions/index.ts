@@ -1,3 +1,4 @@
+import { countWeekdaysType } from './countWeekdays';
 import { dayOfWeekType } from './dayOfWeek';
 import { describeTimeType } from './describeTime';
 import { elapsedAddType } from './elapsedAdd';
@@ -27,6 +28,7 @@ export const BUILT_IN_QUESTION_TYPES: readonly QuestionType[] = [
   setHandsType,
   dayOfWeekType,
   nthWeekdayType,
+  countWeekdaysType,
 ];
 
 for (const type of BUILT_IN_QUESTION_TYPES) {
@@ -57,3 +59,4 @@ export * from './elapsedBetween';
 export * from './setHands';
 export * from './dayOfWeek';
 export * from './nthWeekday';
+export * from './countWeekdays';

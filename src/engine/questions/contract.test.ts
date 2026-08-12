@@ -5,6 +5,7 @@ import { mulberry32 } from '../rng';
 import { describeTime } from '../timeMath';
 import {
   BUILT_IN_QUESTION_TYPES,
+  COUNT_WEEKDAYS_TYPE_ID,
   DAY_OF_WEEK_TYPE_ID,
   DESCRIBE_TIME_TYPE_ID,
   ELAPSED_ADD_TYPE_ID,
@@ -60,6 +61,7 @@ const TIME_LIMIT_MULTIPLIERS: Record<string, number> = {
   [SET_HANDS_TYPE_ID]: 1.3,
   [DAY_OF_WEEK_TYPE_ID]: 1.1,
   [NTH_WEEKDAY_TYPE_ID]: 1.5,
+  [COUNT_WEEKDAYS_TYPE_ID]: 1.4,
 };
 
 /** Distinct, reproducible seed per (difficulty, index) pair. */
@@ -173,10 +175,10 @@ function assertAnswerGrades(spec: AnswerSpec): void {
  * "the game marked her right answer wrong".
  */
 function assertDeclaredAnswerMatchesDisplay(q: Question): void {
-  // A typeId whose answer isn't choice-kind (elapsedBetween's `number`,
-  // setHands' own `setHands`, nthWeekday's `pickDate`) handles its own
-  // re-derivation here, since `declared`/`answer.options` below don't apply
-  // to those kinds.
+  // A typeId whose answer isn't choice-kind (elapsedBetween's and
+  // countWeekdays' `number`, setHands' own `setHands`, nthWeekday's
+  // `pickDate`) handles its own re-derivation here, since
+  // `declared`/`answer.options` below don't apply to those kinds.
   if (q.typeId === SET_HANDS_TYPE_ID) {
     expect(q.answer.kind).toBe('setHands');
     if (q.answer.kind !== 'setHands') return;
@@ -226,6 +228,29 @@ function assertDeclaredAnswerMatchesDisplay(q: Question): void {
     expect(q.answer.year).toBe(expected.getFullYear());
     expect(q.answer.monthIndex).toBe(expected.getMonth());
     expect(q.answer.day).toBe(expected.getDate());
+    return;
+  }
+  if (q.typeId === COUNT_WEEKDAYS_TYPE_ID) {
+    expect(q.answer.kind).toBe('number');
+    if (q.answer.kind !== 'number') return;
+    expect(q.display.kind).toBe('none');
+    // Re-derive by brute-force scanning the stated month for the stated
+    // weekday, independent of the generator's own `weekdayOccurrencesInMonth`.
+    const match = q.prompt.match(/^How many (\w+)s are in ([A-Z][a-z]+) (\d{4})\?$/);
+    expect(match).not.toBeNull();
+    if (!match) return;
+    const [, weekdayText, monthText, yearText] = match;
+    const weekdayIndex = WEEKDAY_NAMES.indexOf(weekdayText);
+    expect(weekdayIndex).toBeGreaterThanOrEqual(0);
+    const monthIndex = MONTH_NAMES.indexOf(monthText);
+    expect(monthIndex).toBeGreaterThanOrEqual(0);
+    const year = Number(yearText);
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+    let count = 0;
+    for (let day = 1; day <= daysInMonth; day++) {
+      if (new Date(year, monthIndex, day).getDay() === weekdayIndex) count++;
+    }
+    expect(q.answer.target).toBe(count);
     return;
   }
   if (q.typeId === ELAPSED_BETWEEN_TYPE_ID) {
@@ -361,6 +386,7 @@ describe('generator contract', () => {
       SET_HANDS_TYPE_ID,
       DAY_OF_WEEK_TYPE_ID,
       NTH_WEEKDAY_TYPE_ID,
+      COUNT_WEEKDAYS_TYPE_ID,
     ];
     for (const type of BUILT_IN_QUESTION_TYPES) {
       expect(covered).toContain(type.typeId);
