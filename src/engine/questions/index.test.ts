@@ -19,6 +19,8 @@ describe('questions barrel', () => {
       'elapsedAdd',
       'elapsedBetween',
       'setHands',
+      'dayOfWeek',
+      'nthWeekday',
     ]);
   });
 

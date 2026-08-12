@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { PEAKS } from '../../engine/peaks';
 import { generateQuestionBatch } from '../../engine/questions/preview';
 import {
+  isCorrectPickDate,
   isCorrectSetHands,
   type AnswerSpec,
   type DisplaySpec,
@@ -12,6 +13,7 @@ import { defaultSetHandsDraft } from '../questionDisplay';
 import AnalogClock from '../widgets/AnalogClock';
 import CalendarMonth from '../widgets/CalendarMonth';
 import ChoiceGrid from '../widgets/ChoiceGrid';
+import DatePicker from '../widgets/DatePicker';
 import NumberEntry from '../widgets/NumberEntry';
 
 const NOON: TimeOfDay = { hour: 12, minute: 0, second: 0 };
@@ -51,13 +53,12 @@ function renderDisplay(display: DisplaySpec) {
  * than a text gloss — so the question engine's output is visible the way
  * it'll actually be presented in the game, without the full climb state
  * machine (which arrives in a later milestone). Choosing an option or
- * checking a typed number or dragging the clock hands reveals whether it
- * was correct, but — since there's no climb/scoring here yet — Enter (or
- * Next) always advances regardless of whether an answer was given at all.
- * `pickDate` throws until its own generator PR gives it a real widget here,
- * same as `number` and `setHands` just got. Deliberately reachable in
- * production: this is what deploys to GitHub Pages today, so progress on
- * the question engine is visible without a local checkout.
+ * checking a typed number, dragging the clock hands, or picking a calendar
+ * date reveals whether it was correct, but — since there's no climb/scoring
+ * here yet — Enter (or Next) always advances regardless of whether an
+ * answer was given at all. Deliberately reachable in production: this is
+ * what deploys to GitHub Pages today, so progress on the question engine is
+ * visible without a local checkout.
  */
 export default function PreviewPlayer({ initialSeed }: { initialSeed?: number }) {
   const [difficulty, setDifficulty] = useState(3);
@@ -73,6 +74,7 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
   const [numberRevealed, setNumberRevealed] = useState(false);
   const [draftTime, setDraftTime] = useState<TimeOfDay>(() => draftTimeFor(question));
   const [handsRevealed, setHandsRevealed] = useState(false);
+  const [pickDateCorrect, setPickDateCorrect] = useState<boolean | undefined>(undefined);
 
   /** Every answer-related bit of state is scoped to "the current question",
    * so every place that moves to a different one resets them all together
@@ -85,6 +87,7 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
     setNumberRevealed(false);
     setDraftTime(draftTimeFor(next));
     setHandsRevealed(false);
+    setPickDateCorrect(undefined);
   }
 
   function advance() {
@@ -164,9 +167,20 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
           </div>
         );
       case 'pickDate':
-        // No generator produces this yet; the PR that adds one gives this
-        // its own real widget, like `number` and `setHands` just got here.
-        throw new Error(`PreviewPlayer: unsupported answer kind "${answer.kind}"`);
+        return (
+          <div data-testid="preview-pick-date">
+            <DatePicker
+              initialYear={answer.year}
+              initialMonthIndex={answer.monthIndex}
+              onChange={(date) => setPickDateCorrect(isCorrectPickDate(answer, date))}
+            />
+            {pickDateCorrect !== undefined && (
+              <p data-testid="preview-pickdate-result">
+                {pickDateCorrect ? 'Correct!' : 'Not quite — try again.'}
+              </p>
+            )}
+          </div>
+        );
     }
   }
 

@@ -18,7 +18,7 @@ export const PEAK_TYPE_IDS: Readonly<Record<number, readonly string[]>> = {
   2: ['describeTime'], // Sundial Spire
   3: ['readCalendar'], // Calendar Ridge
   4: ['setHands'], // The Hourglass
-  5: [], // Weekday Wall — dayOfWeek/nthWeekday land in M5 item 6
+  5: ['dayOfWeek', 'nthWeekday'], // Weekday Wall
   6: ['elapsedAdd', 'elapsedBetween'], // Elapsed Escarpment
   7: ['offsetDate'], // Monthfall Pass
   8: [], // The Meridian — hour24 lands in M5 item 8
