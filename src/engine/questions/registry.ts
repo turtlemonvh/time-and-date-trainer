@@ -1,4 +1,6 @@
-import { pick, type Rng } from '../rng';
+import { difficultyProfile } from '../difficulty';
+import { weightedPick, type Rng } from '../rng';
+import { isOnThemeForPeak } from './peakEmphasis';
 import type { GeneratorContext, Question, QuestionType } from './types';
 
 const generators = new Map<string, QuestionType>();
@@ -33,11 +35,11 @@ export function resetGenerators(): void {
 /**
  * Picks the generator for the next question.
  *
- * Selection is uniform across everything registered. Weighting by
- * `ctx.peak.emphasis` (so Calendar Ridge asks mostly calendar questions) and by
- * the difficulty profile's `answerModeWeights` is future work — it needs the
- * full generator set to be meaningful, and a uniform draw over the four M1b
- * generators is correct and sufficient until then.
+ * Weighted by peak match (a generator on-theme for `ctx.peak`, per
+ * `peakEmphasis.ts`, is 5x more likely) and by the difficulty profile's
+ * `answerModeWeights` (e.g. a `free`-mode generator is undrawable at
+ * difficulty 1, where that weight is 0). A generator's total weight is
+ * `(peak match ? 5 : 1) * profile.answerModeWeights[type.answerMode]`.
  */
 export function selectGenerator(rng: Rng, ctx: GeneratorContext): QuestionType {
   const types = listGenerators();
@@ -48,7 +50,16 @@ export function selectGenerator(rng: Rng, ctx: GeneratorContext): QuestionType {
         `import from 'src/engine/questions' rather than 'src/engine/questions/registry'`,
     );
   }
-  return pick(rng, types);
+  const profile = difficultyProfile(ctx.difficulty);
+  return weightedPick(
+    rng,
+    types.map((type) => ({
+      value: type,
+      weight:
+        (isOnThemeForPeak(ctx.peak, type.typeId) ? 5 : 1) *
+        profile.answerModeWeights[type.answerMode],
+    })),
+  );
 }
 
 export function generateQuestion(rng: Rng, ctx: GeneratorContext): Question {
