@@ -10,6 +10,8 @@ import ProfileSelect from './ui/screens/ProfileSelect';
 import Review from './ui/screens/Review';
 import Summit from './ui/screens/Summit';
 import {
+  addGoal,
+  checkGoalsAchieved,
   createProfile,
   getProfile,
   recordBail,
@@ -97,7 +99,15 @@ export default function App() {
 
     case 'review': {
       const profile = requireActiveProfile(save);
-      return <Review profile={profile} onBack={() => setScreen({ name: 'map' })} />;
+      return (
+        <Review
+          profile={profile}
+          onBack={() => setScreen({ name: 'map' })}
+          onAddGoal={(peakId, difficulty, targetDate) =>
+            setSave((current) => addGoal(current, profile.id, peakId, difficulty, targetDate))
+          }
+        />
+      );
     }
 
     case 'climb': {
@@ -116,7 +126,10 @@ export default function App() {
             )
           }
           onSummit={(_finalState, elapsedMs) => {
-            setSave((current) => recordSummit(current, profile.id, peakId, difficulty, elapsedMs));
+            setSave((current) => {
+              const summited = recordSummit(current, profile.id, peakId, difficulty, elapsedMs);
+              return checkGoalsAchieved(summited, profile.id, peakId, difficulty);
+            });
             setScreen({ name: 'summit', peakId, elapsedMs });
           }}
           onBail={(elapsedMs) => {

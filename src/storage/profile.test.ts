@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
+  addGoal,
+  checkGoalsAchieved,
   createProfile,
   getProfile,
   isPeakSummited,
@@ -239,6 +241,86 @@ describe('recordBail', () => {
     save = recordBail(save, id, 5, 2, 7000);
     const log = getProfile(save, id)?.climbLog;
     expect(log?.[0]).toMatchObject({ peakId: 5, difficulty: 2, result: 'bailed' });
+  });
+});
+
+describe('addGoal', () => {
+  it('appends a pending goal with the given peak, difficulty, and target date', () => {
+    let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+    const id = save.profiles[0].id;
+    save = addGoal(save, id, 3, 6, '2026-12-01');
+    const goals = getProfile(save, id)?.goals;
+    expect(goals).toHaveLength(1);
+    expect(goals?.[0]).toMatchObject({
+      peakId: 3,
+      difficulty: 6,
+      targetDate: '2026-12-01',
+      achievedAt: null,
+    });
+  });
+
+  it('gives each goal a distinct id and leaves other profiles untouched', () => {
+    let save = createProfile(EMPTY_SAVE, 'A', 'preset-1');
+    save = createProfile(save, 'B', 'preset-2');
+    const [a, b] = save.profiles;
+    save = addGoal(save, a.id, 1, 5, '2026-01-01');
+    save = addGoal(save, a.id, 2, 5, '2026-02-01');
+    expect(getProfile(save, a.id)?.goals).toHaveLength(2);
+    expect(getProfile(save, a.id)?.goals[0].id).not.toBe(getProfile(save, a.id)?.goals[1].id);
+    expect(getProfile(save, b.id)?.goals).toHaveLength(0);
+  });
+});
+
+describe('checkGoalsAchieved', () => {
+  it('marks a pending goal achieved when cleared at exactly its target difficulty', () => {
+    let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+    const id = save.profiles[0].id;
+    save = addGoal(save, id, 1, 5, '2026-12-01');
+    save = checkGoalsAchieved(save, id, 1, 5);
+    expect(getProfile(save, id)?.goals[0].achievedAt).not.toBeNull();
+  });
+
+  it('marks a pending goal achieved when cleared above its target difficulty', () => {
+    let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+    const id = save.profiles[0].id;
+    save = addGoal(save, id, 1, 5, '2026-12-01');
+    save = checkGoalsAchieved(save, id, 1, 7);
+    expect(getProfile(save, id)?.goals[0].achievedAt).not.toBeNull();
+  });
+
+  it('leaves a goal pending when cleared below its target difficulty', () => {
+    let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+    const id = save.profiles[0].id;
+    save = addGoal(save, id, 1, 5, '2026-12-01');
+    save = checkGoalsAchieved(save, id, 1, 3);
+    expect(getProfile(save, id)?.goals[0].achievedAt).toBeNull();
+  });
+
+  it('only touches goals for the matching peak', () => {
+    let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+    const id = save.profiles[0].id;
+    save = addGoal(save, id, 1, 5, '2026-12-01');
+    save = addGoal(save, id, 2, 5, '2026-12-01');
+    save = checkGoalsAchieved(save, id, 1, 5);
+    const goals = getProfile(save, id)?.goals ?? [];
+    expect(goals.find((g) => g.peakId === 1)?.achievedAt).not.toBeNull();
+    expect(goals.find((g) => g.peakId === 2)?.achievedAt).toBeNull();
+  });
+
+  it('does not re-stamp an already-achieved goal', () => {
+    vi.useFakeTimers();
+    try {
+      let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+      const id = save.profiles[0].id;
+      save = addGoal(save, id, 1, 5, '2026-12-01');
+      save = checkGoalsAchieved(save, id, 1, 5);
+      const firstAchievedAt = getProfile(save, id)?.goals[0].achievedAt;
+      vi.advanceTimersByTime(60000);
+      save = checkGoalsAchieved(save, id, 1, 8);
+      expect(getProfile(save, id)?.goals[0].achievedAt).toBe(firstAchievedAt);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
