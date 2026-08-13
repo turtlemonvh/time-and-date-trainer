@@ -1,6 +1,7 @@
-import type { Profile, QuestionTypeStats, SaveFile } from './types';
+import type { ClimbLogEntry, PeakProgress, Profile, QuestionTypeStats, SaveFile } from './types';
 
 const DEFAULT_DIFFICULTY = 3;
+const DEFAULT_PEAK_DIFFICULTY = 1;
 
 function makeProfileId(): string {
   return crypto.randomUUID();
@@ -16,6 +17,8 @@ export function createProfile(save: SaveFile, name: string, characterId: string)
     settings: { difficulty: DEFAULT_DIFFICULTY },
     progress: {},
     stats: {},
+    goals: [],
+    climbLog: [],
   };
   return {
     ...save,
@@ -26,6 +29,41 @@ export function createProfile(save: SaveFile, name: string, characterId: string)
 
 export function getProfile(save: SaveFile, profileId: string): Profile | undefined {
   return save.profiles.find((profile) => profile.id === profileId);
+}
+
+/** `progress[peakId] !== null` for a peak never yet visited — every reducer
+ * that touches a peak's progress starts from this rather than assuming an
+ * entry already exists. */
+function defaultPeakProgress(): PeakProgress {
+  return {
+    difficulty: DEFAULT_PEAK_DIFFICULTY,
+    highestDifficultyCleared: null,
+    bestTimeMs: null,
+    attempts: 0,
+    bails: 0,
+  };
+}
+
+/** Whether a peak has ever been summited, at any difficulty. */
+export function isPeakSummited(progress: PeakProgress): boolean {
+  return progress.highestDifficultyCleared !== null;
+}
+
+function makeClimbLogEntry(
+  peakId: number,
+  difficulty: number,
+  elapsedMs: number,
+  result: ClimbLogEntry['result'],
+): ClimbLogEntry {
+  const endedAt = Date.now();
+  return {
+    id: crypto.randomUUID(),
+    peakId,
+    difficulty,
+    startedAt: endedAt - elapsedMs,
+    endedAt,
+    result,
+  };
 }
 
 function updateProfile(
@@ -48,40 +86,76 @@ export function setDifficulty(save: SaveFile, profileId: string, difficulty: num
   }));
 }
 
-/** Marks a peak summited, keeping the best (lowest) time and incrementing attempts. */
+/** Marks a peak summited at `difficulty`, keeping the best (lowest) time and
+ * the highest difficulty ever cleared, and appends a climb-log entry. */
 export function recordSummit(
   save: SaveFile,
   profileId: string,
   peakId: number,
-  timeMs: number,
+  difficulty: number,
+  elapsedMs: number,
 ): SaveFile {
   return updateProfile(save, profileId, (profile) => {
-    const prior = profile.progress[peakId];
-    const bestTimeMs = prior?.bestTimeMs != null ? Math.min(prior.bestTimeMs, timeMs) : timeMs;
-    return {
-      ...profile,
-      progress: {
-        ...profile.progress,
-        [peakId]: { summited: true, bestTimeMs, attempts: (prior?.attempts ?? 0) + 1 },
-      },
-    };
-  });
-}
-
-/** Increments attempts on a fall. `summited`/`bestTimeMs` carry over unchanged from any prior run. */
-export function recordFall(save: SaveFile, profileId: string, peakId: number): SaveFile {
-  return updateProfile(save, profileId, (profile) => {
-    const prior = profile.progress[peakId];
+    const prior = profile.progress[peakId] ?? defaultPeakProgress();
+    const bestTimeMs = prior.bestTimeMs != null ? Math.min(prior.bestTimeMs, elapsedMs) : elapsedMs;
     return {
       ...profile,
       progress: {
         ...profile.progress,
         [peakId]: {
-          summited: prior?.summited ?? false,
-          bestTimeMs: prior?.bestTimeMs ?? null,
-          attempts: (prior?.attempts ?? 0) + 1,
+          ...prior,
+          highestDifficultyCleared: Math.max(prior.highestDifficultyCleared ?? 0, difficulty),
+          bestTimeMs,
+          attempts: prior.attempts + 1,
         },
       },
+      climbLog: [...profile.climbLog, makeClimbLogEntry(peakId, difficulty, elapsedMs, 'summited')],
+    };
+  });
+}
+
+/** Increments attempts on a fall and appends a climb-log entry.
+ * `highestDifficultyCleared`/`bestTimeMs` carry over unchanged from any
+ * prior run. */
+export function recordFall(
+  save: SaveFile,
+  profileId: string,
+  peakId: number,
+  difficulty: number,
+  elapsedMs: number,
+): SaveFile {
+  return updateProfile(save, profileId, (profile) => {
+    const prior = profile.progress[peakId] ?? defaultPeakProgress();
+    return {
+      ...profile,
+      progress: {
+        ...profile.progress,
+        [peakId]: { ...prior, attempts: prior.attempts + 1 },
+      },
+      climbLog: [...profile.climbLog, makeClimbLogEntry(peakId, difficulty, elapsedMs, 'fell')],
+    };
+  });
+}
+
+/** Increments `bails` (a separate counter from `attempts` — bailing out is a
+ * third, distinct outcome from summiting or falling) and appends a
+ * climb-log entry. */
+export function recordBail(
+  save: SaveFile,
+  profileId: string,
+  peakId: number,
+  difficulty: number,
+  elapsedMs: number,
+): SaveFile {
+  return updateProfile(save, profileId, (profile) => {
+    const prior = profile.progress[peakId] ?? defaultPeakProgress();
+    return {
+      ...profile,
+      progress: {
+        ...profile.progress,
+        [peakId]: { ...prior, bails: prior.bails + 1 },
+      },
+      climbLog: [...profile.climbLog, makeClimbLogEntry(peakId, difficulty, elapsedMs, 'bailed')],
     };
   });
 }

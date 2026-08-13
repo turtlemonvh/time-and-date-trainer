@@ -12,6 +12,8 @@ function makeProfile(id: string, name: string): Profile {
     settings: { difficulty: 3 },
     progress: {},
     stats: {},
+    goals: [],
+    climbLog: [],
   };
 }
 

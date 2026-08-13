@@ -22,10 +22,12 @@ const SAMPLE_PROFILES: Profile[] = [
     createdAt: Date.now(),
     settings: { difficulty: 4 },
     progress: {
-      1: { summited: true, bestTimeMs: 92000, attempts: 2 },
-      2: { summited: false, bestTimeMs: null, attempts: 1 },
+      1: { difficulty: 4, highestDifficultyCleared: 4, bestTimeMs: 92000, attempts: 2, bails: 0 },
+      2: { difficulty: 4, highestDifficultyCleared: null, bestTimeMs: null, attempts: 1, bails: 0 },
     },
     stats: {},
+    goals: [],
+    climbLog: [],
   },
   {
     id: 'b',
@@ -35,6 +37,8 @@ const SAMPLE_PROFILES: Profile[] = [
     settings: { difficulty: 6 },
     progress: {},
     stats: {},
+    goals: [],
+    climbLog: [],
   },
 ];
 

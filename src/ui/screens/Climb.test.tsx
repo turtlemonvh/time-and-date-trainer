@@ -160,6 +160,7 @@ describe('Climb', () => {
     answerWrong();
     expect(onFall).toHaveBeenCalledTimes(1);
     expect(onFall.mock.calls[0][0].status).toBe('fell');
+    expect(typeof onFall.mock.calls[0][1]).toBe('number');
   });
 
   it('reveals the correct answer and disables the grid during the beat', () => {

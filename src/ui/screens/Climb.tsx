@@ -83,7 +83,7 @@ export interface ClimbProps {
   /** Caller-supplied so a retry after falling isn't byte-identical to the failed run. */
   seed: number;
   onSummit: (finalState: ClimbState, elapsedMs: number) => void;
-  onFall: (finalState: ClimbState) => void;
+  onFall: (finalState: ClimbState, elapsedMs: number) => void;
   /** Reported after every answer (including timeouts, as incorrect), regardless of climb outcome
    * — the caller uses this to persist per-question-type stats. */
   onQuestionAnswered?: (typeId: string, correct: boolean, elapsedMs: number) => void;
@@ -160,7 +160,7 @@ export default function Climb({
         return;
       }
       if (nextState.status === 'fell') {
-        onFall(nextState);
+        onFall(nextState, Date.now() - climbStartRef.current);
         return;
       }
       const nextQuestion = generateQuestion(rng, { difficulty, peak });
