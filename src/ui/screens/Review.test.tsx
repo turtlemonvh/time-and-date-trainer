@@ -33,25 +33,25 @@ function makeLogEntry(overrides: Partial<ClimbLogEntry> = {}): ClimbLogEntry {
 describe('Review', () => {
   it('calls onBack when the back button is clicked', () => {
     const onBack = vi.fn();
-    render(<Review profile={makeProfile()} onBack={onBack} />);
+    render(<Review profile={makeProfile()} onBack={onBack} onAddGoal={vi.fn()} />);
     fireEvent.click(screen.getByTestId('review-back'));
     expect(onBack).toHaveBeenCalled();
   });
 
   it('shows the curriculum browser with a peak and difficulty selector', () => {
-    render(<Review profile={makeProfile()} onBack={vi.fn()} />);
+    render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
     expect(screen.getByTestId('review-peak')).toBeInTheDocument();
     expect(screen.getByTestId('review-difficulty')).toBeInTheDocument();
   });
 
   it('offers all 10 peaks and all 10 difficulty levels', () => {
-    render(<Review profile={makeProfile()} onBack={vi.fn()} />);
+    render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
     expect(within(screen.getByTestId('review-peak')).getAllByRole('option')).toHaveLength(10);
     expect(within(screen.getByTestId('review-difficulty')).getAllByRole('option')).toHaveLength(10);
   });
 
   it('shows difficulty bullets that change with the selected level', () => {
-    render(<Review profile={makeProfile()} onBack={vi.fn()} />);
+    render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
     const before = screen.getByTestId('review-difficulty-bullets').textContent;
     fireEvent.change(screen.getByTestId('review-difficulty'), { target: { value: '10' } });
     const after = screen.getByTestId('review-difficulty-bullets').textContent;
@@ -59,7 +59,7 @@ describe('Review', () => {
   });
 
   it('shows sample questions for the selected peak and difficulty', () => {
-    render(<Review profile={makeProfile()} onBack={vi.fn()} />);
+    render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
     const samples = screen.getAllByTestId('review-sample-question');
     expect(samples.length).toBeGreaterThan(0);
     for (const sample of samples) {
@@ -68,16 +68,18 @@ describe('Review', () => {
   });
 
   it('regenerates sample questions deterministically for the same peak+difficulty', () => {
-    const { unmount } = render(<Review profile={makeProfile()} onBack={vi.fn()} />);
+    const { unmount } = render(
+      <Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />,
+    );
     const first = screen.getByTestId('review-sample-questions').textContent;
     unmount();
-    render(<Review profile={makeProfile()} onBack={vi.fn()} />);
+    render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
     const second = screen.getByTestId('review-sample-questions').textContent;
     expect(second).toEqual(first);
   });
 
   it('only ever shows questions on-theme for the selected peak', () => {
-    render(<Review profile={makeProfile()} onBack={vi.fn()} />);
+    render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
     // Peak 1 (Basecamp Bluff) is matched exclusively to readAnalog, whose
     // display renders as an analog clock — never a calendar or "no visual".
     for (const sample of screen.getAllByTestId('review-sample-question')) {
@@ -86,7 +88,7 @@ describe('Review', () => {
   });
 
   it('switches sample questions when a different peak is selected', () => {
-    render(<Review profile={makeProfile()} onBack={vi.fn()} />);
+    render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
     const before = screen.getByTestId('review-sample-questions').textContent;
     fireEvent.change(screen.getByTestId('review-peak'), { target: { value: '3' } });
     const after = screen.getByTestId('review-sample-questions').textContent;
@@ -95,14 +97,14 @@ describe('Review', () => {
 
   describe('climber log', () => {
     it('shows "No climbs yet" when the log is empty', () => {
-      render(<Review profile={makeProfile()} onBack={vi.fn()} />);
+      render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
       fireEvent.click(screen.getByTestId('review-tab-log'));
       expect(screen.getByTestId('review-log-empty')).toHaveTextContent('No climbs yet');
       expect(screen.queryByTestId('review-log-table')).not.toBeInTheDocument();
     });
 
     it('disables the download button when the log is empty', () => {
-      render(<Review profile={makeProfile()} onBack={vi.fn()} />);
+      render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
       fireEvent.click(screen.getByTestId('review-tab-log'));
       expect(screen.getByTestId('review-log-download')).toBeDisabled();
     });
@@ -114,7 +116,7 @@ describe('Review', () => {
           makeLogEntry({ id: 'newer', peakId: 2, startedAt: 1700100000000 }),
         ],
       });
-      render(<Review profile={profile} onBack={vi.fn()} />);
+      render(<Review profile={profile} onBack={vi.fn()} onAddGoal={vi.fn()} />);
       fireEvent.click(screen.getByTestId('review-tab-log'));
       const rows = screen.getAllByTestId('review-log-row');
       expect(rows).toHaveLength(2);
@@ -134,7 +136,7 @@ describe('Review', () => {
           }),
         ],
       });
-      render(<Review profile={profile} onBack={vi.fn()} />);
+      render(<Review profile={profile} onBack={vi.fn()} onAddGoal={vi.fn()} />);
       fireEvent.click(screen.getByTestId('review-tab-log'));
       const row = screen.getByTestId('review-log-row');
       expect(row.textContent).toContain('Basecamp Bluff');
@@ -145,7 +147,7 @@ describe('Review', () => {
 
     it('enables the download button once there is at least one entry', () => {
       const profile = makeProfile({ climbLog: [makeLogEntry()] });
-      render(<Review profile={profile} onBack={vi.fn()} />);
+      render(<Review profile={profile} onBack={vi.fn()} onAddGoal={vi.fn()} />);
       fireEvent.click(screen.getByTestId('review-tab-log'));
       expect(screen.getByTestId('review-log-download')).not.toBeDisabled();
     });
@@ -161,12 +163,85 @@ describe('Review', () => {
 
       it('triggers a blob URL download when clicked', () => {
         const profile = makeProfile({ climbLog: [makeLogEntry()] });
-        render(<Review profile={profile} onBack={vi.fn()} />);
+        render(<Review profile={profile} onBack={vi.fn()} onAddGoal={vi.fn()} />);
         fireEvent.click(screen.getByTestId('review-tab-log'));
         fireEvent.click(screen.getByTestId('review-log-download'));
         expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
         expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock');
       });
+    });
+  });
+
+  describe('goals', () => {
+    it('shows "No goals yet" when there are none', () => {
+      render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
+      fireEvent.click(screen.getByTestId('review-tab-goals'));
+      expect(screen.getByTestId('review-goals-empty')).toHaveTextContent('No goals yet');
+      expect(screen.queryByTestId('review-goals-list')).not.toBeInTheDocument();
+    });
+
+    it('disables submit until a target date is picked', () => {
+      render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
+      fireEvent.click(screen.getByTestId('review-tab-goals'));
+      expect(screen.getByTestId('review-goal-submit')).toBeDisabled();
+      fireEvent.change(screen.getByTestId('review-goal-date'), {
+        target: { value: '2026-12-01' },
+      });
+      expect(screen.getByTestId('review-goal-submit')).not.toBeDisabled();
+    });
+
+    it('calls onAddGoal with the picked peak, level, and date on submit', () => {
+      const onAddGoal = vi.fn();
+      render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={onAddGoal} />);
+      fireEvent.click(screen.getByTestId('review-tab-goals'));
+      fireEvent.change(screen.getByTestId('review-goal-peak'), { target: { value: '3' } });
+      fireEvent.change(screen.getByTestId('review-goal-difficulty'), { target: { value: '7' } });
+      fireEvent.change(screen.getByTestId('review-goal-date'), {
+        target: { value: '2026-12-01' },
+      });
+      fireEvent.click(screen.getByTestId('review-goal-submit'));
+      expect(onAddGoal).toHaveBeenCalledWith(3, 7, '2026-12-01');
+    });
+
+    it('clears the target date after adding a goal', () => {
+      render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
+      fireEvent.click(screen.getByTestId('review-tab-goals'));
+      fireEvent.change(screen.getByTestId('review-goal-date'), {
+        target: { value: '2026-12-01' },
+      });
+      fireEvent.click(screen.getByTestId('review-goal-submit'));
+      expect(screen.getByTestId('review-goal-date')).toHaveValue('');
+    });
+
+    it('lists goals soonest-due first, showing pending vs achieved status', () => {
+      const profile = makeProfile({
+        goals: [
+          {
+            id: 'g1',
+            peakId: 1,
+            difficulty: 5,
+            targetDate: '2026-12-01',
+            createdAt: 1700000000000,
+            achievedAt: null,
+          },
+          {
+            id: 'g2',
+            peakId: 2,
+            difficulty: 3,
+            targetDate: '2026-06-01',
+            createdAt: 1700000000000,
+            achievedAt: 1700000000000,
+          },
+        ],
+      });
+      render(<Review profile={profile} onBack={vi.fn()} onAddGoal={vi.fn()} />);
+      fireEvent.click(screen.getByTestId('review-tab-goals'));
+      const rows = screen.getAllByTestId('review-goal-row');
+      expect(rows).toHaveLength(2);
+      expect(rows[0].textContent).toContain('Sundial Spire');
+      expect(rows[0].textContent).toContain('Achieved');
+      expect(rows[1].textContent).toContain('Basecamp Bluff');
+      expect(rows[1].textContent).toContain('Pending');
     });
   });
 

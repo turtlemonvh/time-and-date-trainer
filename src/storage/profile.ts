@@ -1,4 +1,11 @@
-import type { ClimbLogEntry, PeakProgress, Profile, QuestionTypeStats, SaveFile } from './types';
+import type {
+  ClimbLogEntry,
+  Goal,
+  PeakProgress,
+  Profile,
+  QuestionTypeStats,
+  SaveFile,
+} from './types';
 
 const DEFAULT_PEAK_DIFFICULTY = 1;
 
@@ -166,6 +173,47 @@ export function recordBail(
       climbLog: [...profile.climbLog, makeClimbLogEntry(peakId, difficulty, elapsedMs, 'bailed')],
     };
   });
+}
+
+/** Adds a new pending goal: summit `peakId` at `difficulty` by `targetDate`. */
+export function addGoal(
+  save: SaveFile,
+  profileId: string,
+  peakId: number,
+  difficulty: number,
+  targetDate: string,
+): SaveFile {
+  return updateProfile(save, profileId, (profile) => {
+    const goal: Goal = {
+      id: crypto.randomUUID(),
+      peakId,
+      difficulty,
+      targetDate,
+      createdAt: Date.now(),
+      achievedAt: null,
+    };
+    return { ...profile, goals: [...profile.goals, goal] };
+  });
+}
+
+/** Marks any pending goal for `peakId` as achieved if `clearedDifficulty`
+ * meets or exceeds its target — a goal for level 5 is satisfied by clearing
+ * level 7 too, not just exactly 5. Call after `recordSummit`, not as part
+ * of it: goal-checking and summit-recording are independent concerns. */
+export function checkGoalsAchieved(
+  save: SaveFile,
+  profileId: string,
+  peakId: number,
+  clearedDifficulty: number,
+): SaveFile {
+  return updateProfile(save, profileId, (profile) => ({
+    ...profile,
+    goals: profile.goals.map((goal) =>
+      goal.peakId === peakId && goal.achievedAt === null && clearedDifficulty >= goal.difficulty
+        ? { ...goal, achievedAt: Date.now() }
+        : goal,
+    ),
+  }));
 }
 
 export function recordQuestionStat(

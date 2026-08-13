@@ -133,7 +133,13 @@ export default function DebugScreensPage() {
 
       <h2>Review</h2>
       <p data-testid="screens-review-status">{reviewAction ?? 'No action yet'}</p>
-      <Review profile={mapProfile} onBack={() => setReviewAction('Returned to map')} />
+      <Review
+        profile={mapProfile}
+        onBack={() => setReviewAction('Returned to map')}
+        onAddGoal={(peakId, difficulty, targetDate) =>
+          setReviewAction(`Added goal: peak ${peakId} level ${difficulty} by ${targetDate}`)
+        }
+      />
 
       <h2>Climb</h2>
       <p data-testid="screens-climb-status">{climbStatus ?? 'In progress'}</p>
