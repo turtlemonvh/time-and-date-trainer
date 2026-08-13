@@ -18,10 +18,6 @@ export interface QuestionTypeStats {
   totalMs: number;
 }
 
-export interface ProfileSettings {
-  difficulty: number;
-}
-
 /** One row per completed (or bailed) climb — the full history `PeakProgress`'s
  * lifetime aggregates can't reconstruct on their own (which difficulty, when,
  * how long, which of the three outcomes). */
@@ -56,7 +52,6 @@ export interface Profile {
   characterId: string;
   /** Epoch ms. */
   createdAt: number;
-  settings: ProfileSettings;
   /** Keyed by `Peak.id`. */
   progress: Record<number, PeakProgress>;
   /** Keyed by `QuestionType.typeId`. */

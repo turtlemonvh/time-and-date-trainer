@@ -1,6 +1,5 @@
 import type { ClimbLogEntry, PeakProgress, Profile, QuestionTypeStats, SaveFile } from './types';
 
-const DEFAULT_DIFFICULTY = 3;
 const DEFAULT_PEAK_DIFFICULTY = 1;
 
 function makeProfileId(): string {
@@ -14,7 +13,6 @@ export function createProfile(save: SaveFile, name: string, characterId: string)
     name,
     characterId,
     createdAt: Date.now(),
-    settings: { difficulty: DEFAULT_DIFFICULTY },
     progress: {},
     stats: {},
     goals: [],
@@ -79,11 +77,21 @@ function updateProfile(
   };
 }
 
-export function setDifficulty(save: SaveFile, profileId: string, difficulty: number): SaveFile {
-  return updateProfile(save, profileId, (profile) => ({
-    ...profile,
-    settings: { ...profile.settings, difficulty },
-  }));
+/** Sets a single peak's current/selected difficulty, independent of any
+ * other peak's — this is what "picking a level" on the map persists. */
+export function setPeakDifficulty(
+  save: SaveFile,
+  profileId: string,
+  peakId: number,
+  difficulty: number,
+): SaveFile {
+  return updateProfile(save, profileId, (profile) => {
+    const prior = profile.progress[peakId] ?? defaultPeakProgress();
+    return {
+      ...profile,
+      progress: { ...profile.progress, [peakId]: { ...prior, difficulty } },
+    };
+  });
 }
 
 /** Marks a peak summited at `difficulty`, keeping the best (lowest) time and
