@@ -106,11 +106,15 @@ export default function App() {
             )
           }
           onSummit={(_finalState, elapsedMs) => {
-            setSave((current) => recordSummit(current, profile.id, peakId, elapsedMs));
+            setSave((current) =>
+              recordSummit(current, profile.id, peakId, profile.settings.difficulty, elapsedMs),
+            );
             setScreen({ name: 'summit', peakId, elapsedMs });
           }}
-          onFall={() => {
-            setSave((current) => recordFall(current, profile.id, peakId));
+          onFall={(_finalState, elapsedMs) => {
+            setSave((current) =>
+              recordFall(current, profile.id, peakId, profile.settings.difficulty, elapsedMs),
+            );
             setScreen({ name: 'fell', peakId });
           }}
         />

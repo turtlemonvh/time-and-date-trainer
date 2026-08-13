@@ -12,6 +12,8 @@ function makeProfile(overrides: Partial<Profile> = {}): Profile {
     settings: { difficulty: 3 },
     progress: {},
     stats: {},
+    goals: [],
+    climbLog: [],
     ...overrides,
   };
 }
@@ -43,7 +45,15 @@ describe('Map', () => {
 
   it('shows attempt count for a peak that has been tried but not summited', () => {
     const profile = makeProfile({
-      progress: { 1: { summited: false, bestTimeMs: null, attempts: 2 } },
+      progress: {
+        1: {
+          difficulty: 3,
+          highestDifficultyCleared: null,
+          bestTimeMs: null,
+          attempts: 2,
+          bails: 0,
+        },
+      },
     });
     render(<Map profile={profile} onSetDifficulty={vi.fn()} onSelectPeak={vi.fn()} />);
     expect(screen.getByTestId('peak-progress-1')).toHaveTextContent('Attempts: 2');
@@ -51,7 +61,9 @@ describe('Map', () => {
 
   it('shows summited status for a summited peak', () => {
     const profile = makeProfile({
-      progress: { 1: { summited: true, bestTimeMs: 90000, attempts: 3 } },
+      progress: {
+        1: { difficulty: 3, highestDifficultyCleared: 3, bestTimeMs: 90000, attempts: 3, bails: 0 },
+      },
     });
     render(<Map profile={profile} onSetDifficulty={vi.fn()} onSelectPeak={vi.fn()} />);
     expect(screen.getByTestId('peak-progress-1')).toHaveTextContent('Summited');

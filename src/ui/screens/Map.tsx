@@ -1,4 +1,5 @@
 import { mulberry32 } from '../../engine/rng';
+import { isPeakSummited } from '../../storage/profile';
 import type { Profile } from '../../storage/types';
 import { buildCharacterLayers } from '../character/buildCharacterLayers';
 import { getCharacterPreset } from '../character/presets';
@@ -70,11 +71,12 @@ export default function Map({ profile, onSetDifficulty, onSelectPeak }: MapProps
       >
         {MOUNTAIN_THEMES.map((theme) => {
           const progress = profile.progress[theme.peak.id];
-          const status = progress?.summited
-            ? 'Summited ✓'
-            : progress
-              ? `Attempts: ${progress.attempts}`
-              : 'Not climbed yet';
+          const status =
+            progress && isPeakSummited(progress)
+              ? 'Summited ✓'
+              : progress
+                ? `Attempts: ${progress.attempts}`
+                : 'Not climbed yet';
           return (
             <button
               key={theme.peak.id}
