@@ -21,17 +21,17 @@ especially by a fresh subagent with no prior context on this repo.
 
 ## Question engine
 
-- **Individual generators don't read `ctx.peak`** for their own content — peak weighting lives
-  entirely in `registry.ts`'s `selectGenerator`, which draws a generator on-theme for `ctx.peak`
-  (per `peakEmphasis.ts`) more often than an off-theme one, on top of the difficulty profile's
-  `answerModeWeights`. Any UI that iterates `BUILT_IN_QUESTION_TYPES` directly instead of going
-  through `selectGenerator`/`generateQuestion` — e.g. `generateQuestionBatch`, which the debug and
-  preview pages use so every generator stays inspectable regardless of peak — bypasses that
-  weighting entirely and shows _every_ type no matter which peak is selected; only its internal
-  peak-derived seed mixing makes the _sampled values_ vary by peak. Don't assume changing peak ID
-  alone does anything in code that takes this shortcut; if you need genuine per-peak type variation
-  there too, mix `peakId` into the RNG seed explicitly (see `peakSeed` in
-  `src/engine/questions/preview.ts`).
+- **Individual generators don't read `ctx.peak`** for their own content — peak _exclusivity_ lives
+  entirely in `registry.ts`'s `selectGenerator`, which draws only from generators on-theme for
+  `ctx.peak` (per `peakEmphasis.ts`) — an off-theme generator is never drawn at all, full stop — with
+  `answerModeWeights` governing the mix among a peak's on-theme set. Any UI that iterates
+  `BUILT_IN_QUESTION_TYPES` directly instead of going through `selectGenerator`/`generateQuestion` —
+  e.g. `generateQuestionBatch`, which the debug and preview pages use so every generator stays
+  inspectable regardless of peak — bypasses that exclusivity entirely and shows _every_ type no
+  matter which peak is selected; only its internal peak-derived seed mixing makes the _sampled
+  values_ vary by peak. Don't assume changing peak ID alone does anything in code that takes this
+  shortcut; if you need genuine per-peak type variation there too, mix `peakId` into the RNG seed
+  explicitly (see `peakSeed` in `src/engine/questions/preview.ts`).
 - Always import from the `src/engine/questions` barrel (`./index`), never `./registry` directly —
   the barrel is what actually registers the built-in generators as a side effect of being imported.
 

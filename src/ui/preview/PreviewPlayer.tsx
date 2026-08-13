@@ -196,10 +196,10 @@ export default function PreviewPlayer({ initialSeed }: { initialSeed?: number })
       <p>
         This preview always shows one of every question type per batch, regardless of peak —
         deliberately, so every generator stays inspectable no matter which peak you pick. Real
-        gameplay draws from the full weighted mix instead: a peak-matching generator (see each
-        peak's emphasis below) is drawn more often than an off-theme one, and the difficulty further
-        skews which answer modes show up. Changing Peak here reseeds the batch, so the specific
-        values shown change, but not which types appear.
+        gameplay is exclusive instead: a peak only ever draws its own matching generator(s) (see
+        each peak's emphasis below), and the difficulty further skews which answer modes show up
+        among those. Changing Peak here reseeds the batch, so the specific values shown change, but
+        not which types appear.
       </p>
 
       <p>

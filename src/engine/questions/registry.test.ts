@@ -12,7 +12,10 @@ import {
 } from './registry';
 import type { GeneratorContext, Question, QuestionType } from './types';
 
-const ctx: GeneratorContext = { difficulty: 3, peak: getPeak(1) };
+// Peak 10 ("Everything, mixed") matches every typeId regardless of name — used
+// for tests exercising generic registry mechanics that have nothing to do with
+// peak-matching itself, so they aren't coupled to real peakEmphasis.ts content.
+const ctx: GeneratorContext = { difficulty: 3, peak: getPeak(10) };
 
 function fakeType(typeId: string): QuestionType {
   return {
@@ -95,37 +98,53 @@ describe('selectGenerator', () => {
     );
   });
 
-  it('draws the peak-matching generator far more often than an off-theme one', () => {
+  it('only ever draws a peak-matching generator, never an off-theme one', () => {
     // 'readAnalog' is on-theme for peak 1 (Basecamp Bluff, see peakEmphasis.ts);
-    // 'offsetDate' is on-theme for peak 7, not peak 1 — same answerMode, so only
-    // the peak-match weight (PEAK_MATCH_WEIGHT_MULTIPLIER, currently 3x) should
-    // separate them.
+    // 'offsetDate' is on-theme for peak 7, not peak 1 — so on peak 1, offsetDate
+    // must never be drawn at all.
     registerGenerator(fakeType('readAnalog'));
     registerGenerator(fakeType('offsetDate'));
+    const peak1Ctx: GeneratorContext = { difficulty: 3, peak: getPeak(1) };
     const rng = mulberry32(11);
-    const counts = { readAnalog: 0, offsetDate: 0 };
-    for (let i = 0; i < 2000; i++) {
-      counts[selectGenerator(rng, ctx).typeId as 'readAnalog' | 'offsetDate']++;
+    for (let i = 0; i < 500; i++) {
+      expect(selectGenerator(rng, peak1Ctx).typeId).toBe('readAnalog');
     }
-    // Expected ~3:1; assert direction and a generous ratio bound rather than
-    // an exact split, since this is a randomized draw.
-    expect(counts.readAnalog).toBeGreaterThan(counts.offsetDate * 2);
   });
 
-  it('never draws a generator whose answerMode has zero weight at this difficulty', () => {
-    const interactiveType: QuestionType = {
-      typeId: 'gizmo',
-      answerMode: 'interactive',
-      generate: fakeType('gizmo').generate,
-    };
-    registerGenerator(fakeType('readAnalog'));
-    registerGenerator(interactiveType);
-    // Difficulty 1's answerModeWeights.interactive is 0 (see difficulty.ts).
-    const level1Ctx: GeneratorContext = { difficulty: 1, peak: getPeak(1) };
+  it('among a peak with several on-theme generators, still gates by answerMode', () => {
+    // Peak 5 (Weekday Wall) matches 'dayOfWeek' (choice), 'nthWeekday'
+    // (interactive), and 'countWeekdays' (free) in the real peakEmphasis.ts
+    // mapping. At difficulty 1, interactive/free weight is 0 — only the
+    // choice-mode one should ever be drawn, even though all three are
+    // equally on-theme.
+    registerGenerator({ ...fakeType('dayOfWeek'), answerMode: 'choice' });
+    registerGenerator({ ...fakeType('nthWeekday'), answerMode: 'interactive' });
+    registerGenerator({ ...fakeType('countWeekdays'), answerMode: 'free' });
+    const level1Peak5: GeneratorContext = { difficulty: 1, peak: getPeak(5) };
     const rng = mulberry32(3);
     for (let i = 0; i < 200; i++) {
-      expect(selectGenerator(rng, level1Ctx).typeId).toBe('readAnalog');
+      expect(selectGenerator(rng, level1Peak5).typeId).toBe('dayOfWeek');
     }
+  });
+
+  it('falls back to a uniform draw across on-theme generators when every one is answer-mode-gated to zero', () => {
+    // Peak 4 (The Hourglass) matches only 'setHands', an interactive-mode type.
+    // At difficulty 1, answerModeWeights.interactive is 0 — with no other on-theme
+    // generator to fall back on, selectGenerator must still draw 'setHands' rather
+    // than throwing or silently drawing something off-theme.
+    registerGenerator({ ...fakeType('setHands'), answerMode: 'interactive' });
+    registerGenerator(fakeType('readAnalog')); // off-theme for peak 4, must never be drawn
+    const level1Peak4: GeneratorContext = { difficulty: 1, peak: getPeak(4) };
+    const rng = mulberry32(9);
+    for (let i = 0; i < 200; i++) {
+      expect(selectGenerator(rng, level1Peak4).typeId).toBe('setHands');
+    }
+  });
+
+  it('throws when a peak has no registered on-theme generator at all', () => {
+    registerGenerator(fakeType('readAnalog')); // on-theme for peak 1 only
+    const peak4Ctx: GeneratorContext = { difficulty: 5, peak: getPeak(4) };
+    expect(() => selectGenerator(mulberry32(1), peak4Ctx)).toThrow(/no registered on-theme/);
   });
 });
 
@@ -134,6 +153,6 @@ describe('generateQuestion', () => {
     registerGenerator(fakeType('alpha'));
     const question = generateQuestion(mulberry32(1), ctx);
     expect(question.typeId).toBe('alpha');
-    expect(question.prompt).toBe('prompt for alpha on peak 1');
+    expect(question.prompt).toBe('prompt for alpha on peak 10');
   });
 });

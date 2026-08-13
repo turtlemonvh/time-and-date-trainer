@@ -24,7 +24,7 @@ export default function DebugQuestionsPage({ initialSeed }: { initialSeed?: numb
         Dev-only. {SAMPLES_PER_TYPE} freshly generated questions from each of the{' '}
         {BUILT_IN_QUESTION_TYPES.length} registered generators — every type, regardless of peak, so
         every generator's output stays inspectable here no matter which peak you pick. Real gameplay
-        instead weights the draw toward each peak's own matching generator(s) (see
+        is exclusive instead: a peak only ever draws its own matching generator(s) (see
         <code> peakEmphasis.ts</code>); the Peak selector below only reseeds this batch, it doesn't
         change which question types appear in it.
       </p>

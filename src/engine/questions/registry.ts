@@ -5,17 +5,6 @@ import type { GeneratorContext, Question, QuestionType } from './types';
 
 const generators = new Map<string, QuestionType>();
 
-/**
- * How much more likely an on-theme generator is to be drawn than an
- * off-theme one. Originally 5x; `pacingSimulation.test.ts`'s tuning pass
- * found 5x compounded too strongly with peak-matched types that also carry
- * an above-1.0 `TIME_LIMIT_MULTIPLIER` (a matched type being both "this
- * peak's flavor" and "a slower question type" pushed those peaks' average
- * completion time past the design spec's 2-5 minute target), so it's
- * lowered to 3x here — still a clearly noticeable peak-flavor bias.
- */
-const PEAK_MATCH_WEIGHT_MULTIPLIER = 3;
-
 export function registerGenerator(type: QuestionType): void {
   if (generators.has(type.typeId)) {
     throw new Error(`registerGenerator: duplicate typeId "${type.typeId}"`);
@@ -46,12 +35,21 @@ export function resetGenerators(): void {
 /**
  * Picks the generator for the next question.
  *
- * Weighted by peak match (a generator on-theme for `ctx.peak`, per
- * `peakEmphasis.ts`, is `PEAK_MATCH_WEIGHT_MULTIPLIER`x more likely) and by
- * the difficulty profile's `answerModeWeights` (e.g. a `free`-mode
- * generator is undrawable at difficulty 1, where that weight is 0). A
- * generator's total weight is `(peak match ? PEAK_MATCH_WEIGHT_MULTIPLIER
- * : 1) * profile.answerModeWeights[type.answerMode]`.
+ * Exclusive by peak: a generator not on-theme for `ctx.peak` (per
+ * `peakEmphasis.ts`) never gets drawn, full stop — a player on a given peak
+ * only ever sees that peak's own content. Among a peak's on-theme
+ * generators, `answerModeWeights` still governs the mix (e.g. a `free`-mode
+ * generator is undrawable at difficulty 1, where that weight is 0).
+ *
+ * A peak whose *entire* on-theme set is answer-mode-gated to zero at this
+ * difficulty (a peak with only one, non-`choice`-mode generator — The
+ * Hourglass's `setHands` or Leap Crag's `countBetween` — at a low
+ * difficulty, where `interactive`/`free` haven't unlocked yet) falls back
+ * to a uniform draw across that peak's on-theme generators, ignoring
+ * `answerModeWeights` just for this case — the peak stays playable with
+ * exclusively its own content at every difficulty; difficulty still shapes
+ * how hard that content is internally; it just can't gate the peak down to
+ * nothing.
  */
 export function selectGenerator(rng: Rng, ctx: GeneratorContext): QuestionType {
   const types = listGenerators();
@@ -62,16 +60,26 @@ export function selectGenerator(rng: Rng, ctx: GeneratorContext): QuestionType {
         `import from 'src/engine/questions' rather than 'src/engine/questions/registry'`,
     );
   }
+  const onTheme = types.filter((type) => isOnThemeForPeak(ctx.peak, type.typeId));
+  if (onTheme.length === 0) {
+    throw new Error(
+      `selectGenerator: peak ${ctx.peak.id} has no registered on-theme generator ` +
+        `(checked ${types.length} registered types) — see peakEmphasis.ts`,
+    );
+  }
   const profile = difficultyProfile(ctx.difficulty);
-  return weightedPick(
-    rng,
-    types.map((type) => ({
-      value: type,
-      weight:
-        (isOnThemeForPeak(ctx.peak, type.typeId) ? PEAK_MATCH_WEIGHT_MULTIPLIER : 1) *
-        profile.answerModeWeights[type.answerMode],
-    })),
-  );
+  const weighted = onTheme.map((type) => ({
+    value: type,
+    weight: profile.answerModeWeights[type.answerMode],
+  }));
+  const hasDrawableWeight = weighted.some((w) => w.weight > 0);
+  if (!hasDrawableWeight) {
+    return weightedPick(
+      rng,
+      onTheme.map((type) => ({ value: type, weight: 1 })),
+    );
+  }
+  return weightedPick(rng, weighted);
 }
 
 export function generateQuestion(rng: Rng, ctx: GeneratorContext): Question {

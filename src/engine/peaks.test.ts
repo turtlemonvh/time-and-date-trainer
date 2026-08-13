@@ -7,8 +7,15 @@ describe('PEAKS', () => {
     expect(PEAKS.map((p) => p.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   });
 
-  it('has heights rising from 20 at Peak 1 to 30 at Peak 10', () => {
-    expect(PEAKS.map((p) => p.height)).toEqual([20, 21, 22, 23, 24, 26, 27, 28, 29, 30]);
+  it('has the pacing-tuned heights (not a smooth ascending curve — see the doc comment on PEAKS)', () => {
+    expect(PEAKS.map((p) => p.height)).toEqual([27, 27, 22, 23, 24, 26, 22, 28, 21, 30]);
+  });
+
+  it('keeps every height within a sane pacing-simulation range', () => {
+    for (const peak of PEAKS) {
+      expect(peak.height).toBeGreaterThanOrEqual(15);
+      expect(peak.height).toBeLessThanOrEqual(35);
+    }
   });
 
   it('gives every peak a non-empty name and emphasis', () => {

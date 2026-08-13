@@ -25,10 +25,9 @@ const PALETTES: Readonly<Record<number, { rock: string; snow: string }>> = {
 };
 
 /**
- * All 10 peaks with their mountain colors, in `PEAKS` order. `peak.height`
- * (20-30, a game-mechanic "steps to summit" number) is scaled down into a
- * reasonable pixel peak-height range so later peaks are visibly, not just
- * nominally, taller.
+ * All 10 peaks with their mountain colors, in `PEAKS` order. See
+ * `pixelPeakHeight` below for how a peak's silhouette height is derived —
+ * deliberately not from `peak.height` itself.
  */
 export const MOUNTAIN_THEMES: readonly MountainTheme[] = PEAKS.map((peak) => {
   const palette = PALETTES[peak.id];
@@ -36,12 +35,21 @@ export const MOUNTAIN_THEMES: readonly MountainTheme[] = PEAKS.map((peak) => {
   return { peak, ...palette };
 });
 
-/** Maps a peak's game-mechanic height (20-30) to a pixel peak-height (14-22). */
+/**
+ * Maps a peak's `id` (1-10, always ascending) to a pixel peak-height
+ * (14-22) — deliberately independent of `peak.height`. `height` is now a
+ * pacing-tuning number that doesn't rise smoothly with peak order (see
+ * `peaks.ts`'s own comment: it's tuned per peak against the pacing
+ * simulation, not a visual curve), so deriving the mountain silhouette from
+ * it would make later peaks look visually *shorter* than earlier ones.
+ * Using `id` instead keeps the "progressively bigger mountains" visual
+ * metaphor intact regardless of how `height` gets tuned.
+ */
 export function pixelPeakHeight(peak: Peak): number {
-  const MIN_GAME_HEIGHT = 20;
-  const MAX_GAME_HEIGHT = 30;
+  const MIN_ID = 1;
+  const MAX_ID = 10;
   const MIN_PIXEL_HEIGHT = 14;
   const MAX_PIXEL_HEIGHT = 22;
-  const t = (peak.height - MIN_GAME_HEIGHT) / (MAX_GAME_HEIGHT - MIN_GAME_HEIGHT);
+  const t = (peak.id - MIN_ID) / (MAX_ID - MIN_ID);
   return Math.round(MIN_PIXEL_HEIGHT + t * (MAX_PIXEL_HEIGHT - MIN_PIXEL_HEIGHT));
 }
