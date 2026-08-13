@@ -1,17 +1,11 @@
 import type { Peak } from '../../engine/peaks';
 import { buildCharacterLayers } from '../character/buildCharacterLayers';
 import type { CharacterPreset } from '../character/presets';
+import { formatDuration } from '../formatDuration';
 import PixelLayers from '../pixel/PixelLayers';
 import { bodyCheer } from '../pixel/sprites/body';
 
 const SCALE = 8;
-
-function formatDuration(ms: number): string {
-  const totalSeconds = Math.round(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
-}
 
 export interface SummitProps {
   peak: Peak;

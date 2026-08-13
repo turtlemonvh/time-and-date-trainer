@@ -27,7 +27,32 @@ const SAMPLE_PROFILES: Profile[] = [
     },
     stats: {},
     goals: [],
-    climbLog: [],
+    climbLog: [
+      {
+        id: 'log-1',
+        peakId: 1,
+        difficulty: 4,
+        startedAt: Date.now() - 3 * 86400000,
+        endedAt: Date.now() - 3 * 86400000 + 92000,
+        result: 'summited',
+      },
+      {
+        id: 'log-2',
+        peakId: 2,
+        difficulty: 4,
+        startedAt: Date.now() - 86400000,
+        endedAt: Date.now() - 86400000 + 45000,
+        result: 'fell',
+      },
+      {
+        id: 'log-3',
+        peakId: 1,
+        difficulty: 5,
+        startedAt: Date.now(),
+        endedAt: Date.now() + 15000,
+        result: 'bailed',
+      },
+    ],
   },
   {
     id: 'b',
@@ -108,7 +133,7 @@ export default function DebugScreensPage() {
 
       <h2>Review</h2>
       <p data-testid="screens-review-status">{reviewAction ?? 'No action yet'}</p>
-      <Review onBack={() => setReviewAction('Returned to map')} />
+      <Review profile={mapProfile} onBack={() => setReviewAction('Returned to map')} />
 
       <h2>Climb</h2>
       <p data-testid="screens-climb-status">{climbStatus ?? 'In progress'}</p>

@@ -1,8 +1,12 @@
 import { useMemo, useState } from 'react';
+import { formatDateLong } from '../../engine/dateMath';
 import { describeDifficultyLevel } from '../../engine/difficultyDescribe';
 import { PEAKS, getPeak } from '../../engine/peaks';
 import { generateQuestion } from '../../engine/questions';
 import { mulberry32 } from '../../engine/rng';
+import type { Profile } from '../../storage/types';
+import { climbLogResultLabel, downloadClimbLogCsv, sortedClimbLog } from '../climbLogCsv';
+import { formatDuration } from '../formatDuration';
 import { describeAnswer, describeDisplay } from '../questionDisplay';
 
 const DIFFICULTIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -27,20 +31,21 @@ function sampleCurriculumQuestions(peakId: number, difficulty: number, count: nu
 }
 
 export interface ReviewProps {
+  profile: Profile;
   onBack: () => void;
 }
 
-type Section = 'curriculum';
+type Section = 'curriculum' | 'log';
 
 /**
- * Parent/teacher-facing tooling, reachable from Map. This PR ships only the
- * curriculum browser (6a); the climber log (6b), goals (6c), and profile
+ * Parent/teacher-facing tooling, reachable from Map. Ships the curriculum
+ * browser (6a) and climber log (6b) so far; goals (6c) and profile
  * export/import (6d) land as later PRs sharing this same screen shell —
  * `Section` grows a member per PR rather than all four being stubbed out
  * ahead of time.
  */
-export default function Review({ onBack }: ReviewProps) {
-  const [section] = useState<Section>('curriculum');
+export default function Review({ profile, onBack }: ReviewProps) {
+  const [section, setSection] = useState<Section>('curriculum');
   const [peakId, setPeakId] = useState(PEAKS[0].id);
   const [difficulty, setDifficulty] = useState(1);
 
@@ -49,17 +54,37 @@ export default function Review({ onBack }: ReviewProps) {
     () => sampleCurriculumQuestions(peakId, difficulty, SAMPLE_COUNT),
     [peakId, difficulty],
   );
+  const climbLog = useMemo(() => sortedClimbLog(profile.climbLog), [profile.climbLog]);
 
   return (
     <main>
       <h1>Review</h1>
       <p>
         A reference for parents and teachers: what does each peak actually ask at each difficulty
-        level?
+        level, and what has {profile.name} actually done?
       </p>
       <button type="button" data-testid="review-back" onClick={onBack}>
         Back to Map
       </button>
+
+      <p>
+        <button
+          type="button"
+          data-testid="review-tab-curriculum"
+          disabled={section === 'curriculum'}
+          onClick={() => setSection('curriculum')}
+        >
+          Curriculum
+        </button>{' '}
+        <button
+          type="button"
+          data-testid="review-tab-log"
+          disabled={section === 'log'}
+          onClick={() => setSection('log')}
+        >
+          Climber log
+        </button>
+      </p>
 
       {section === 'curriculum' && (
         <section data-testid="review-curriculum">
@@ -111,6 +136,47 @@ export default function Review({ onBack }: ReviewProps) {
               </li>
             ))}
           </ol>
+        </section>
+      )}
+
+      {section === 'log' && (
+        <section data-testid="review-log">
+          <h2>Climber log</h2>
+          <button
+            type="button"
+            data-testid="review-log-download"
+            disabled={climbLog.length === 0}
+            onClick={() => downloadClimbLogCsv(profile.climbLog)}
+          >
+            Download CSV
+          </button>
+
+          {climbLog.length === 0 ? (
+            <p data-testid="review-log-empty">No climbs yet.</p>
+          ) : (
+            <table data-testid="review-log-table">
+              <thead>
+                <tr>
+                  <th>Peak</th>
+                  <th>Difficulty</th>
+                  <th>Date</th>
+                  <th>Duration</th>
+                  <th>Result</th>
+                </tr>
+              </thead>
+              <tbody>
+                {climbLog.map((entry) => (
+                  <tr key={entry.id} data-testid="review-log-row">
+                    <td>{getPeak(entry.peakId).name}</td>
+                    <td>{entry.difficulty}</td>
+                    <td>{formatDateLong(new Date(entry.startedAt))}</td>
+                    <td>{formatDuration(entry.endedAt - entry.startedAt)}</td>
+                    <td>{climbLogResultLabel(entry.result)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </section>
       )}
     </main>

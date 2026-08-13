@@ -95,8 +95,10 @@ export default function App() {
       );
     }
 
-    case 'review':
-      return <Review onBack={() => setScreen({ name: 'map' })} />;
+    case 'review': {
+      const profile = requireActiveProfile(save);
+      return <Review profile={profile} onBack={() => setScreen({ name: 'map' })} />;
+    }
 
     case 'climb': {
       const profile = requireActiveProfile(save);
