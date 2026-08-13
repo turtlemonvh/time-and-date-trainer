@@ -7,6 +7,7 @@ import Fell from './ui/screens/Fell';
 import Intro from './ui/screens/Intro';
 import Map from './ui/screens/Map';
 import ProfileSelect from './ui/screens/ProfileSelect';
+import Review from './ui/screens/Review';
 import Summit from './ui/screens/Summit';
 import {
   createProfile,
@@ -25,6 +26,7 @@ type Screen =
   | { name: 'profileSelect' }
   | { name: 'characterPick'; pendingName: string }
   | { name: 'map' }
+  | { name: 'review' }
   | { name: 'climb'; peakId: number; seed: number }
   | { name: 'summit'; peakId: number; elapsedMs: number }
   | { name: 'fell'; peakId: number };
@@ -88,9 +90,13 @@ export default function App() {
             setSave((current) => setPeakDifficulty(current, profile.id, peakId, difficulty));
             setScreen({ name: 'climb', peakId, seed: Date.now() });
           }}
+          onReview={() => setScreen({ name: 'review' })}
         />
       );
     }
+
+    case 'review':
+      return <Review onBack={() => setScreen({ name: 'map' })} />;
 
     case 'climb': {
       const profile = requireActiveProfile(save);
