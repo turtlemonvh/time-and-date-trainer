@@ -96,6 +96,22 @@ describe('App', () => {
     expect(screen.getByTestId('peak-progress-1')).toHaveTextContent('Attempts: 1');
   });
 
+  it('bailing out of a climb returns to the map without recording an attempt', () => {
+    render(<App />);
+    createProfileAndReachMap('Riley');
+    fireEvent.click(screen.getByTestId('peak-option-1'));
+    expect(screen.getByTestId('climb-prompt')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('climb-bail'));
+
+    expect(screen.getByTestId('peak-option-1')).toBeInTheDocument();
+    // A bail is tracked separately from attempts (summit/fall outcomes only) —
+    // Map.tsx doesn't have its own "bailed" display yet (that's the climber
+    // log, a later item in this batch), so it reads as zero attempts, not
+    // "Not climbed yet": bailing did leave a progress entry behind.
+    expect(screen.getByTestId('peak-progress-1')).toHaveTextContent('Attempts: 0');
+  });
+
   it('persists the created profile across a fresh mount (simulating a reload)', () => {
     const { unmount } = render(<App />);
     createProfileAndReachMap('Riley');

@@ -11,6 +11,7 @@ import Summit from './ui/screens/Summit';
 import {
   createProfile,
   getProfile,
+  recordBail,
   recordFall,
   recordQuestionStat,
   recordSummit,
@@ -110,6 +111,12 @@ export default function App() {
               recordSummit(current, profile.id, peakId, profile.settings.difficulty, elapsedMs),
             );
             setScreen({ name: 'summit', peakId, elapsedMs });
+          }}
+          onBail={(elapsedMs) => {
+            setSave((current) =>
+              recordBail(current, profile.id, peakId, profile.settings.difficulty, elapsedMs),
+            );
+            setScreen({ name: 'map' });
           }}
           onFall={(_finalState, elapsedMs) => {
             setSave((current) =>
