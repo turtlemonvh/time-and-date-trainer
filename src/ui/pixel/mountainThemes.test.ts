@@ -22,7 +22,7 @@ describe('MOUNTAIN_THEMES', () => {
 });
 
 describe('pixelPeakHeight', () => {
-  it('is monotonically non-decreasing with peak.height, across all 10 peaks', () => {
+  it('is monotonically non-decreasing with peak id, across all 10 peaks', () => {
     const heights = PEAKS.map(pixelPeakHeight);
     for (let i = 1; i < heights.length; i++) {
       expect(heights[i]).toBeGreaterThanOrEqual(heights[i - 1]);
@@ -35,5 +35,16 @@ describe('pixelPeakHeight', () => {
       expect(height).toBeGreaterThanOrEqual(14);
       expect(height).toBeLessThanOrEqual(22);
     }
+  });
+
+  it('is driven by peak id, not peak.height (a pacing-tuning number that no longer rises with peak order)', () => {
+    // Peak 9 has a low pacing `height` (tuned against the pacing simulation
+    // for its own, slower question type) but a high `id` — its mountain
+    // must still be taller than an earlier peak's, not shorter.
+    const peak9 = PEAKS.find((p) => p.id === 9);
+    const peak3 = PEAKS.find((p) => p.id === 3);
+    if (!peak9 || !peak3) throw new Error('expected peaks 3 and 9 to exist');
+    expect(peak9.height).toBeLessThan(peak3.height);
+    expect(pixelPeakHeight(peak9)).toBeGreaterThan(pixelPeakHeight(peak3));
   });
 });

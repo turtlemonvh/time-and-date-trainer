@@ -3,9 +3,9 @@ import { PEAKS, type Peak } from '../peaks';
 /**
  * Which generator typeIds are "on theme" for each peak, keyed by `peak.id`
  * — one entry per `PEAKS` entry (checked by a test), so a new peak can't
- * silently ship with no emphasis mapping. `selectGenerator` weights a
- * matching generator more heavily than a non-matching one (see
- * `PEAK_MATCH_WEIGHT_MULTIPLIER` in `registry.ts`).
+ * silently ship with no emphasis mapping. `selectGenerator` restricts a
+ * peak to *only* drawing from its own on-theme generators — a non-matching
+ * one is never drawn at all.
  *
  * Every peak but one has a dedicated generator (or generators) here. Peak
  * 10 ("Everything, mixed") is the exception, left empty on purpose —

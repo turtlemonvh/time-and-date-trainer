@@ -64,9 +64,9 @@ describe('simulatePeakCompletion', () => {
    * testing-strategy section, a typical player's completion time per peak
    * should land in 2-5 minutes. Checked at difficulty 3 and 8 — the same two
    * levels the spec's own M5 "Verify" line names for a human playtest pass
-   * — across every peak, since a peak's own emphasis (via peakEmphasis.ts's
-   * weighting) can shift which generators — and so which timer multipliers
-   * — dominate its questions.
+   * — across every peak, since `selectGenerator` restricts each peak to
+   * only its own on-theme generator(s) (`peakEmphasis.ts`), and different
+   * peaks' matched generators carry different `TIME_LIMIT_MULTIPLIER`s.
    */
   describe.each([3, 8])('at difficulty %i', (difficulty) => {
     for (const peak of PEAKS) {
