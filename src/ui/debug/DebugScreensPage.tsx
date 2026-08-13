@@ -7,6 +7,7 @@ import Fell from '../screens/Fell';
 import Intro from '../screens/Intro';
 import Map from '../screens/Map';
 import ProfileSelect from '../screens/ProfileSelect';
+import Review from '../screens/Review';
 import Summit from '../screens/Summit';
 import AnalogClock from '../widgets/AnalogClock';
 import DatePicker from '../widgets/DatePicker';
@@ -59,6 +60,7 @@ export default function DebugScreensPage() {
   const [galleryNumber, setGalleryNumber] = useState<number | ''>('');
   const [summitAction, setSummitAction] = useState<string | null>(null);
   const [fellAction, setFellAction] = useState<string | null>(null);
+  const [reviewAction, setReviewAction] = useState<string | null>(null);
 
   return (
     <main>
@@ -101,7 +103,12 @@ export default function DebugScreensPage() {
         onClimb={(peakId, difficulty) =>
           setMapAction(`Climb: peak ${peakId} at level ${difficulty}`)
         }
+        onReview={() => setMapAction('Opened Review')}
       />
+
+      <h2>Review</h2>
+      <p data-testid="screens-review-status">{reviewAction ?? 'No action yet'}</p>
+      <Review onBack={() => setReviewAction('Returned to map')} />
 
       <h2>Climb</h2>
       <p data-testid="screens-climb-status">{climbStatus ?? 'In progress'}</p>

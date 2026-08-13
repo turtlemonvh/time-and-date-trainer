@@ -23,6 +23,8 @@ export interface MapProps {
    * for persisting that as the peak's new current level (see
    * `setPeakDifficulty`) before actually starting it. */
   onClimb: (peakId: number, difficulty: number) => void;
+  /** Opens the parent/teacher Review screen. */
+  onReview: () => void;
 }
 
 function statusText(progress: PeakProgress | undefined): string {
@@ -126,7 +128,7 @@ function PeakCard({ theme, progress, onClimb }: PeakCardProps) {
  * thematic-emphasis matching is a separate, already-documented gap).
  * Gating peaks here would be unscoped invented complexity.
  */
-export default function Map({ profile, onClimb }: MapProps) {
+export default function Map({ profile, onClimb, onReview }: MapProps) {
   const preset = getCharacterPreset(profile.characterId);
 
   return (
@@ -141,6 +143,9 @@ export default function Map({ profile, onClimb }: MapProps) {
           />
         }
       />
+      <button type="button" data-testid="map-review-link" onClick={onReview}>
+        Review (for parents/teachers)
+      </button>
 
       <div
         data-testid="peak-grid"
