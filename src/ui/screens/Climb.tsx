@@ -84,6 +84,9 @@ export interface ClimbProps {
   seed: number;
   onSummit: (finalState: ClimbState, elapsedMs: number) => void;
   onFall: (finalState: ClimbState, elapsedMs: number) => void;
+  /** Player-initiated exit, mid-climb — no summit/fall state change, just
+   * "I'm done for now". */
+  onBail: (elapsedMs: number) => void;
   /** Reported after every answer (including timeouts, as incorrect), regardless of climb outcome
    * — the caller uses this to persist per-question-type stats. */
   onQuestionAnswered?: (typeId: string, correct: boolean, elapsedMs: number) => void;
@@ -98,7 +101,10 @@ export interface ClimbProps {
  * explicit Submit button, since dragging hands or typing a number has no
  * natural "this is my final answer" moment the way a click does. All four
  * route through the same `applyCorrect`/`applyMiss`/reveal/pose logic below
- * — only how the answer is captured and graded differs per kind.
+ * — only how the answer is captured and graded differs per kind. A "Bail"
+ * button offers a third way out at any time (except mid-reveal): it skips
+ * `climb.ts` entirely — no correct/miss applied — and just reports elapsed
+ * time to `onBail`.
  */
 export default function Climb({
   peak,
@@ -107,6 +113,7 @@ export default function Climb({
   seed,
   onSummit,
   onFall,
+  onBail,
   onQuestionAnswered,
 }: ClimbProps) {
   const [rng] = useState(() => mulberry32(seed));
@@ -178,6 +185,14 @@ export default function Climb({
   function handleTimeout() {
     if (revealing) return;
     finishAnswer(false, Date.now() - questionStartRef.current);
+  }
+
+  /** Voluntary exit — no climb-state change (no `applyCorrect`/`applyMiss`),
+   * just reports how long this session ran and hands off to the caller,
+   * which is responsible for leaving this screen. */
+  function handleBail() {
+    if (revealing) return;
+    onBail(Date.now() - climbStartRef.current);
   }
 
   // Ticks the countdown and, once it reaches zero, triggers the timeout
@@ -292,6 +307,9 @@ export default function Climb({
           fallRiskCapacity={climbState.fallRiskCapacity}
         />
         <MiniMap position={climbState.position} height={climbState.height} />
+        <button type="button" data-testid="climb-bail" onClick={handleBail} disabled={revealing}>
+          Bail
+        </button>
       </div>
       <TimerBar fraction={timeLeftMs / question.timeLimitMs} />
       <PixelLayers

@@ -109,6 +109,7 @@ describe('Climb', () => {
         seed={1}
         onSummit={vi.fn()}
         onFall={vi.fn()}
+        onBail={vi.fn()}
       />,
     );
     expect(screen.getByTestId('climb-prompt')).toHaveTextContent('What is the answer?');
@@ -126,6 +127,7 @@ describe('Climb', () => {
         seed={1}
         onSummit={onSummit}
         onFall={vi.fn()}
+        onBail={vi.fn()}
       />,
     );
     answerCorrect();
@@ -151,6 +153,7 @@ describe('Climb', () => {
         seed={1}
         onSummit={vi.fn()}
         onFall={onFall}
+        onBail={vi.fn()}
       />,
     );
     for (let i = 0; i < 5; i++) {
@@ -163,6 +166,49 @@ describe('Climb', () => {
     expect(typeof onFall.mock.calls[0][1]).toBe('number');
   });
 
+  it('calls onBail with the elapsed time when Bail is clicked, without touching onSummit/onFall', () => {
+    const onSummit = vi.fn();
+    const onFall = vi.fn();
+    const onBail = vi.fn();
+    render(
+      <Climb
+        peak={shortPeak}
+        difficulty={5}
+        characterPreset={preset}
+        seed={1}
+        onSummit={onSummit}
+        onFall={onFall}
+        onBail={onBail}
+      />,
+    );
+    act(() => {
+      vi.advanceTimersByTime(1234);
+    });
+    fireEvent.click(screen.getByTestId('climb-bail'));
+    expect(onBail).toHaveBeenCalledTimes(1);
+    expect(onBail).toHaveBeenCalledWith(expect.any(Number));
+    expect(onBail.mock.calls[0][0]).toBeGreaterThanOrEqual(1234);
+    expect(onSummit).not.toHaveBeenCalled();
+    expect(onFall).not.toHaveBeenCalled();
+  });
+
+  it('disables Bail during the post-answer reveal beat', () => {
+    render(
+      <Climb
+        peak={shortPeak}
+        difficulty={5}
+        characterPreset={preset}
+        seed={1}
+        onSummit={vi.fn()}
+        onFall={vi.fn()}
+        onBail={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('climb-bail')).not.toBeDisabled();
+    fireEvent.click(screen.getByTestId('choice-option-0'));
+    expect(screen.getByTestId('climb-bail')).toBeDisabled();
+  });
+
   it('reveals the correct answer and disables the grid during the beat', () => {
     render(
       <Climb
@@ -172,6 +218,7 @@ describe('Climb', () => {
         seed={1}
         onSummit={vi.fn()}
         onFall={vi.fn()}
+        onBail={vi.fn()}
       />,
     );
     fireEvent.click(screen.getByTestId('choice-option-1'));
@@ -191,6 +238,7 @@ describe('Climb', () => {
         seed={1}
         onSummit={vi.fn()}
         onFall={vi.fn()}
+        onBail={vi.fn()}
         onQuestionAnswered={onQuestionAnswered}
       />,
     );
@@ -208,6 +256,7 @@ describe('Climb', () => {
         seed={1}
         onSummit={vi.fn()}
         onFall={vi.fn()}
+        onBail={vi.fn()}
         onQuestionAnswered={onQuestionAnswered}
       />,
     );
@@ -227,6 +276,7 @@ describe('Climb', () => {
         seed={1}
         onSummit={vi.fn()}
         onFall={vi.fn()}
+        onBail={vi.fn()}
       />,
     );
     expect(screen.queryAllByTestId('boost-pip-filled')).toHaveLength(0);
@@ -246,6 +296,7 @@ describe('Climb', () => {
         seed={1}
         onSummit={vi.fn()}
         onFall={vi.fn()}
+        onBail={vi.fn()}
       />,
     );
     // Over half of the 5000ms time limit -> not "fast".
@@ -286,6 +337,7 @@ describe('Climb — setHands answer kind', () => {
         seed={1}
         onSummit={vi.fn()}
         onFall={vi.fn()}
+        onBail={vi.fn()}
         onQuestionAnswered={onQuestionAnswered}
       />,
     );
@@ -359,6 +411,7 @@ describe('Climb — number answer kind', () => {
         seed={1}
         onSummit={vi.fn()}
         onFall={vi.fn()}
+        onBail={vi.fn()}
         onQuestionAnswered={onQuestionAnswered}
       />,
     );
@@ -402,6 +455,7 @@ describe('Climb — pickDate answer kind', () => {
         seed={1}
         onSummit={vi.fn()}
         onFall={vi.fn()}
+        onBail={vi.fn()}
         onQuestionAnswered={onQuestionAnswered}
       />,
     );

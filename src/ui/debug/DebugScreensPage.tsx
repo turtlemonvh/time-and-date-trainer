@@ -134,6 +134,7 @@ export default function DebugScreensPage() {
           setClimbStatus(`Summited at position ${state.position} in ${elapsedMs}ms`)
         }
         onFall={(state) => setClimbStatus(`Fell at position ${state.position}`)}
+        onBail={(elapsedMs) => setClimbStatus(`Bailed after ${elapsedMs}ms`)}
       />
 
       <h2>Answer kinds</h2>
