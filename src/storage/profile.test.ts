@@ -4,14 +4,16 @@ import {
   checkGoalsAchieved,
   createProfile,
   getProfile,
+  importProfile,
   isPeakSummited,
+  isValidProfile,
   recordBail,
   recordFall,
   recordQuestionStat,
   recordSummit,
   setPeakDifficulty,
 } from './profile';
-import type { SaveFile } from './types';
+import type { Profile, SaveFile } from './types';
 
 const EMPTY_SAVE: SaveFile = { v: 2, activeProfileId: null, profiles: [] };
 
@@ -321,6 +323,61 @@ describe('checkGoalsAchieved', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+function makeImportedProfile(overrides: Partial<Profile> = {}): Profile {
+  return {
+    id: 'imported-id',
+    name: 'Sam',
+    characterId: 'preset-2',
+    createdAt: 1700000000000,
+    progress: {},
+    stats: {},
+    goals: [],
+    climbLog: [],
+    ...overrides,
+  };
+}
+
+describe('isValidProfile', () => {
+  it('accepts a well-formed profile', () => {
+    expect(isValidProfile(makeImportedProfile())).toBe(true);
+  });
+
+  it.each([
+    ['null', null],
+    ['a string', 'not a profile'],
+    ['missing fields', { id: 'x', name: 'x' }],
+    ['wrong-typed goals', { ...makeImportedProfile(), goals: 'not an array' }],
+    ['wrong-typed progress', { ...makeImportedProfile(), progress: null }],
+  ])('rejects %s', (_label, value) => {
+    expect(isValidProfile(value)).toBe(false);
+  });
+});
+
+describe('importProfile', () => {
+  it('appends a profile with a new id', () => {
+    let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+    const imported = makeImportedProfile();
+    save = importProfile(save, imported);
+    expect(save.profiles).toHaveLength(2);
+    expect(getProfile(save, imported.id)).toEqual(imported);
+  });
+
+  it('replaces the existing profile when the id matches', () => {
+    let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+    const id = save.profiles[0].id;
+    const imported = makeImportedProfile({ id, name: 'Riley (restored)' });
+    save = importProfile(save, imported);
+    expect(save.profiles).toHaveLength(1);
+    expect(getProfile(save, id)?.name).toBe('Riley (restored)');
+  });
+
+  it('does not mutate the original save', () => {
+    const save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+    importProfile(save, makeImportedProfile());
+    expect(save.profiles).toHaveLength(1);
   });
 });
 

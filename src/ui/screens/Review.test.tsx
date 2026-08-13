@@ -33,25 +33,53 @@ function makeLogEntry(overrides: Partial<ClimbLogEntry> = {}): ClimbLogEntry {
 describe('Review', () => {
   it('calls onBack when the back button is clicked', () => {
     const onBack = vi.fn();
-    render(<Review profile={makeProfile()} onBack={onBack} onAddGoal={vi.fn()} />);
+    render(
+      <Review
+        profile={makeProfile()}
+        onBack={onBack}
+        onAddGoal={vi.fn()}
+        onImportProfile={vi.fn()}
+      />,
+    );
     fireEvent.click(screen.getByTestId('review-back'));
     expect(onBack).toHaveBeenCalled();
   });
 
   it('shows the curriculum browser with a peak and difficulty selector', () => {
-    render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
+    render(
+      <Review
+        profile={makeProfile()}
+        onBack={vi.fn()}
+        onAddGoal={vi.fn()}
+        onImportProfile={vi.fn()}
+      />,
+    );
     expect(screen.getByTestId('review-peak')).toBeInTheDocument();
     expect(screen.getByTestId('review-difficulty')).toBeInTheDocument();
   });
 
   it('offers all 10 peaks and all 10 difficulty levels', () => {
-    render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
+    render(
+      <Review
+        profile={makeProfile()}
+        onBack={vi.fn()}
+        onAddGoal={vi.fn()}
+        onImportProfile={vi.fn()}
+      />,
+    );
     expect(within(screen.getByTestId('review-peak')).getAllByRole('option')).toHaveLength(10);
     expect(within(screen.getByTestId('review-difficulty')).getAllByRole('option')).toHaveLength(10);
   });
 
   it('shows difficulty bullets that change with the selected level', () => {
-    render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
+    render(
+      <Review
+        profile={makeProfile()}
+        onBack={vi.fn()}
+        onAddGoal={vi.fn()}
+        onImportProfile={vi.fn()}
+      />,
+    );
     const before = screen.getByTestId('review-difficulty-bullets').textContent;
     fireEvent.change(screen.getByTestId('review-difficulty'), { target: { value: '10' } });
     const after = screen.getByTestId('review-difficulty-bullets').textContent;
@@ -59,7 +87,14 @@ describe('Review', () => {
   });
 
   it('shows sample questions for the selected peak and difficulty', () => {
-    render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
+    render(
+      <Review
+        profile={makeProfile()}
+        onBack={vi.fn()}
+        onAddGoal={vi.fn()}
+        onImportProfile={vi.fn()}
+      />,
+    );
     const samples = screen.getAllByTestId('review-sample-question');
     expect(samples.length).toBeGreaterThan(0);
     for (const sample of samples) {
@@ -69,17 +104,36 @@ describe('Review', () => {
 
   it('regenerates sample questions deterministically for the same peak+difficulty', () => {
     const { unmount } = render(
-      <Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />,
+      <Review
+        profile={makeProfile()}
+        onBack={vi.fn()}
+        onAddGoal={vi.fn()}
+        onImportProfile={vi.fn()}
+      />,
     );
     const first = screen.getByTestId('review-sample-questions').textContent;
     unmount();
-    render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
+    render(
+      <Review
+        profile={makeProfile()}
+        onBack={vi.fn()}
+        onAddGoal={vi.fn()}
+        onImportProfile={vi.fn()}
+      />,
+    );
     const second = screen.getByTestId('review-sample-questions').textContent;
     expect(second).toEqual(first);
   });
 
   it('only ever shows questions on-theme for the selected peak', () => {
-    render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
+    render(
+      <Review
+        profile={makeProfile()}
+        onBack={vi.fn()}
+        onAddGoal={vi.fn()}
+        onImportProfile={vi.fn()}
+      />,
+    );
     // Peak 1 (Basecamp Bluff) is matched exclusively to readAnalog, whose
     // display renders as an analog clock — never a calendar or "no visual".
     for (const sample of screen.getAllByTestId('review-sample-question')) {
@@ -88,7 +142,14 @@ describe('Review', () => {
   });
 
   it('switches sample questions when a different peak is selected', () => {
-    render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
+    render(
+      <Review
+        profile={makeProfile()}
+        onBack={vi.fn()}
+        onAddGoal={vi.fn()}
+        onImportProfile={vi.fn()}
+      />,
+    );
     const before = screen.getByTestId('review-sample-questions').textContent;
     fireEvent.change(screen.getByTestId('review-peak'), { target: { value: '3' } });
     const after = screen.getByTestId('review-sample-questions').textContent;
@@ -97,14 +158,28 @@ describe('Review', () => {
 
   describe('climber log', () => {
     it('shows "No climbs yet" when the log is empty', () => {
-      render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
+      render(
+        <Review
+          profile={makeProfile()}
+          onBack={vi.fn()}
+          onAddGoal={vi.fn()}
+          onImportProfile={vi.fn()}
+        />,
+      );
       fireEvent.click(screen.getByTestId('review-tab-log'));
       expect(screen.getByTestId('review-log-empty')).toHaveTextContent('No climbs yet');
       expect(screen.queryByTestId('review-log-table')).not.toBeInTheDocument();
     });
 
     it('disables the download button when the log is empty', () => {
-      render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
+      render(
+        <Review
+          profile={makeProfile()}
+          onBack={vi.fn()}
+          onAddGoal={vi.fn()}
+          onImportProfile={vi.fn()}
+        />,
+      );
       fireEvent.click(screen.getByTestId('review-tab-log'));
       expect(screen.getByTestId('review-log-download')).toBeDisabled();
     });
@@ -116,7 +191,9 @@ describe('Review', () => {
           makeLogEntry({ id: 'newer', peakId: 2, startedAt: 1700100000000 }),
         ],
       });
-      render(<Review profile={profile} onBack={vi.fn()} onAddGoal={vi.fn()} />);
+      render(
+        <Review profile={profile} onBack={vi.fn()} onAddGoal={vi.fn()} onImportProfile={vi.fn()} />,
+      );
       fireEvent.click(screen.getByTestId('review-tab-log'));
       const rows = screen.getAllByTestId('review-log-row');
       expect(rows).toHaveLength(2);
@@ -136,7 +213,9 @@ describe('Review', () => {
           }),
         ],
       });
-      render(<Review profile={profile} onBack={vi.fn()} onAddGoal={vi.fn()} />);
+      render(
+        <Review profile={profile} onBack={vi.fn()} onAddGoal={vi.fn()} onImportProfile={vi.fn()} />,
+      );
       fireEvent.click(screen.getByTestId('review-tab-log'));
       const row = screen.getByTestId('review-log-row');
       expect(row.textContent).toContain('Basecamp Bluff');
@@ -147,7 +226,9 @@ describe('Review', () => {
 
     it('enables the download button once there is at least one entry', () => {
       const profile = makeProfile({ climbLog: [makeLogEntry()] });
-      render(<Review profile={profile} onBack={vi.fn()} onAddGoal={vi.fn()} />);
+      render(
+        <Review profile={profile} onBack={vi.fn()} onAddGoal={vi.fn()} onImportProfile={vi.fn()} />,
+      );
       fireEvent.click(screen.getByTestId('review-tab-log'));
       expect(screen.getByTestId('review-log-download')).not.toBeDisabled();
     });
@@ -163,7 +244,14 @@ describe('Review', () => {
 
       it('triggers a blob URL download when clicked', () => {
         const profile = makeProfile({ climbLog: [makeLogEntry()] });
-        render(<Review profile={profile} onBack={vi.fn()} onAddGoal={vi.fn()} />);
+        render(
+          <Review
+            profile={profile}
+            onBack={vi.fn()}
+            onAddGoal={vi.fn()}
+            onImportProfile={vi.fn()}
+          />,
+        );
         fireEvent.click(screen.getByTestId('review-tab-log'));
         fireEvent.click(screen.getByTestId('review-log-download'));
         expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
@@ -174,14 +262,28 @@ describe('Review', () => {
 
   describe('goals', () => {
     it('shows "No goals yet" when there are none', () => {
-      render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
+      render(
+        <Review
+          profile={makeProfile()}
+          onBack={vi.fn()}
+          onAddGoal={vi.fn()}
+          onImportProfile={vi.fn()}
+        />,
+      );
       fireEvent.click(screen.getByTestId('review-tab-goals'));
       expect(screen.getByTestId('review-goals-empty')).toHaveTextContent('No goals yet');
       expect(screen.queryByTestId('review-goals-list')).not.toBeInTheDocument();
     });
 
     it('disables submit until a target date is picked', () => {
-      render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
+      render(
+        <Review
+          profile={makeProfile()}
+          onBack={vi.fn()}
+          onAddGoal={vi.fn()}
+          onImportProfile={vi.fn()}
+        />,
+      );
       fireEvent.click(screen.getByTestId('review-tab-goals'));
       expect(screen.getByTestId('review-goal-submit')).toBeDisabled();
       fireEvent.change(screen.getByTestId('review-goal-date'), {
@@ -192,7 +294,14 @@ describe('Review', () => {
 
     it('calls onAddGoal with the picked peak, level, and date on submit', () => {
       const onAddGoal = vi.fn();
-      render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={onAddGoal} />);
+      render(
+        <Review
+          profile={makeProfile()}
+          onBack={vi.fn()}
+          onAddGoal={onAddGoal}
+          onImportProfile={vi.fn()}
+        />,
+      );
       fireEvent.click(screen.getByTestId('review-tab-goals'));
       fireEvent.change(screen.getByTestId('review-goal-peak'), { target: { value: '3' } });
       fireEvent.change(screen.getByTestId('review-goal-difficulty'), { target: { value: '7' } });
@@ -204,7 +313,14 @@ describe('Review', () => {
     });
 
     it('clears the target date after adding a goal', () => {
-      render(<Review profile={makeProfile()} onBack={vi.fn()} onAddGoal={vi.fn()} />);
+      render(
+        <Review
+          profile={makeProfile()}
+          onBack={vi.fn()}
+          onAddGoal={vi.fn()}
+          onImportProfile={vi.fn()}
+        />,
+      );
       fireEvent.click(screen.getByTestId('review-tab-goals'));
       fireEvent.change(screen.getByTestId('review-goal-date'), {
         target: { value: '2026-12-01' },
@@ -234,7 +350,9 @@ describe('Review', () => {
           },
         ],
       });
-      render(<Review profile={profile} onBack={vi.fn()} onAddGoal={vi.fn()} />);
+      render(
+        <Review profile={profile} onBack={vi.fn()} onAddGoal={vi.fn()} onImportProfile={vi.fn()} />,
+      );
       fireEvent.click(screen.getByTestId('review-tab-goals'));
       const rows = screen.getAllByTestId('review-goal-row');
       expect(rows).toHaveLength(2);
@@ -242,6 +360,87 @@ describe('Review', () => {
       expect(rows[0].textContent).toContain('Achieved');
       expect(rows[1].textContent).toContain('Basecamp Bluff');
       expect(rows[1].textContent).toContain('Pending');
+    });
+  });
+
+  describe('export/import', () => {
+    beforeEach(() => {
+      URL.createObjectURL = vi.fn(() => 'blob:mock');
+      URL.revokeObjectURL = vi.fn();
+    });
+
+    it('triggers a blob URL download when Export is clicked', () => {
+      render(
+        <Review
+          profile={makeProfile()}
+          onBack={vi.fn()}
+          onAddGoal={vi.fn()}
+          onImportProfile={vi.fn()}
+        />,
+      );
+      fireEvent.click(screen.getByTestId('review-tab-export'));
+      fireEvent.click(screen.getByTestId('review-export-download'));
+      expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock');
+    });
+
+    it('calls onImportProfile with the parsed profile from a valid file', async () => {
+      const onImportProfile = vi.fn();
+      const imported = makeProfile({ id: 'imported-id', name: 'Sam' });
+      render(
+        <Review
+          profile={makeProfile()}
+          onBack={vi.fn()}
+          onAddGoal={vi.fn()}
+          onImportProfile={onImportProfile}
+        />,
+      );
+      fireEvent.click(screen.getByTestId('review-tab-export'));
+      const file = new File([JSON.stringify(imported)], 'profile.json', {
+        type: 'application/json',
+      });
+      fireEvent.change(screen.getByTestId('review-import-file'), { target: { files: [file] } });
+      await vi.waitFor(() => expect(onImportProfile).toHaveBeenCalledWith(imported));
+    });
+
+    it('shows an error and does not call onImportProfile for invalid JSON', async () => {
+      const onImportProfile = vi.fn();
+      render(
+        <Review
+          profile={makeProfile()}
+          onBack={vi.fn()}
+          onAddGoal={vi.fn()}
+          onImportProfile={onImportProfile}
+        />,
+      );
+      fireEvent.click(screen.getByTestId('review-tab-export'));
+      const file = new File(['not json{'], 'profile.json', { type: 'application/json' });
+      fireEvent.change(screen.getByTestId('review-import-file'), { target: { files: [file] } });
+      await vi.waitFor(() =>
+        expect(screen.getByTestId('review-import-error')).toHaveTextContent(
+          "doesn't look like a climber profile",
+        ),
+      );
+      expect(onImportProfile).not.toHaveBeenCalled();
+    });
+
+    it('shows an error for well-formed JSON that is not a valid profile shape', async () => {
+      const onImportProfile = vi.fn();
+      render(
+        <Review
+          profile={makeProfile()}
+          onBack={vi.fn()}
+          onAddGoal={vi.fn()}
+          onImportProfile={onImportProfile}
+        />,
+      );
+      fireEvent.click(screen.getByTestId('review-tab-export'));
+      const file = new File([JSON.stringify({ hello: 'world' })], 'profile.json', {
+        type: 'application/json',
+      });
+      fireEvent.change(screen.getByTestId('review-import-file'), { target: { files: [file] } });
+      await vi.waitFor(() => expect(screen.getByTestId('review-import-error')).toBeInTheDocument());
+      expect(onImportProfile).not.toHaveBeenCalled();
     });
   });
 

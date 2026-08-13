@@ -14,6 +14,7 @@ import {
   checkGoalsAchieved,
   createProfile,
   getProfile,
+  importProfile,
   recordBail,
   recordFall,
   recordQuestionStat,
@@ -106,6 +107,18 @@ export default function App() {
           onAddGoal={(peakId, difficulty, targetDate) =>
             setSave((current) => addGoal(current, profile.id, peakId, difficulty, targetDate))
           }
+          onImportProfile={(imported) => {
+            setSave((current) => {
+              const collision = current.profiles.some((p) => p.id === imported.id);
+              if (
+                collision &&
+                !window.confirm(`A profile named "${imported.name}" already exists. Overwrite it?`)
+              ) {
+                return current;
+              }
+              return importProfile(current, imported);
+            });
+          }}
         />
       );
     }

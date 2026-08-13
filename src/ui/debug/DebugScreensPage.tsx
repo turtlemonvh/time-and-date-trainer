@@ -139,6 +139,7 @@ export default function DebugScreensPage() {
         onAddGoal={(peakId, difficulty, targetDate) =>
           setReviewAction(`Added goal: peak ${peakId} level ${difficulty} by ${targetDate}`)
         }
+        onImportProfile={(imported) => setReviewAction(`Imported profile: ${imported.name}`)}
       />
 
       <h2>Climb</h2>

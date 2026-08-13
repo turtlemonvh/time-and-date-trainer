@@ -216,6 +216,41 @@ export function checkGoalsAchieved(
   }));
 }
 
+/** Shallow shape check for a JSON blob a user picked via the Review
+ * screen's profile import — same lightweight-validation spirit as
+ * `save.ts`'s `migrate()`: checks top-level field types, not every nested
+ * `PeakProgress`/`Goal`/`ClimbLogEntry` entry. */
+export function isValidProfile(value: unknown): value is Profile {
+  if (!value || typeof value !== 'object') return false;
+  const p = value as Record<string, unknown>;
+  return (
+    typeof p.id === 'string' &&
+    typeof p.name === 'string' &&
+    typeof p.characterId === 'string' &&
+    typeof p.createdAt === 'number' &&
+    typeof p.progress === 'object' &&
+    p.progress !== null &&
+    typeof p.stats === 'object' &&
+    p.stats !== null &&
+    Array.isArray(p.goals) &&
+    Array.isArray(p.climbLog)
+  );
+}
+
+/** Replaces the profile with a matching id, or appends `profile` as new.
+ * The caller is responsible for confirming an overwrite with the user
+ * before calling this on a colliding id — this reducer just does the
+ * replace-or-append, same as every other reducer here staying UI-agnostic. */
+export function importProfile(save: SaveFile, profile: Profile): SaveFile {
+  const exists = save.profiles.some((p) => p.id === profile.id);
+  return {
+    ...save,
+    profiles: exists
+      ? save.profiles.map((p) => (p.id === profile.id ? profile : p))
+      : [...save.profiles, profile],
+  };
+}
+
 export function recordQuestionStat(
   save: SaveFile,
   profileId: string,
