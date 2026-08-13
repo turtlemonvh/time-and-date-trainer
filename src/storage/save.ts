@@ -52,13 +52,20 @@ function migrateV1ToV2(v1: V1SaveFile): SaveFile {
     v: 2,
     activeProfileId: v1.activeProfileId,
     profiles: v1.profiles.map((profile) => ({
-      ...profile,
+      id: profile.id,
+      name: profile.name,
+      characterId: profile.characterId,
+      createdAt: profile.createdAt,
+      // `settings.difficulty` (a single global level) doesn't survive the
+      // move to per-peak difficulty — it's only read here, as the seed for
+      // migratePeakProgress's best-effort guess, then dropped.
       progress: Object.fromEntries(
         Object.entries(profile.progress).map(([peakId, p]) => [
           peakId,
           migratePeakProgress(p, profile.settings.difficulty),
         ]),
       ),
+      stats: profile.stats,
       goals: [],
       climbLog: [],
     })),

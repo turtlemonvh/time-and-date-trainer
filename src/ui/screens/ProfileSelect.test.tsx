@@ -9,7 +9,6 @@ function makeProfile(id: string, name: string): Profile {
     name,
     characterId: 'sunny',
     createdAt: 1700000000000,
-    settings: { difficulty: 3 },
     progress: {},
     stats: {},
     goals: [],

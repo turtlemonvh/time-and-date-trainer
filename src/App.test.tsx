@@ -40,6 +40,11 @@ function createProfileAndReachMap(name: string) {
   fireEvent.click(screen.getAllByTestId(/^character-option-/)[0]);
 }
 
+/** Confirms the (default-selected) level and starts a climb on `peakId`. */
+function startClimb(peakId: number) {
+  fireEvent.click(screen.getByTestId(`peak-climb-${peakId}`));
+}
+
 beforeEach(() => {
   localStorage.clear();
   vi.useFakeTimers();
@@ -66,7 +71,7 @@ describe('App', () => {
     render(<App />);
     createProfileAndReachMap('Riley');
 
-    fireEvent.click(screen.getByTestId('peak-option-1'));
+    startClimb(1);
     expect(screen.getByTestId('climb-prompt')).toBeInTheDocument();
 
     climbToSummit();
@@ -80,9 +85,9 @@ describe('App', () => {
   it('records a fall and returns to the map without marking the peak summited', () => {
     render(<App />);
     createProfileAndReachMap('Riley');
-    fireEvent.click(screen.getByTestId('peak-option-1'));
+    startClimb(1);
 
-    // Miss enough times to fall (difficulty 3, the ProfileSelect/CharacterPick default -> fallRiskCapacity 5).
+    // Miss enough times to fall (difficulty 1, a peak's default level -> fallRiskCapacity 5).
     for (let i = 0; i < 6; i++) {
       fireEvent.click(screen.getByTestId('choice-option-1'));
       act(() => {
@@ -99,7 +104,7 @@ describe('App', () => {
   it('bailing out of a climb returns to the map without recording an attempt', () => {
     render(<App />);
     createProfileAndReachMap('Riley');
-    fireEvent.click(screen.getByTestId('peak-option-1'));
+    startClimb(1);
     expect(screen.getByTestId('climb-prompt')).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('climb-bail'));
@@ -125,7 +130,7 @@ describe('App', () => {
   it('persists a summit across a fresh mount (simulating a reload)', () => {
     const { unmount } = render(<App />);
     createProfileAndReachMap('Riley');
-    fireEvent.click(screen.getByTestId('peak-option-1'));
+    startClimb(1);
     climbToSummit();
     fireEvent.click(screen.getByTestId('summit-continue'));
     unmount();

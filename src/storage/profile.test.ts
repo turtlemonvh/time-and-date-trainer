@@ -7,7 +7,7 @@ import {
   recordFall,
   recordQuestionStat,
   recordSummit,
-  setDifficulty,
+  setPeakDifficulty,
 } from './profile';
 import type { SaveFile } from './types';
 
@@ -20,7 +20,6 @@ describe('createProfile', () => {
     const profile = save.profiles[0];
     expect(profile.name).toBe('Riley');
     expect(profile.characterId).toBe('preset-1');
-    expect(profile.settings.difficulty).toBe(3);
     expect(profile.progress).toEqual({});
     expect(profile.stats).toEqual({});
     expect(profile.goals).toEqual([]);
@@ -51,14 +50,43 @@ describe('getProfile', () => {
   });
 });
 
-describe('setDifficulty', () => {
-  it("updates only the target profile's difficulty", () => {
+describe('setPeakDifficulty', () => {
+  it("updates only the target peak's difficulty, creating a progress entry if none exists", () => {
+    let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+    const id = save.profiles[0].id;
+    save = setPeakDifficulty(save, id, 1, 8);
+    expect(getProfile(save, id)?.progress[1]).toEqual({
+      difficulty: 8,
+      highestDifficultyCleared: null,
+      bestTimeMs: null,
+      attempts: 0,
+      bails: 0,
+    });
+  });
+
+  it('leaves other peaks and other profiles untouched', () => {
     let save = createProfile(EMPTY_SAVE, 'A', 'preset-1');
     save = createProfile(save, 'B', 'preset-2');
     const [a, b] = save.profiles;
-    save = setDifficulty(save, a.id, 8);
-    expect(getProfile(save, a.id)?.settings.difficulty).toBe(8);
-    expect(getProfile(save, b.id)?.settings.difficulty).toBe(3);
+    save = setPeakDifficulty(save, a.id, 1, 8);
+    save = setPeakDifficulty(save, a.id, 2, 5);
+    expect(getProfile(save, a.id)?.progress[1]?.difficulty).toBe(8);
+    expect(getProfile(save, a.id)?.progress[2]?.difficulty).toBe(5);
+    expect(getProfile(save, b.id)?.progress[1]).toBeUndefined();
+  });
+
+  it('preserves the rest of an existing progress entry', () => {
+    let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+    const id = save.profiles[0].id;
+    save = recordSummit(save, id, 1, 5, 90000);
+    save = setPeakDifficulty(save, id, 1, 7);
+    expect(getProfile(save, id)?.progress[1]).toEqual({
+      difficulty: 7,
+      highestDifficultyCleared: 5,
+      bestTimeMs: 90000,
+      attempts: 1,
+      bails: 0,
+    });
   });
 });
 

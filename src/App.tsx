@@ -15,7 +15,7 @@ import {
   recordFall,
   recordQuestionStat,
   recordSummit,
-  setDifficulty,
+  setPeakDifficulty,
 } from './storage/profile';
 import { loadSave, saveSave } from './storage/save';
 import type { Profile, SaveFile } from './storage/types';
@@ -84,10 +84,10 @@ export default function App() {
       return (
         <Map
           profile={profile}
-          onSetDifficulty={(difficulty) =>
-            setSave((current) => setDifficulty(current, profile.id, difficulty))
-          }
-          onSelectPeak={(peakId) => setScreen({ name: 'climb', peakId, seed: Date.now() })}
+          onClimb={(peakId, difficulty) => {
+            setSave((current) => setPeakDifficulty(current, profile.id, peakId, difficulty));
+            setScreen({ name: 'climb', peakId, seed: Date.now() });
+          }}
         />
       );
     }
@@ -95,10 +95,11 @@ export default function App() {
     case 'climb': {
       const profile = requireActiveProfile(save);
       const peakId = screen.peakId;
+      const difficulty = profile.progress[peakId]?.difficulty ?? 1;
       return (
         <Climb
           peak={getPeak(peakId)}
-          difficulty={profile.settings.difficulty}
+          difficulty={difficulty}
           characterPreset={getCharacterPreset(profile.characterId)}
           seed={screen.seed}
           onQuestionAnswered={(typeId, correct, elapsedMs) =>
@@ -107,21 +108,15 @@ export default function App() {
             )
           }
           onSummit={(_finalState, elapsedMs) => {
-            setSave((current) =>
-              recordSummit(current, profile.id, peakId, profile.settings.difficulty, elapsedMs),
-            );
+            setSave((current) => recordSummit(current, profile.id, peakId, difficulty, elapsedMs));
             setScreen({ name: 'summit', peakId, elapsedMs });
           }}
           onBail={(elapsedMs) => {
-            setSave((current) =>
-              recordBail(current, profile.id, peakId, profile.settings.difficulty, elapsedMs),
-            );
+            setSave((current) => recordBail(current, profile.id, peakId, difficulty, elapsedMs));
             setScreen({ name: 'map' });
           }}
           onFall={(_finalState, elapsedMs) => {
-            setSave((current) =>
-              recordFall(current, profile.id, peakId, profile.settings.difficulty, elapsedMs),
-            );
+            setSave((current) => recordFall(current, profile.id, peakId, difficulty, elapsedMs));
             setScreen({ name: 'fell', peakId });
           }}
         />

@@ -42,7 +42,6 @@ describe('loadSave', () => {
           name: 'Riley',
           characterId: 'preset-1',
           createdAt: 1700000000000,
-          settings: { difficulty: 4 },
           progress: {
             1: {
               difficulty: 5,
@@ -127,7 +126,9 @@ describe('loadSave', () => {
       });
       // Untouched fields carry over as-is.
       expect(profile.stats).toEqual({ readAnalog: { asked: 5, correct: 4, totalMs: 20000 } });
-      expect(profile.settings).toEqual({ difficulty: 6 });
+      // The old global settings.difficulty doesn't survive the move to
+      // per-peak difficulty — it's read once as a seed, then dropped.
+      expect(profile).not.toHaveProperty('settings');
     });
 
     it('gives every migrated profile empty goals and climbLog — no retroactive history', () => {

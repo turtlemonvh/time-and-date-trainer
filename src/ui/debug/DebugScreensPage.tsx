@@ -20,7 +20,6 @@ const SAMPLE_PROFILES: Profile[] = [
     name: 'Riley',
     characterId: 'sunny',
     createdAt: Date.now(),
-    settings: { difficulty: 4 },
     progress: {
       1: { difficulty: 4, highestDifficultyCleared: 4, bestTimeMs: 92000, attempts: 2, bails: 0 },
       2: { difficulty: 4, highestDifficultyCleared: null, bestTimeMs: null, attempts: 1, bails: 0 },
@@ -34,7 +33,6 @@ const SAMPLE_PROFILES: Profile[] = [
     name: 'Sam',
     characterId: 'boulder',
     createdAt: Date.now(),
-    settings: { difficulty: 6 },
     progress: {},
     stats: {},
     goals: [],
@@ -53,7 +51,7 @@ export default function DebugScreensPage() {
   const [showEmptyProfiles, setShowEmptyProfiles] = useState(false);
   const [profileAction, setProfileAction] = useState<string | null>(null);
   const [pickedCharacterId, setPickedCharacterId] = useState<string | null>(null);
-  const [mapProfile, setMapProfile] = useState(SAMPLE_PROFILES[0]);
+  const mapProfile = SAMPLE_PROFILES[0];
   const [mapAction, setMapAction] = useState<string | null>(null);
   const [climbKey, setClimbKey] = useState(0);
   const [climbStatus, setClimbStatus] = useState<string | null>(null);
@@ -100,14 +98,9 @@ export default function DebugScreensPage() {
       <p data-testid="screens-map-action">{mapAction ?? 'No action yet'}</p>
       <Map
         profile={mapProfile}
-        onSetDifficulty={(difficulty) => {
-          setMapProfile((profile) => ({
-            ...profile,
-            settings: { ...profile.settings, difficulty },
-          }));
-          setMapAction(`Set difficulty: ${difficulty}`);
-        }}
-        onSelectPeak={(peakId) => setMapAction(`Selected peak: ${peakId}`)}
+        onClimb={(peakId, difficulty) =>
+          setMapAction(`Climb: peak ${peakId} at level ${difficulty}`)
+        }
       />
 
       <h2>Climb</h2>
