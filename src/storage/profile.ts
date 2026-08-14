@@ -54,6 +54,33 @@ export function isPeakSummited(progress: PeakProgress): boolean {
   return progress.highestDifficultyCleared !== null;
 }
 
+export interface HighestAttemptBeyondCleared {
+  difficulty: number;
+  /** How many climb-log entries exist at exactly `difficulty` — not summed
+   * across every level above `highestDifficultyCleared`, since mixing
+   * counts from different levels into one number would be misleading. */
+  count: number;
+}
+
+/** The hardest level this peak has been attempted at beyond whatever's
+ * already been cleared (or beyond never-cleared, i.e. 0, if it's never been
+ * summited at all) — `null` if there's no such attempt. Every matching
+ * climb-log entry is guaranteed to be a `fell`/`bailed` result, never
+ * `summited`: `recordSummit` always raises `highestDifficultyCleared` to at
+ * least the summited difficulty, so an entry above it can't itself be a
+ * summit. Powers the Map screen's "tried a harder level" pill. */
+export function highestAttemptBeyondCleared(
+  profile: Profile,
+  peakId: number,
+): HighestAttemptBeyondCleared | null {
+  const baseline = profile.progress[peakId]?.highestDifficultyCleared ?? 0;
+  const beyond = profile.climbLog.filter((e) => e.peakId === peakId && e.difficulty > baseline);
+  if (beyond.length === 0) return null;
+  const difficulty = Math.max(...beyond.map((e) => e.difficulty));
+  const count = beyond.filter((e) => e.difficulty === difficulty).length;
+  return { difficulty, count };
+}
+
 function makeClimbLogEntry(
   peakId: number,
   difficulty: number,
