@@ -68,13 +68,19 @@ export interface HighestAttemptBeyondCleared {
  * climb-log entry is guaranteed to be a `fell`/`bailed` result, never
  * `summited`: `recordSummit` always raises `highestDifficultyCleared` to at
  * least the summited difficulty, so an entry above it can't itself be a
- * summit. Powers the Map screen's "tried a harder level" pill. */
+ * summit. Powers the Map screen's "tried a harder level" pill.
+ *
+ * Takes `climbLog` and `highestDifficultyCleared` directly rather than a
+ * whole `Profile` — a caller like `Map.tsx`'s `PeakCard` only ever has one
+ * peak's `PeakProgress` in scope, not the full profile, and threading just
+ * the two fields this actually needs avoids a fake-`Profile` wrapper. */
 export function highestAttemptBeyondCleared(
-  profile: Profile,
+  climbLog: ClimbLogEntry[],
   peakId: number,
+  highestDifficultyCleared: number | null,
 ): HighestAttemptBeyondCleared | null {
-  const baseline = profile.progress[peakId]?.highestDifficultyCleared ?? 0;
-  const beyond = profile.climbLog.filter((e) => e.peakId === peakId && e.difficulty > baseline);
+  const baseline = highestDifficultyCleared ?? 0;
+  const beyond = climbLog.filter((e) => e.peakId === peakId && e.difficulty > baseline);
   if (beyond.length === 0) return null;
   const difficulty = Math.max(...beyond.map((e) => e.difficulty));
   const count = beyond.filter((e) => e.difficulty === difficulty).length;

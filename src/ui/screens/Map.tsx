@@ -1,10 +1,13 @@
-import { useState } from 'react';
-import { describeDifficultyDelta } from '../../engine/difficultyDescribe';
+import { useMemo, useState } from 'react';
+import { formatDateLong } from '../../engine/dateMath';
+import { describeDifficultyComparisonTable } from '../../engine/difficultyDescribe';
 import { mulberry32 } from '../../engine/rng';
-import { isPeakSummited } from '../../storage/profile';
+import { highestAttemptBeyondCleared, isPeakSummited } from '../../storage/profile';
 import type { PeakProgress, Profile } from '../../storage/types';
 import { buildCharacterLayers } from '../character/buildCharacterLayers';
 import { getCharacterPreset } from '../character/presets';
+import { climbLogResultLabel, sortedClimbLog } from '../climbLogCsv';
+import { formatDuration } from '../formatDuration';
 import ProfileChip from '../hud/ProfileChip';
 import PixelLayers from '../pixel/PixelLayers';
 import { generateMountainScene } from '../pixel/mountainScene';
@@ -14,8 +17,9 @@ import { bodyIdle } from '../pixel/sprites/body';
 const DIFFICULTIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const MOUNTAIN_WIDTH = 64;
 const MOUNTAIN_HEIGHT = 24;
-const MOUNTAIN_SCALE = 3;
+const MOUNTAIN_SCALE = 2;
 const PROFILE_PREVIEW_SCALE = 3;
+const HISTORY_PREVIEW_LIMIT = 5;
 
 export interface MapProps {
   profile: Profile;
@@ -25,72 +29,111 @@ export interface MapProps {
   onClimb: (peakId: number, difficulty: number) => void;
   /** Opens the parent/teacher Review screen. */
   onReview: () => void;
-}
-
-function statusText(progress: PeakProgress | undefined): string {
-  if (!progress) return 'Not climbed yet';
-  if (isPeakSummited(progress)) {
-    return `Summited ✓ (up to level ${progress.highestDifficultyCleared})`;
-  }
-  return `Attempts: ${progress.attempts}`;
+  /** Opens the Review screen's Climber Log tab, pre-filtered to this
+   * peak+level — the card's own history preview only shows the last
+   * `HISTORY_PREVIEW_LIMIT` entries; this is "see the rest." */
+  onViewFullHistory: (peakId: number, difficulty: number) => void;
 }
 
 interface PeakCardProps {
   theme: MountainTheme;
   progress: PeakProgress | undefined;
+  climbLog: Profile['climbLog'];
   onClimb: (peakId: number, difficulty: number) => void;
+  onViewFullHistory: (peakId: number, difficulty: number) => void;
 }
 
 /**
- * One peak's picker: shows progress so far, lets the player pick any level
- * 1-10 (not just "the next one up"), compares that choice against the
- * highest level already cleared here, and starts the climb once they
- * confirm with "Climb!". The picked level is local, provisional state until
- * that click — nothing is persisted just from browsing the dropdown.
+ * One peak's picker: shows progress-so-far pills, lets the player pick any
+ * level 1-10 (not just "the next one up"), and a "Level N details"
+ * disclosure with a full current-vs-picked comparison table plus recent
+ * history at the picked level. The picked level is local, provisional
+ * state until "Climb!" — nothing is persisted just from browsing the
+ * dropdown or the disclosure.
  */
-function PeakCard({ theme, progress, onClimb }: PeakCardProps) {
+function PeakCard({ theme, progress, climbLog, onClimb, onViewFullHistory }: PeakCardProps) {
+  const peak = theme.peak;
   const highestCleared = progress?.highestDifficultyCleared ?? null;
   const defaultLevel =
     highestCleared !== null ? Math.min(highestCleared + 1, 10) : (progress?.difficulty ?? 1);
   const [selectedLevel, setSelectedLevel] = useState(defaultLevel);
-  const delta = describeDifficultyDelta(highestCleared ?? 1, selectedLevel);
+
+  const compareRows = useMemo(
+    () => describeDifficultyComparisonTable(highestCleared ?? 1, selectedLevel),
+    [highestCleared, selectedLevel],
+  );
+
+  const levelHistory = useMemo(
+    () =>
+      sortedClimbLog(climbLog).filter(
+        (entry) => entry.peakId === peak.id && entry.difficulty === selectedLevel,
+      ),
+    [climbLog, peak.id, selectedLevel],
+  );
+
+  const attemptBeyond = highestAttemptBeyondCleared(climbLog, peak.id, highestCleared);
+  const summited = progress ? isPeakSummited(progress) : false;
 
   return (
     <article
-      data-testid={`peak-option-${theme.peak.id}`}
+      data-testid={`peak-option-${peak.id}`}
       style={{
         display: 'flex',
-        flexDirection: 'column',
+        flexWrap: 'wrap',
         alignItems: 'center',
-        gap: '0.25rem',
-        minWidth: 44,
-        padding: '0.5rem',
+        gap: '0.75rem',
+        border: '1px solid var(--border)',
+        borderRadius: 8,
+        padding: '0.75rem',
       }}
     >
       <PixelLayers
         layers={generateMountainScene(
-          mulberry32(theme.peak.id),
+          mulberry32(peak.id),
           MOUNTAIN_WIDTH,
           MOUNTAIN_HEIGHT,
-          pixelPeakHeight(theme.peak),
+          pixelPeakHeight(peak),
           theme.rock,
           theme.snow,
         )}
         scale={MOUNTAIN_SCALE}
       />
-      <strong>
-        {theme.peak.id}. {theme.peak.name}
-      </strong>
-      <span>{theme.peak.emphasis}</span>
-      <span data-testid={`peak-progress-${theme.peak.id}`}>{statusText(progress)}</span>
 
-      <p>
-        <label htmlFor={`peak-difficulty-${theme.peak.id}`}>Level</label>{' '}
+      <div style={{ flex: '1 1 200px', minWidth: 200 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', flexWrap: 'wrap' }}>
+          <strong>
+            {peak.id}. {peak.name}
+          </strong>
+          <span
+            data-testid={`peak-progress-${peak.id}`}
+            style={{ display: 'flex', gap: '0.35rem' }}
+          >
+            {!summited && !attemptBeyond && (
+              <span data-testid={`peak-status-none-${peak.id}`}>Not climbed yet</span>
+            )}
+            {summited && (
+              <span data-testid={`peak-status-summit-${peak.id}`}>
+                Summited · Lv {highestCleared}
+              </span>
+            )}
+            {attemptBeyond && (
+              <span data-testid={`peak-status-attempt-${peak.id}`}>
+                Tried Lv {attemptBeyond.difficulty} ({attemptBeyond.count}×)
+              </span>
+            )}
+          </span>
+        </div>
+        <span>{peak.emphasis}</span>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+        <label htmlFor={`peak-difficulty-${peak.id}`}>Level</label>
         <select
-          id={`peak-difficulty-${theme.peak.id}`}
-          data-testid={`peak-difficulty-${theme.peak.id}`}
+          id={`peak-difficulty-${peak.id}`}
+          data-testid={`peak-difficulty-${peak.id}`}
           value={selectedLevel}
           onChange={(event) => setSelectedLevel(Number(event.target.value))}
+          style={{ minHeight: 44 }}
         >
           {DIFFICULTIES.map((level) => (
             <option key={level} value={level}>
@@ -98,24 +141,82 @@ function PeakCard({ theme, progress, onClimb }: PeakCardProps) {
             </option>
           ))}
         </select>
-      </p>
+        <button
+          type="button"
+          data-testid={`peak-climb-${peak.id}`}
+          onClick={() => onClimb(peak.id, selectedLevel)}
+          style={{ minWidth: 44, minHeight: 44 }}
+        >
+          Climb!
+        </button>
+      </div>
 
-      {delta.length > 0 && (
-        <ul data-testid={`peak-difficulty-delta-${theme.peak.id}`}>
-          {delta.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
-      )}
+      <details style={{ flexBasis: '100%' }}>
+        <summary data-testid={`peak-details-toggle-${peak.id}`}>
+          Level {selectedLevel} details
+        </summary>
 
-      <button
-        type="button"
-        data-testid={`peak-climb-${theme.peak.id}`}
-        onClick={() => onClimb(theme.peak.id, selectedLevel)}
-        style={{ minWidth: 44, minHeight: 44 }}
-      >
-        Climb!
-      </button>
+        <table data-testid={`peak-compare-${peak.id}`}>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Now</th>
+              <th>Level {selectedLevel}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {compareRows.map((row) => (
+              <tr
+                key={row.item}
+                data-testid={`peak-compare-row-${peak.id}`}
+                data-changed={row.changed}
+                style={
+                  row.changed ? { background: 'var(--accent-bg)', fontWeight: 700 } : undefined
+                }
+              >
+                <td>{row.item}</td>
+                <td>{row.current}</td>
+                <td>{row.next}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <p style={{ margin: '0.5rem 0 0.25rem' }}>History at level {selectedLevel}</p>
+        {levelHistory.length === 0 ? (
+          <p data-testid={`peak-history-empty-${peak.id}`}>No climbs at this level yet.</p>
+        ) : (
+          <>
+            <table data-testid={`peak-history-${peak.id}`}>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Duration</th>
+                  <th>Result</th>
+                </tr>
+              </thead>
+              <tbody>
+                {levelHistory.slice(0, HISTORY_PREVIEW_LIMIT).map((entry) => (
+                  <tr key={entry.id} data-testid={`peak-history-row-${peak.id}`}>
+                    <td>{formatDateLong(new Date(entry.startedAt))}</td>
+                    <td>{formatDuration(entry.endedAt - entry.startedAt)}</td>
+                    <td>{climbLogResultLabel(entry.result)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {levelHistory.length > HISTORY_PREVIEW_LIMIT && (
+              <button
+                type="button"
+                data-testid={`peak-history-more-${peak.id}`}
+                onClick={() => onViewFullHistory(peak.id, selectedLevel)}
+              >
+                See all {levelHistory.length} →
+              </button>
+            )}
+          </>
+        )}
+      </details>
     </article>
   );
 }
@@ -128,7 +229,7 @@ function PeakCard({ theme, progress, onClimb }: PeakCardProps) {
  * thematic-emphasis matching is a separate, already-documented gap).
  * Gating peaks here would be unscoped invented complexity.
  */
-export default function Map({ profile, onClimb, onReview }: MapProps) {
+export default function Map({ profile, onClimb, onReview, onViewFullHistory }: MapProps) {
   const preset = getCharacterPreset(profile.characterId);
 
   return (
@@ -149,18 +250,16 @@ export default function Map({ profile, onClimb, onReview }: MapProps) {
 
       <div
         data-testid="peak-grid"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-          gap: '1rem',
-        }}
+        style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
       >
         {MOUNTAIN_THEMES.map((theme) => (
           <PeakCard
             key={theme.peak.id}
             theme={theme}
             progress={profile.progress[theme.peak.id]}
+            climbLog={profile.climbLog}
             onClimb={onClimb}
+            onViewFullHistory={onViewFullHistory}
           />
         ))}
       </div>

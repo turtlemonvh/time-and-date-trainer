@@ -58,7 +58,7 @@ const DATE_SPAN_SENTENCES: Readonly<Record<DateSpan, string>> = {
   acrossYears: 'Dates can span different years, including leap years',
 };
 
-/** Short-phrase form, for `describeDifficultyDelta`'s "X -> Y" bullets. */
+/** Short-phrase form, for `describeDifficultyComparisonTable`'s cells. */
 const DATE_SPAN_PHRASES: Readonly<Record<DateSpan, string>> = {
   withinMonth: 'within the same month',
   acrossMonths: 'across different months',
@@ -109,71 +109,6 @@ export function describeDifficultyLevel(level: number): string[] {
   ];
 }
 
-/**
- * Bullets for only the `DifficultyProfile` fields that actually differ
- * between level `a` and level `b` — an empty array when `a === b`. Compares
- * summarized values (the dominant precision/answer-mode, not the raw
- * weighted distributions) since a parent reading this cares about "what's
- * the typical question now", not a full probability breakdown; two levels
- * whose weights differ but whose dominant value doesn't are treated as
- * unchanged for this purpose.
- */
-export function describeDifficultyDelta(a: number, b: number): string[] {
-  const pa = difficultyProfile(a);
-  const pb = difficultyProfile(b);
-  const bullets: string[] = [];
-
-  const precisionA = dominantPrecision(pa);
-  const precisionB = dominantPrecision(pb);
-  if (precisionA !== precisionB) {
-    bullets.push(
-      `Clock precision: ${PRECISION_LABELS[precisionA]} → ${PRECISION_LABELS[precisionB]}`,
-    );
-  }
-
-  const secondsA = timerSeconds(pa);
-  const secondsB = timerSeconds(pb);
-  if (secondsA !== secondsB) {
-    bullets.push(`Timer: ~${secondsA}s → ~${secondsB}s per question`);
-  }
-
-  const modeA = dominantAnswerMode(pa);
-  const modeB = dominantAnswerMode(pb);
-  if (modeA !== modeB) {
-    bullets.push(`Mostly ${ANSWER_MODE_LABELS[modeA]} → mostly ${ANSWER_MODE_LABELS[modeB]}`);
-  }
-
-  if (pa.dateSpan !== pb.dateSpan) {
-    bullets.push(`Dates: ${DATE_SPAN_PHRASES[pa.dateSpan]} → ${DATE_SPAN_PHRASES[pb.dateSpan]}`);
-  }
-
-  if (pa.hour24 !== pb.hour24) {
-    bullets.push(pb.hour24 ? '24-hour time is introduced' : '24-hour time is no longer used');
-  }
-
-  if (pa.clockNumerals !== pb.clockNumerals) {
-    bullets.push(
-      pb.clockNumerals ? 'Clock numbers reappear' : 'Clock numbers disappear — position only',
-    );
-  }
-
-  if (pa.describePhrasing !== pb.describePhrasing) {
-    bullets.push(
-      `Time-in-words: ${PHRASING_PHRASES[pa.describePhrasing]} → ${PHRASING_PHRASES[pb.describePhrasing]}`,
-    );
-  }
-
-  if (pa.orderedChoices !== pb.orderedChoices) {
-    bullets.push(
-      pb.orderedChoices
-        ? 'Answer choices go back to being in order'
-        : 'Answer choices start getting shuffled',
-    );
-  }
-
-  return bullets;
-}
-
 export interface DifficultyComparisonRow {
   item: string;
   current: string;
@@ -186,12 +121,10 @@ export interface DifficultyComparisonRow {
 /**
  * Full item/current/next comparison table between level `a` (current) and
  * level `b` (next) — always all 8 `DifficultyProfile`-derived dimensions,
- * unlike `describeDifficultyDelta`, which only returns the ones that
- * differ. Lets a UI show the whole picture every time (with `changed` rows
- * highlighted) rather than just what moved. Same summarized-value
- * comparison as `describeDifficultyDelta` (dominant precision/answer-mode,
- * not raw weighted distributions), for the same reason — a parent
- * comparing two levels cares about the typical question, not a full
+ * with `changed` flagging which ones actually differ so a UI can highlight
+ * them rather than hiding the rest. Compares summarized values (the
+ * dominant precision/answer-mode, not raw weighted distributions) since a
+ * parent comparing two levels cares about the typical question, not a full
  * probability breakdown.
  */
 export function describeDifficultyComparisonTable(a: number, b: number): DifficultyComparisonRow[] {

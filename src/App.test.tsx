@@ -97,8 +97,9 @@ describe('App', () => {
 
     expect(screen.getByRole('heading', { name: 'You slipped!' })).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('fell-map'));
-    // The attempt is recorded even though the peak wasn't summited.
-    expect(screen.getByTestId('peak-progress-1')).toHaveTextContent('Attempts: 1');
+    // The fall is logged even though the peak wasn't summited — since it
+    // never was, "beyond cleared" means beyond 0, so any attempt qualifies.
+    expect(screen.getByTestId('peak-progress-1')).toHaveTextContent('Tried Lv 1');
   });
 
   it('bailing out of a climb returns to the map without recording an attempt', () => {
@@ -110,11 +111,11 @@ describe('App', () => {
     fireEvent.click(screen.getByTestId('climb-bail'));
 
     expect(screen.getByTestId('peak-option-1')).toBeInTheDocument();
-    // A bail is tracked separately from attempts (summit/fall outcomes only) —
-    // Map.tsx doesn't have its own "bailed" display yet (that's the climber
-    // log, a later item in this batch), so it reads as zero attempts, not
-    // "Not climbed yet": bailing did leave a progress entry behind.
-    expect(screen.getByTestId('peak-progress-1')).toHaveTextContent('Attempts: 0');
+    // A bail is tracked separately from attempts (summit/fall outcomes only)
+    // in PeakProgress, but it still appends a climb-log entry — and the
+    // "tried a level beyond what's cleared" pill reads from that log, not
+    // from `attempts`, so a bail shows up there too.
+    expect(screen.getByTestId('peak-progress-1')).toHaveTextContent('Tried Lv 1');
   });
 
   it('persists the created profile across a fresh mount (simulating a reload)', () => {

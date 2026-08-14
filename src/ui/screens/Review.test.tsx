@@ -257,6 +257,149 @@ describe('Review', () => {
         expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
         expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock');
       });
+
+      it('only downloads what the current filter shows', async () => {
+        const profile = makeProfile({
+          climbLog: [
+            makeLogEntry({ id: 'a', peakId: 1, difficulty: 3 }),
+            makeLogEntry({ id: 'b', peakId: 2, difficulty: 3 }),
+          ],
+        });
+        render(
+          <Review
+            profile={profile}
+            onBack={vi.fn()}
+            onAddGoal={vi.fn()}
+            onImportProfile={vi.fn()}
+          />,
+        );
+        fireEvent.click(screen.getByTestId('review-tab-log'));
+        fireEvent.change(screen.getByTestId('review-log-filter-peak'), {
+          target: { value: '1' },
+        });
+        fireEvent.click(screen.getByTestId('review-log-download'));
+        expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+        const blob = (URL.createObjectURL as ReturnType<typeof vi.fn>).mock.calls[0][0] as Blob;
+        const text = await blob.text();
+        expect(text).toContain('Basecamp Bluff');
+        expect(text).not.toContain('Sundial Spire');
+      });
+    });
+
+    describe('filtering', () => {
+      function filterableProfile() {
+        return makeProfile({
+          climbLog: [
+            makeLogEntry({ id: 'a', peakId: 1, difficulty: 3 }),
+            makeLogEntry({ id: 'b', peakId: 1, difficulty: 5 }),
+            makeLogEntry({ id: 'c', peakId: 2, difficulty: 3 }),
+          ],
+        });
+      }
+
+      it('defaults to showing every peak and level', () => {
+        render(
+          <Review
+            profile={filterableProfile()}
+            onBack={vi.fn()}
+            onAddGoal={vi.fn()}
+            onImportProfile={vi.fn()}
+          />,
+        );
+        fireEvent.click(screen.getByTestId('review-tab-log'));
+        expect(screen.getByTestId('review-log-filter-peak')).toHaveValue('all');
+        expect(screen.getByTestId('review-log-filter-difficulty')).toHaveValue('all');
+        expect(screen.getAllByTestId('review-log-row')).toHaveLength(3);
+      });
+
+      it('filters by peak', () => {
+        render(
+          <Review
+            profile={filterableProfile()}
+            onBack={vi.fn()}
+            onAddGoal={vi.fn()}
+            onImportProfile={vi.fn()}
+          />,
+        );
+        fireEvent.click(screen.getByTestId('review-tab-log'));
+        fireEvent.change(screen.getByTestId('review-log-filter-peak'), {
+          target: { value: '1' },
+        });
+        const rows = screen.getAllByTestId('review-log-row');
+        expect(rows).toHaveLength(2);
+        for (const row of rows) expect(row.textContent).toContain('Basecamp Bluff');
+      });
+
+      it('filters by level', () => {
+        render(
+          <Review
+            profile={filterableProfile()}
+            onBack={vi.fn()}
+            onAddGoal={vi.fn()}
+            onImportProfile={vi.fn()}
+          />,
+        );
+        fireEvent.click(screen.getByTestId('review-tab-log'));
+        fireEvent.change(screen.getByTestId('review-log-filter-difficulty'), {
+          target: { value: '3' },
+        });
+        const rows = screen.getAllByTestId('review-log-row');
+        expect(rows).toHaveLength(2);
+        for (const row of rows) expect(row.textContent).toContain('3');
+      });
+
+      it('combines peak and level filters', () => {
+        render(
+          <Review
+            profile={filterableProfile()}
+            onBack={vi.fn()}
+            onAddGoal={vi.fn()}
+            onImportProfile={vi.fn()}
+          />,
+        );
+        fireEvent.click(screen.getByTestId('review-tab-log'));
+        fireEvent.change(screen.getByTestId('review-log-filter-peak'), {
+          target: { value: '1' },
+        });
+        fireEvent.change(screen.getByTestId('review-log-filter-difficulty'), {
+          target: { value: '5' },
+        });
+        expect(screen.getAllByTestId('review-log-row')).toHaveLength(1);
+      });
+
+      it('shows a distinct empty message when a filter matches nothing, vs. no climbs at all', () => {
+        render(
+          <Review
+            profile={filterableProfile()}
+            onBack={vi.fn()}
+            onAddGoal={vi.fn()}
+            onImportProfile={vi.fn()}
+          />,
+        );
+        fireEvent.click(screen.getByTestId('review-tab-log'));
+        fireEvent.change(screen.getByTestId('review-log-filter-difficulty'), {
+          target: { value: '9' },
+        });
+        expect(screen.getByTestId('review-log-empty')).toHaveTextContent(
+          'No climbs match this filter',
+        );
+      });
+
+      it('seeds the filter and jumps straight to the Climber log tab when initialLogFilter is set', () => {
+        render(
+          <Review
+            profile={filterableProfile()}
+            onBack={vi.fn()}
+            onAddGoal={vi.fn()}
+            onImportProfile={vi.fn()}
+            initialLogFilter={{ peakId: 1, difficulty: 5 }}
+          />,
+        );
+        expect(screen.getByTestId('review-log')).toBeInTheDocument();
+        expect(screen.getByTestId('review-log-filter-peak')).toHaveValue('1');
+        expect(screen.getByTestId('review-log-filter-difficulty')).toHaveValue('5');
+        expect(screen.getAllByTestId('review-log-row')).toHaveLength(1);
+      });
     });
   });
 

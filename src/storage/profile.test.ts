@@ -121,11 +121,23 @@ describe('isPeakSummited', () => {
   });
 });
 
+/** Reads `profile.climbLog` and the requested peak's `highestDifficultyCleared`
+ * from `save`, matching the two fields `highestAttemptBeyondCleared` needs —
+ * a thin wrapper so each test below doesn't repeat that lookup. */
+function attemptBeyond(save: SaveFile, profileId: string, peakId: number) {
+  const profile = getProfile(save, profileId)!;
+  return highestAttemptBeyondCleared(
+    profile.climbLog,
+    peakId,
+    profile.progress[peakId]?.highestDifficultyCleared ?? null,
+  );
+}
+
 describe('highestAttemptBeyondCleared', () => {
   it('returns null when the peak has never been attempted', () => {
     const save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
     const id = save.profiles[0].id;
-    expect(highestAttemptBeyondCleared(getProfile(save, id)!, 1)).toBeNull();
+    expect(attemptBeyond(save, id, 1)).toBeNull();
   });
 
   it('returns null when every attempt is at or below the highest level cleared', () => {
@@ -133,14 +145,14 @@ describe('highestAttemptBeyondCleared', () => {
     const id = save.profiles[0].id;
     save = recordSummit(save, id, 1, 5, 90000);
     save = recordFall(save, id, 1, 5, 30000);
-    expect(highestAttemptBeyondCleared(getProfile(save, id)!, 1)).toBeNull();
+    expect(attemptBeyond(save, id, 1)).toBeNull();
   });
 
   it('reports a fall above never-having-cleared (baseline 0)', () => {
     let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
     const id = save.profiles[0].id;
     save = recordFall(save, id, 1, 3, 20000);
-    expect(highestAttemptBeyondCleared(getProfile(save, id)!, 1)).toEqual({
+    expect(attemptBeyond(save, id, 1)).toEqual({
       difficulty: 3,
       count: 1,
     });
@@ -151,7 +163,7 @@ describe('highestAttemptBeyondCleared', () => {
     const id = save.profiles[0].id;
     save = recordSummit(save, id, 1, 5, 90000);
     save = recordFall(save, id, 1, 7, 15000);
-    expect(highestAttemptBeyondCleared(getProfile(save, id)!, 1)).toEqual({
+    expect(attemptBeyond(save, id, 1)).toEqual({
       difficulty: 7,
       count: 1,
     });
@@ -163,7 +175,7 @@ describe('highestAttemptBeyondCleared', () => {
     save = recordFall(save, id, 1, 6, 10000);
     save = recordFall(save, id, 1, 8, 10000);
     save = recordBail(save, id, 1, 8, 5000);
-    expect(highestAttemptBeyondCleared(getProfile(save, id)!, 1)).toEqual({
+    expect(attemptBeyond(save, id, 1)).toEqual({
       difficulty: 8,
       count: 2,
     });
@@ -173,7 +185,7 @@ describe('highestAttemptBeyondCleared', () => {
     let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
     const id = save.profiles[0].id;
     save = recordFall(save, id, 2, 6, 10000);
-    expect(highestAttemptBeyondCleared(getProfile(save, id)!, 1)).toBeNull();
+    expect(attemptBeyond(save, id, 1)).toBeNull();
   });
 });
 

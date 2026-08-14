@@ -129,6 +129,9 @@ export default function DebugScreensPage() {
           setMapAction(`Climb: peak ${peakId} at level ${difficulty}`)
         }
         onReview={() => setMapAction('Opened Review')}
+        onViewFullHistory={(peakId, difficulty) =>
+          setMapAction(`Viewed full history: peak ${peakId} level ${difficulty}`)
+        }
       />
 
       <h2>Review</h2>

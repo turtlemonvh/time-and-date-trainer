@@ -47,6 +47,10 @@ export interface ReviewProps {
    * confirmation) is the caller's job, since Review only ever sees the one
    * active profile, not the full profile list. */
   onImportProfile: (profile: Profile) => void;
+  /** Pre-filters the Climber Log tab to this peak+level and switches
+   * straight to it — set when arriving via a peak card's "see full
+   * history" link rather than by clicking the Review link directly. */
+  initialLogFilter?: { peakId: number; difficulty: number };
 }
 
 type Section = 'curriculum' | 'log' | 'goals' | 'export';
@@ -56,14 +60,26 @@ type Section = 'curriculum' | 'log' | 'goals' | 'export';
  * browser (6a), climber log (6b), goals (6c), and profile export/import
  * (6d) — the full set of sections this screen's shell was built for.
  */
-export default function Review({ profile, onBack, onAddGoal, onImportProfile }: ReviewProps) {
-  const [section, setSection] = useState<Section>('curriculum');
+export default function Review({
+  profile,
+  onBack,
+  onAddGoal,
+  onImportProfile,
+  initialLogFilter,
+}: ReviewProps) {
+  const [section, setSection] = useState<Section>(initialLogFilter ? 'log' : 'curriculum');
   const [peakId, setPeakId] = useState(PEAKS[0].id);
   const [difficulty, setDifficulty] = useState(1);
   const [goalPeakId, setGoalPeakId] = useState(PEAKS[0].id);
   const [goalDifficulty, setGoalDifficulty] = useState(1);
   const [goalTargetDate, setGoalTargetDate] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
+  const [logPeakFilter, setLogPeakFilter] = useState<number | 'all'>(
+    initialLogFilter?.peakId ?? 'all',
+  );
+  const [logDifficultyFilter, setLogDifficultyFilter] = useState<number | 'all'>(
+    initialLogFilter?.difficulty ?? 'all',
+  );
 
   const bullets = useMemo(() => describeDifficultyLevel(difficulty), [difficulty]);
   const samples = useMemo(
@@ -71,6 +87,15 @@ export default function Review({ profile, onBack, onAddGoal, onImportProfile }: 
     [peakId, difficulty],
   );
   const climbLog = useMemo(() => sortedClimbLog(profile.climbLog), [profile.climbLog]);
+  const filteredClimbLog = useMemo(
+    () =>
+      climbLog.filter(
+        (entry) =>
+          (logPeakFilter === 'all' || entry.peakId === logPeakFilter) &&
+          (logDifficultyFilter === 'all' || entry.difficulty === logDifficultyFilter),
+      ),
+    [climbLog, logPeakFilter, logDifficultyFilter],
+  );
   const goals = useMemo(() => sortedGoals(profile.goals), [profile.goals]);
 
   function handleImportFile(event: ChangeEvent<HTMLInputElement>) {
@@ -192,17 +217,57 @@ export default function Review({ profile, onBack, onAddGoal, onImportProfile }: 
       {section === 'log' && (
         <section data-testid="review-log">
           <h2>Climber log</h2>
+
+          <p>
+            <label htmlFor="review-log-filter-peak">Peak</label>{' '}
+            <select
+              id="review-log-filter-peak"
+              data-testid="review-log-filter-peak"
+              value={logPeakFilter}
+              onChange={(event) =>
+                setLogPeakFilter(event.target.value === 'all' ? 'all' : Number(event.target.value))
+              }
+            >
+              <option value="all">All peaks</option>
+              {PEAKS.map((peak) => (
+                <option key={peak.id} value={peak.id}>
+                  {peak.id}. {peak.name}
+                </option>
+              ))}
+            </select>{' '}
+            <label htmlFor="review-log-filter-difficulty">Level</label>{' '}
+            <select
+              id="review-log-filter-difficulty"
+              data-testid="review-log-filter-difficulty"
+              value={logDifficultyFilter}
+              onChange={(event) =>
+                setLogDifficultyFilter(
+                  event.target.value === 'all' ? 'all' : Number(event.target.value),
+                )
+              }
+            >
+              <option value="all">All levels</option>
+              {DIFFICULTIES.map((level) => (
+                <option key={level} value={level}>
+                  {level}
+                </option>
+              ))}
+            </select>
+          </p>
+
           <button
             type="button"
             data-testid="review-log-download"
-            disabled={climbLog.length === 0}
-            onClick={() => downloadClimbLogCsv(profile.climbLog)}
+            disabled={filteredClimbLog.length === 0}
+            onClick={() => downloadClimbLogCsv(filteredClimbLog)}
           >
             Download CSV
           </button>
 
-          {climbLog.length === 0 ? (
-            <p data-testid="review-log-empty">No climbs yet.</p>
+          {filteredClimbLog.length === 0 ? (
+            <p data-testid="review-log-empty">
+              {climbLog.length === 0 ? 'No climbs yet.' : 'No climbs match this filter.'}
+            </p>
           ) : (
             <table data-testid="review-log-table">
               <thead>
@@ -215,7 +280,7 @@ export default function Review({ profile, onBack, onAddGoal, onImportProfile }: 
                 </tr>
               </thead>
               <tbody>
-                {climbLog.map((entry) => (
+                {filteredClimbLog.map((entry) => (
                   <tr key={entry.id} data-testid="review-log-row">
                     <td>{getPeak(entry.peakId).name}</td>
                     <td>{entry.difficulty}</td>
