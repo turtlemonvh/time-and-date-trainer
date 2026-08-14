@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  describeDifficultyComparisonTable,
-  describeDifficultyDelta,
-  describeDifficultyLevel,
-} from './difficultyDescribe';
+import { describeDifficultyComparisonTable, describeDifficultyLevel } from './difficultyDescribe';
 
 describe('describeDifficultyLevel', () => {
   it('returns exactly 8 non-empty bullets — one per DifficultyProfile field', () => {
@@ -47,55 +43,6 @@ describe('describeDifficultyLevel', () => {
   });
 });
 
-describe('describeDifficultyDelta', () => {
-  it('returns an empty array comparing a level to itself', () => {
-    for (let level = 1; level <= 10; level++) {
-      expect(describeDifficultyDelta(level, level)).toEqual([]);
-    }
-  });
-
-  it('describes exactly the two fields that actually change from difficulty 1 to 2 (timer and phrasing)', () => {
-    // D1 and D2 share the same dominant clock precision (hour) and the same
-    // dominant answer mode (choice) — per difficulty.ts's real weights, only
-    // the timer and the describePhrasing tier actually change here.
-    const delta = describeDifficultyDelta(1, 2);
-    expect(delta).toHaveLength(2);
-    expect(delta.some((b) => b.includes('Timer'))).toBe(true);
-    expect(delta.some((b) => b.includes('Time-in-words'))).toBe(true);
-  });
-
-  it('mentions every changed dimension from difficulty 1 to 10 — all 8 fields differ', () => {
-    const bullets = describeDifficultyDelta(1, 10);
-    expect(bullets).toHaveLength(8);
-    const delta = bullets.join(' | ');
-    expect(delta).toContain('Clock precision');
-    expect(delta).toContain('Timer');
-    expect(delta).toContain('Mostly');
-    expect(delta).toContain('Dates');
-    expect(delta).toContain('24-hour time is introduced');
-    expect(delta).toContain('Clock numbers disappear');
-    expect(delta).toContain('Time-in-words');
-    expect(delta).toContain('shuffled');
-  });
-
-  it('reads sensibly in either direction (going down a level, not just up)', () => {
-    const up = describeDifficultyDelta(3, 8);
-    const down = describeDifficultyDelta(8, 3);
-    expect(up.length).toBe(down.length);
-    expect(up.length).toBeGreaterThan(0);
-    // Not asserting the two are textually inverse — just that both directions
-    // produce real, non-empty output rather than only working "upward".
-  });
-
-  it('never mentions a field that has the same dominant value on both sides', () => {
-    // Difficulty 2 and 3 both keep hour24 false and clockNumerals true —
-    // neither bullet should appear.
-    const delta = describeDifficultyDelta(2, 3).join(' | ');
-    expect(delta).not.toContain('24-hour');
-    expect(delta).not.toContain('Clock numbers');
-  });
-});
-
 describe('describeDifficultyComparisonTable', () => {
   it('always returns exactly 8 rows, one per DifficultyProfile field', () => {
     for (let level = 1; level <= 10; level++) {
@@ -115,8 +62,9 @@ describe('describeDifficultyComparisonTable', () => {
   });
 
   it('flags exactly the two rows that change from difficulty 1 to 2 (timer and time-in-words)', () => {
-    // Same underlying fact describeDifficultyDelta's equivalent test relies
-    // on: D1 and D2 share dominant clock precision and answer mode.
+    // D1 and D2 share the same dominant clock precision (hour) and the same
+    // dominant answer mode (choice) per difficulty.ts's real weights — only
+    // the timer and the describePhrasing tier actually change here.
     const rows = describeDifficultyComparisonTable(1, 2);
     const changed = rows.filter((r) => r.changed).map((r) => r.item);
     expect(changed).toEqual(['Timer', 'Time-in-words']);

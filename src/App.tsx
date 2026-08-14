@@ -29,7 +29,7 @@ type Screen =
   | { name: 'profileSelect' }
   | { name: 'characterPick'; pendingName: string }
   | { name: 'map' }
-  | { name: 'review' }
+  | { name: 'review'; logFilter?: { peakId: number; difficulty: number } }
   | { name: 'climb'; peakId: number; seed: number }
   | { name: 'summit'; peakId: number; elapsedMs: number }
   | { name: 'fell'; peakId: number };
@@ -94,6 +94,9 @@ export default function App() {
             setScreen({ name: 'climb', peakId, seed: Date.now() });
           }}
           onReview={() => setScreen({ name: 'review' })}
+          onViewFullHistory={(peakId, difficulty) =>
+            setScreen({ name: 'review', logFilter: { peakId, difficulty } })
+          }
         />
       );
     }
@@ -119,6 +122,7 @@ export default function App() {
               return importProfile(current, imported);
             });
           }}
+          initialLogFilter={screen.logFilter}
         />
       );
     }
