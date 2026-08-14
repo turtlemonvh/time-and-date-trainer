@@ -195,6 +195,27 @@ describe('Map', () => {
       expect(rows.every((row) => row.dataset.changed === 'false')).toBe(true);
     });
 
+    it('shows a "Changed" chip in the dedicated column for a changed row, and a dash otherwise', () => {
+      renderMap(makeProfile());
+      openDetails(1);
+      // Level 1 -> 5 for peak 1 (Basecamp Bluff) has a real mix: clock
+      // precision/timer change, answer style/clock numbers/order don't.
+      fireEvent.change(screen.getByTestId('peak-difficulty-1'), { target: { value: '5' } });
+      const rows = screen.getAllByTestId('peak-compare-row-1');
+      const changedRow = rows.find((row) => row.dataset.changed === 'true');
+      const unchangedRow = rows.find((row) => row.dataset.changed === 'false');
+      expect(changedRow?.textContent).toContain('Changed');
+      expect(unchangedRow?.textContent).toContain('—');
+      expect(unchangedRow?.textContent).not.toContain('Changed');
+    });
+
+    it('has a header cell for the Changed column', () => {
+      renderMap(makeProfile());
+      openDetails(1);
+      const table = screen.getByTestId('peak-compare-1');
+      expect(within(table).getByText('Changed')).toBeInTheDocument();
+    });
+
     it('shows "No climbs at this level yet" when there is no history at the picked level', () => {
       renderMap(makeProfile());
       openDetails(1);
