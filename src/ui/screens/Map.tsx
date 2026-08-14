@@ -59,8 +59,8 @@ function PeakCard({ theme, progress, climbLog, onClimb, onViewFullHistory }: Pea
   const [selectedLevel, setSelectedLevel] = useState(defaultLevel);
 
   const compareRows = useMemo(
-    () => describeDifficultyComparisonTable(highestCleared ?? 1, selectedLevel),
-    [highestCleared, selectedLevel],
+    () => describeDifficultyComparisonTable(highestCleared ?? 1, selectedLevel, peak.id),
+    [highestCleared, selectedLevel, peak.id],
   );
 
   const levelHistory = useMemo(

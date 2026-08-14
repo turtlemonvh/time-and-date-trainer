@@ -169,11 +169,15 @@ describe('Map', () => {
   });
 
   describe('level details', () => {
-    it('shows a comparison table with all 8 dimensions', () => {
+    it("shows a comparison table filtered to peak 1 (Basecamp Bluff)'s relevant dimensions", () => {
+      // readAnalog-only, so no calendar/date rows — see difficultyDescribe.ts.
       renderMap(makeProfile());
       openDetails(1);
       const rows = screen.getAllByTestId('peak-compare-row-1');
-      expect(rows).toHaveLength(8);
+      const items = rows.map((row) => row.textContent);
+      expect(items.some((t) => t?.includes('Clock precision'))).toBe(true);
+      expect(items.some((t) => t?.includes('Dates'))).toBe(false);
+      expect(items.some((t) => t?.includes('Time-in-words'))).toBe(false);
     });
 
     it('flags a row as changed once a different level is picked', () => {
