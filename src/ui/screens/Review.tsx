@@ -1,34 +1,101 @@
-import { useMemo, useState, type ChangeEvent } from 'react';
+import { useMemo, useState, type ChangeEvent, type CSSProperties } from 'react';
 import { formatDateLong } from '../../engine/dateMath';
-import { describeDifficultyLevel } from '../../engine/difficultyDescribe';
+import {
+  describeDifficultyComparisonTable,
+  describeDifficultyLevel,
+} from '../../engine/difficultyDescribe';
 import { PEAKS, getPeak } from '../../engine/peaks';
 import { generateQuestion } from '../../engine/questions';
 import { mulberry32 } from '../../engine/rng';
+import { goalsForPeak } from '../../storage/profile';
 import type { Goal, Profile } from '../../storage/types';
 import { climbLogResultLabel, downloadClimbLogCsv, sortedClimbLog } from '../climbLogCsv';
+import {
+  CHANGED_CHIP_STYLE,
+  COMPARE_TABLE_STYLE,
+  COMPARE_TD_STYLE,
+  COMPARE_TH_STYLE,
+} from '../compareTableStyles';
 import { formatDuration } from '../formatDuration';
 import { downloadProfileJson, parseProfileJson } from '../profileFile';
-import { describeAnswer, describeDisplay } from '../questionDisplay';
+import { pad } from '../questionDisplay';
+import SampleQuestion from '../SampleQuestion';
 
 const DIFFICULTIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-const SAMPLE_COUNT = 3;
 
-/**
- * Deterministically samples `count` real questions for `peakId` at
- * `difficulty` — calls the same `generateQuestion` real gameplay uses (not
- * `generateQuestionBatch`, which iterates every registered type regardless
- * of theme for dev-tooling purposes). Since `selectGenerator` is fully
- * peak-exclusive, this always shows exactly what a player on that peak
- * would actually see, not a broader dev-facing sample.
- */
-function sampleCurriculumQuestions(peakId: number, difficulty: number, count: number) {
-  const peak = getPeak(peakId);
-  const rng = mulberry32(peakId * 1000 + difficulty);
-  const questions = [];
-  for (let i = 0; i < count; i++) {
-    questions.push(generateQuestion(rng, { difficulty, peak }));
-  }
-  return questions;
+const TAB_BAR_STYLE: CSSProperties = {
+  display: 'flex',
+  gap: '1.25rem',
+  flexWrap: 'wrap',
+  borderBottom: '1px solid var(--border)',
+  marginBottom: '1rem',
+};
+const TAB_STYLE: CSSProperties = {
+  fontSize: '0.9rem',
+  fontWeight: 700,
+  color: 'var(--text)',
+  padding: '0 0 0.6rem',
+  border: 'none',
+  borderBottom: '2px solid transparent',
+  background: 'none',
+  cursor: 'pointer',
+};
+const TAB_ACTIVE_STYLE: CSSProperties = {
+  ...TAB_STYLE,
+  color: 'var(--accent)',
+  borderBottomColor: 'var(--accent)',
+  cursor: 'default',
+};
+const CARD_STYLE: CSSProperties = {
+  border: '1px solid var(--border)',
+  borderRadius: 10,
+  padding: '1rem',
+  marginBottom: '0.75rem',
+};
+const CARD_HEADING_STYLE: CSSProperties = {
+  fontSize: '0.8rem',
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  color: 'var(--text)',
+  margin: '0 0 0.75rem',
+};
+const GOAL_CTA_STYLE: CSSProperties = {
+  ...CARD_STYLE,
+  border: '1px solid var(--accent-border)',
+  background: 'var(--accent-bg)',
+};
+const PAGE_STEP_STYLE: CSSProperties = {
+  minWidth: 32,
+  minHeight: 32,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: 6,
+  border: '1px solid var(--border)',
+  background: 'var(--bg)',
+  color: 'var(--text-h)',
+  fontSize: '0.85rem',
+  fontWeight: 700,
+};
+const PAGE_STEP_CURRENT_STYLE: CSSProperties = {
+  ...PAGE_STEP_STYLE,
+  background: 'var(--accent)',
+  borderColor: 'var(--accent)',
+  color: '#fff',
+};
+const SCROLL_X_STYLE: CSSProperties = { overflowX: 'auto' };
+
+function defaultCompareLevel(level: number): number {
+  return level >= 10 ? level - 1 : level + 1;
+}
+
+/** Local-time `yyyy-mm-dd`, not `Date.prototype.toISOString()` — that's
+ * UTC-based and can land on the wrong calendar day near midnight, the same
+ * pitfall `randomDate` hit (see CLAUDE.md). */
+function todayIsoDate(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
 /** Soonest-due first, regardless of pending/achieved status — a parent
@@ -36,6 +103,61 @@ function sampleCurriculumQuestions(peakId: number, difficulty: number, count: nu
  * keeps its original target date rather than jumping to the front. */
 function sortedGoals(goals: Goal[]): Goal[] {
   return [...goals].sort((a, b) => a.targetDate.localeCompare(b.targetDate));
+}
+
+interface DifficultyPaginationProps {
+  value: number;
+  onChange: (level: number) => void;
+}
+
+/** Difficulty picker as pagination rather than a dropdown — browsing the
+ * curriculum means stepping back and forth between levels often, and a
+ * dropdown makes every step a multi-tap round trip through a closed menu. */
+function DifficultyPagination({ value, onChange }: DifficultyPaginationProps) {
+  return (
+    <div
+      data-testid="review-difficulty"
+      style={{
+        display: 'flex',
+        gap: 4,
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        marginTop: '0.5rem',
+      }}
+    >
+      <button
+        type="button"
+        data-testid="review-difficulty-prev"
+        aria-label="Previous level"
+        disabled={value <= 1}
+        onClick={() => onChange(value - 1)}
+        style={PAGE_STEP_STYLE}
+      >
+        ‹
+      </button>
+      {DIFFICULTIES.map((level) => (
+        <button
+          key={level}
+          type="button"
+          data-testid={`review-difficulty-page-${level}`}
+          onClick={() => onChange(level)}
+          style={level === value ? PAGE_STEP_CURRENT_STYLE : PAGE_STEP_STYLE}
+        >
+          {level}
+        </button>
+      ))}
+      <button
+        type="button"
+        data-testid="review-difficulty-next"
+        aria-label="Next level"
+        disabled={value >= 10}
+        onClick={() => onChange(value + 1)}
+        style={PAGE_STEP_STYLE}
+      >
+        ›
+      </button>
+    </div>
+  );
 }
 
 export interface ReviewProps {
@@ -70,6 +192,28 @@ export default function Review({
   const [section, setSection] = useState<Section>(initialLogFilter ? 'log' : 'curriculum');
   const [peakId, setPeakId] = useState(PEAKS[0].id);
   const [difficulty, setDifficulty] = useState(1);
+  const [compareLevel, setCompareLevel] = useState(() => defaultCompareLevel(difficulty));
+  // Tracks the difficulty compareLevel was last defaulted for — when they
+  // drift apart (the player paged to a new level), reset compareLevel to
+  // the new default. Setting state conditionally during render, compared
+  // against a value tracked in its own state, is React's own recommended
+  // way to "adjust state when a prop changes" without the extra render
+  // pass (and the lint error) a `useEffect` doing the same setState causes.
+  const [compareLevelDefaultedFor, setCompareLevelDefaultedFor] = useState(difficulty);
+  if (difficulty !== compareLevelDefaultedFor) {
+    setCompareLevelDefaultedFor(difficulty);
+    setCompareLevel(defaultCompareLevel(difficulty));
+  }
+
+  const [sampleRefreshCount, setSampleRefreshCount] = useState(0);
+  const sampleKey = `${peakId}-${difficulty}`;
+  const [sampleKeyForRefreshCount, setSampleKeyForRefreshCount] = useState(sampleKey);
+  if (sampleKey !== sampleKeyForRefreshCount) {
+    setSampleKeyForRefreshCount(sampleKey);
+    setSampleRefreshCount(0);
+  }
+
+  const [goalCtaDate, setGoalCtaDate] = useState(() => todayIsoDate());
   const [goalPeakId, setGoalPeakId] = useState(PEAKS[0].id);
   const [goalDifficulty, setGoalDifficulty] = useState(1);
   const [goalTargetDate, setGoalTargetDate] = useState('');
@@ -82,10 +226,20 @@ export default function Review({
   );
 
   const bullets = useMemo(() => describeDifficultyLevel(difficulty), [difficulty]);
-  const samples = useMemo(
-    () => sampleCurriculumQuestions(peakId, difficulty, SAMPLE_COUNT),
-    [peakId, difficulty],
+  const compareRows = useMemo(
+    () => describeDifficultyComparisonTable(difficulty, compareLevel, peakId),
+    [difficulty, compareLevel, peakId],
   );
+  const sampleQuestion = useMemo(() => {
+    const peak = getPeak(peakId);
+    const rng = mulberry32(peakId * 1000 + difficulty * 10 + sampleRefreshCount);
+    return generateQuestion(rng, { difficulty, peak });
+  }, [peakId, difficulty, sampleRefreshCount]);
+  const { pending: pendingGoalsForPeak, lastAchieved: lastAchievedGoalForPeak } = useMemo(
+    () => goalsForPeak(profile.goals, peakId),
+    [profile.goals, peakId],
+  );
+
   const climbLog = useMemo(() => sortedClimbLog(profile.climbLog), [profile.climbLog]);
   const filteredClimbLog = useMemo(
     () =>
@@ -97,6 +251,11 @@ export default function Review({
     [climbLog, logPeakFilter, logDifficultyFilter],
   );
   const goals = useMemo(() => sortedGoals(profile.goals), [profile.goals]);
+
+  function handleCreateGoalFromCurriculum() {
+    onAddGoal(peakId, difficulty, goalCtaDate);
+    setGoalCtaDate(todayIsoDate());
+  }
 
   function handleImportFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -126,252 +285,361 @@ export default function Review({
         Back to Map
       </button>
 
-      <p>
+      <div style={TAB_BAR_STYLE}>
         <button
           type="button"
           data-testid="review-tab-curriculum"
           disabled={section === 'curriculum'}
           onClick={() => setSection('curriculum')}
+          style={section === 'curriculum' ? TAB_ACTIVE_STYLE : TAB_STYLE}
         >
           Curriculum
-        </button>{' '}
+        </button>
         <button
           type="button"
           data-testid="review-tab-log"
           disabled={section === 'log'}
           onClick={() => setSection('log')}
+          style={section === 'log' ? TAB_ACTIVE_STYLE : TAB_STYLE}
         >
           Climber log
-        </button>{' '}
+        </button>
         <button
           type="button"
           data-testid="review-tab-goals"
           disabled={section === 'goals'}
           onClick={() => setSection('goals')}
+          style={section === 'goals' ? TAB_ACTIVE_STYLE : TAB_STYLE}
         >
           Goals
-        </button>{' '}
+        </button>
         <button
           type="button"
           data-testid="review-tab-export"
           disabled={section === 'export'}
           onClick={() => setSection('export')}
+          style={section === 'export' ? TAB_ACTIVE_STYLE : TAB_STYLE}
         >
           Export/Import
         </button>
-      </p>
+      </div>
 
       {section === 'curriculum' && (
         <section data-testid="review-curriculum">
-          <h2>Curriculum browser</h2>
-          <p>
-            <label htmlFor="review-peak">Peak</label>{' '}
-            <select
-              id="review-peak"
-              data-testid="review-peak"
-              value={peakId}
-              onChange={(event) => setPeakId(Number(event.target.value))}
-            >
-              {PEAKS.map((peak) => (
-                <option key={peak.id} value={peak.id}>
-                  {peak.id}. {peak.name} — {peak.emphasis}
-                </option>
-              ))}
-            </select>{' '}
-            <label htmlFor="review-difficulty">Difficulty</label>{' '}
-            <select
-              id="review-difficulty"
-              data-testid="review-difficulty"
-              value={difficulty}
-              onChange={(event) => setDifficulty(Number(event.target.value))}
-            >
-              {DIFFICULTIES.map((level) => (
-                <option key={level} value={level}>
-                  {level}
-                </option>
-              ))}
-            </select>
-          </p>
+          <div style={CARD_STYLE}>
+            <h3 style={CARD_HEADING_STYLE}>Browse</h3>
+            <p style={{ margin: 0 }}>
+              <label htmlFor="review-peak">Peak</label>{' '}
+              <select
+                id="review-peak"
+                data-testid="review-peak"
+                value={peakId}
+                onChange={(event) => setPeakId(Number(event.target.value))}
+              >
+                {PEAKS.map((peak) => (
+                  <option key={peak.id} value={peak.id}>
+                    {peak.id}. {peak.name} — {peak.emphasis}
+                  </option>
+                ))}
+              </select>
+            </p>
+            <DifficultyPagination value={difficulty} onChange={setDifficulty} />
+          </div>
 
-          <h3>What difficulty {difficulty} means</h3>
-          <ul data-testid="review-difficulty-bullets">
-            {bullets.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
+          <div style={CARD_STYLE}>
+            <h3 style={CARD_HEADING_STYLE}>What difficulty {difficulty} means</h3>
+            <ul
+              data-testid="review-difficulty-bullets"
+              style={{ margin: 0, paddingLeft: '1.1rem', columns: 2, columnGap: '1.25rem' }}
+            >
+              {bullets.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </div>
 
-          <h3>Sample questions</h3>
-          <ol data-testid="review-sample-questions">
-            {samples.map((question, index) => (
-              <li key={`${question.typeId}-${index}`} data-testid="review-sample-question">
-                <p data-testid="review-sample-prompt">{question.prompt}</p>
-                <p>{describeDisplay(question.display)}</p>
-                <p>{describeAnswer(question.answer)}</p>
-                <p>{question.explainCorrect}</p>
-              </li>
-            ))}
-          </ol>
+          <div style={CARD_STYLE}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                marginBottom: '0.75rem',
+              }}
+            >
+              <h3 style={{ ...CARD_HEADING_STYLE, margin: 0 }}>Compare to</h3>
+              <select
+                data-testid="review-compare-level"
+                value={compareLevel}
+                onChange={(event) => setCompareLevel(Number(event.target.value))}
+              >
+                {DIFFICULTIES.filter((level) => level !== difficulty).map((level) => (
+                  <option key={level} value={level}>
+                    Level {level}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div style={SCROLL_X_STYLE}>
+              <table data-testid="review-compare-table" style={COMPARE_TABLE_STYLE}>
+                <thead>
+                  <tr>
+                    <th style={COMPARE_TH_STYLE}>Item</th>
+                    <th style={COMPARE_TH_STYLE}>Level {difficulty}</th>
+                    <th style={COMPARE_TH_STYLE}>Level {compareLevel}</th>
+                    <th style={COMPARE_TH_STYLE}>Changed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {compareRows.map((row) => (
+                    <tr key={row.item} data-testid="review-compare-row" data-changed={row.changed}>
+                      <td style={COMPARE_TD_STYLE}>{row.item}</td>
+                      <td style={COMPARE_TD_STYLE}>{row.current}</td>
+                      <td style={COMPARE_TD_STYLE}>{row.next}</td>
+                      <td style={COMPARE_TD_STYLE}>
+                        {row.changed ? (
+                          <span style={CHANGED_CHIP_STYLE}>Changed</span>
+                        ) : (
+                          <span style={{ color: 'var(--text)' }}>—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style={GOAL_CTA_STYLE} data-testid="review-goal-cta">
+            Create a goal for <strong>{profile.name}</strong> on{' '}
+            <strong>{getPeak(peakId).name}</strong> at difficulty <strong>{difficulty}</strong> by{' '}
+            <input
+              type="date"
+              data-testid="review-goal-cta-date"
+              value={goalCtaDate}
+              onChange={(event) => setGoalCtaDate(event.target.value)}
+            />{' '}
+            <button
+              type="button"
+              data-testid="review-goal-cta-submit"
+              disabled={!goalCtaDate}
+              onClick={handleCreateGoalFromCurriculum}
+            >
+              Create goal
+            </button>
+            {pendingGoalsForPeak.length > 0 && (
+              <div style={{ marginTop: '0.75rem' }}>
+                <p style={{ margin: '0 0 0.25rem', fontWeight: 700 }}>
+                  Pending goals for this peak
+                </p>
+                <ul
+                  data-testid="review-goal-cta-pending-list"
+                  style={{ margin: 0, paddingLeft: '1.1rem' }}
+                >
+                  {pendingGoalsForPeak.map((goal) => (
+                    <li key={goal.id} data-testid="review-goal-cta-pending-row">
+                      Level {goal.difficulty} by {goal.targetDate}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {lastAchievedGoalForPeak && (
+              <p
+                data-testid="review-goal-cta-achieved"
+                style={{ marginTop: '0.75rem', marginBottom: 0 }}
+              >
+                Last achieved: Level {lastAchievedGoalForPeak.difficulty} on{' '}
+                {formatDateLong(new Date(lastAchievedGoalForPeak.achievedAt))}
+              </p>
+            )}
+          </div>
+
+          <div style={CARD_STYLE}>
+            <h3 style={CARD_HEADING_STYLE}>Sample question</h3>
+            <SampleQuestion question={sampleQuestion} />
+            <button
+              type="button"
+              data-testid="review-sample-refresh"
+              onClick={() => setSampleRefreshCount((n) => n + 1)}
+              style={{ display: 'block', margin: '0.75rem auto 0' }}
+            >
+              Show another example
+            </button>
+          </div>
         </section>
       )}
 
       {section === 'log' && (
         <section data-testid="review-log">
-          <h2>Climber log</h2>
-
-          <p>
-            <label htmlFor="review-log-filter-peak">Peak</label>{' '}
-            <select
-              id="review-log-filter-peak"
-              data-testid="review-log-filter-peak"
-              value={logPeakFilter}
-              onChange={(event) =>
-                setLogPeakFilter(event.target.value === 'all' ? 'all' : Number(event.target.value))
-              }
-            >
-              <option value="all">All peaks</option>
-              {PEAKS.map((peak) => (
-                <option key={peak.id} value={peak.id}>
-                  {peak.id}. {peak.name}
-                </option>
-              ))}
-            </select>{' '}
-            <label htmlFor="review-log-filter-difficulty">Level</label>{' '}
-            <select
-              id="review-log-filter-difficulty"
-              data-testid="review-log-filter-difficulty"
-              value={logDifficultyFilter}
-              onChange={(event) =>
-                setLogDifficultyFilter(
-                  event.target.value === 'all' ? 'all' : Number(event.target.value),
-                )
-              }
-            >
-              <option value="all">All levels</option>
-              {DIFFICULTIES.map((level) => (
-                <option key={level} value={level}>
-                  {level}
-                </option>
-              ))}
-            </select>
-          </p>
-
-          <button
-            type="button"
-            data-testid="review-log-download"
-            disabled={filteredClimbLog.length === 0}
-            onClick={() => downloadClimbLogCsv(filteredClimbLog)}
-          >
-            Download CSV
-          </button>
-
-          {filteredClimbLog.length === 0 ? (
-            <p data-testid="review-log-empty">
-              {climbLog.length === 0 ? 'No climbs yet.' : 'No climbs match this filter.'}
-            </p>
-          ) : (
-            <table data-testid="review-log-table">
-              <thead>
-                <tr>
-                  <th>Peak</th>
-                  <th>Difficulty</th>
-                  <th>Date</th>
-                  <th>Duration</th>
-                  <th>Result</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredClimbLog.map((entry) => (
-                  <tr key={entry.id} data-testid="review-log-row">
-                    <td>{getPeak(entry.peakId).name}</td>
-                    <td>{entry.difficulty}</td>
-                    <td>{formatDateLong(new Date(entry.startedAt))}</td>
-                    <td>{formatDuration(entry.endedAt - entry.startedAt)}</td>
-                    <td>{climbLogResultLabel(entry.result)}</td>
-                  </tr>
+          <div style={CARD_STYLE}>
+            <p style={{ margin: 0 }}>
+              <label htmlFor="review-log-filter-peak">Peak</label>{' '}
+              <select
+                id="review-log-filter-peak"
+                data-testid="review-log-filter-peak"
+                value={logPeakFilter}
+                onChange={(event) =>
+                  setLogPeakFilter(
+                    event.target.value === 'all' ? 'all' : Number(event.target.value),
+                  )
+                }
+              >
+                <option value="all">All peaks</option>
+                {PEAKS.map((peak) => (
+                  <option key={peak.id} value={peak.id}>
+                    {peak.id}. {peak.name}
+                  </option>
                 ))}
-              </tbody>
-            </table>
-          )}
+              </select>{' '}
+              <label htmlFor="review-log-filter-difficulty">Level</label>{' '}
+              <select
+                id="review-log-filter-difficulty"
+                data-testid="review-log-filter-difficulty"
+                value={logDifficultyFilter}
+                onChange={(event) =>
+                  setLogDifficultyFilter(
+                    event.target.value === 'all' ? 'all' : Number(event.target.value),
+                  )
+                }
+              >
+                <option value="all">All levels</option>
+                {DIFFICULTIES.map((level) => (
+                  <option key={level} value={level}>
+                    {level}
+                  </option>
+                ))}
+              </select>
+            </p>
+
+            <p>
+              <button
+                type="button"
+                data-testid="review-log-download"
+                disabled={filteredClimbLog.length === 0}
+                onClick={() => downloadClimbLogCsv(filteredClimbLog)}
+              >
+                Download CSV
+              </button>
+            </p>
+
+            {filteredClimbLog.length === 0 ? (
+              <p data-testid="review-log-empty">
+                {climbLog.length === 0 ? 'No climbs yet.' : 'No climbs match this filter.'}
+              </p>
+            ) : (
+              <div style={SCROLL_X_STYLE}>
+                <table data-testid="review-log-table" style={COMPARE_TABLE_STYLE}>
+                  <thead>
+                    <tr>
+                      <th style={COMPARE_TH_STYLE}>Peak</th>
+                      <th style={COMPARE_TH_STYLE}>Difficulty</th>
+                      <th style={COMPARE_TH_STYLE}>Date</th>
+                      <th style={COMPARE_TH_STYLE}>Duration</th>
+                      <th style={COMPARE_TH_STYLE}>Result</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredClimbLog.map((entry) => (
+                      <tr key={entry.id} data-testid="review-log-row">
+                        <td style={COMPARE_TD_STYLE}>{getPeak(entry.peakId).name}</td>
+                        <td style={COMPARE_TD_STYLE}>{entry.difficulty}</td>
+                        <td style={COMPARE_TD_STYLE}>
+                          {formatDateLong(new Date(entry.startedAt))}
+                        </td>
+                        <td style={COMPARE_TD_STYLE}>
+                          {formatDuration(entry.endedAt - entry.startedAt)}
+                        </td>
+                        <td style={COMPARE_TD_STYLE}>{climbLogResultLabel(entry.result)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </section>
       )}
 
       {section === 'goals' && (
         <section data-testid="review-goals">
-          <h2>Goals</h2>
-
-          <form
-            data-testid="review-goal-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              onAddGoal(goalPeakId, goalDifficulty, goalTargetDate);
-              setGoalTargetDate('');
-            }}
-          >
-            <label htmlFor="review-goal-peak">Peak</label>{' '}
-            <select
-              id="review-goal-peak"
-              data-testid="review-goal-peak"
-              value={goalPeakId}
-              onChange={(event) => setGoalPeakId(Number(event.target.value))}
+          <div style={CARD_STYLE}>
+            <form
+              data-testid="review-goal-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                onAddGoal(goalPeakId, goalDifficulty, goalTargetDate);
+                setGoalTargetDate('');
+              }}
             >
-              {PEAKS.map((peak) => (
-                <option key={peak.id} value={peak.id}>
-                  {peak.id}. {peak.name}
-                </option>
-              ))}
-            </select>{' '}
-            <label htmlFor="review-goal-difficulty">Level</label>{' '}
-            <select
-              id="review-goal-difficulty"
-              data-testid="review-goal-difficulty"
-              value={goalDifficulty}
-              onChange={(event) => setGoalDifficulty(Number(event.target.value))}
-            >
-              {DIFFICULTIES.map((level) => (
-                <option key={level} value={level}>
-                  {level}
-                </option>
-              ))}
-            </select>{' '}
-            <label htmlFor="review-goal-date">By</label>{' '}
-            <input
-              id="review-goal-date"
-              data-testid="review-goal-date"
-              type="date"
-              value={goalTargetDate}
-              onChange={(event) => setGoalTargetDate(event.target.value)}
-            />{' '}
-            <button type="submit" data-testid="review-goal-submit" disabled={!goalTargetDate}>
-              Add goal
-            </button>
-          </form>
+              <label htmlFor="review-goal-peak">Peak</label>{' '}
+              <select
+                id="review-goal-peak"
+                data-testid="review-goal-peak"
+                value={goalPeakId}
+                onChange={(event) => setGoalPeakId(Number(event.target.value))}
+              >
+                {PEAKS.map((peak) => (
+                  <option key={peak.id} value={peak.id}>
+                    {peak.id}. {peak.name}
+                  </option>
+                ))}
+              </select>{' '}
+              <label htmlFor="review-goal-difficulty">Level</label>{' '}
+              <select
+                id="review-goal-difficulty"
+                data-testid="review-goal-difficulty"
+                value={goalDifficulty}
+                onChange={(event) => setGoalDifficulty(Number(event.target.value))}
+              >
+                {DIFFICULTIES.map((level) => (
+                  <option key={level} value={level}>
+                    {level}
+                  </option>
+                ))}
+              </select>{' '}
+              <label htmlFor="review-goal-date">By</label>{' '}
+              <input
+                id="review-goal-date"
+                data-testid="review-goal-date"
+                type="date"
+                value={goalTargetDate}
+                onChange={(event) => setGoalTargetDate(event.target.value)}
+              />{' '}
+              <button type="submit" data-testid="review-goal-submit" disabled={!goalTargetDate}>
+                Add goal
+              </button>
+            </form>
+          </div>
 
-          {goals.length === 0 ? (
-            <p data-testid="review-goals-empty">No goals yet.</p>
-          ) : (
-            <ul data-testid="review-goals-list">
-              {goals.map((goal) => (
-                <li key={goal.id} data-testid="review-goal-row">
-                  {getPeak(goal.peakId).name} — level {goal.difficulty} by {goal.targetDate}:{' '}
-                  {goal.achievedAt === null
-                    ? 'Pending'
-                    : `Achieved ${formatDateLong(new Date(goal.achievedAt))}`}
-                </li>
-              ))}
-            </ul>
-          )}
+          <div style={CARD_STYLE}>
+            {goals.length === 0 ? (
+              <p data-testid="review-goals-empty" style={{ margin: 0 }}>
+                No goals yet.
+              </p>
+            ) : (
+              <ul data-testid="review-goals-list" style={{ margin: 0, paddingLeft: '1.1rem' }}>
+                {goals.map((goal) => (
+                  <li key={goal.id} data-testid="review-goal-row">
+                    {getPeak(goal.peakId).name} — level {goal.difficulty} by {goal.targetDate}:{' '}
+                    {goal.achievedAt === null
+                      ? 'Pending'
+                      : `Achieved ${formatDateLong(new Date(goal.achievedAt))}`}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </section>
       )}
 
       {section === 'export' && (
         <section data-testid="review-export">
-          <h2>Export / Import</h2>
-          <p>
-            The profile lives only in this browser&apos;s storage — export it to keep a backup, or
-            to move it to another device.
-          </p>
-
-          <p>
+          <div style={CARD_STYLE}>
+            <p>
+              The profile lives only in this browser&apos;s storage — export it to keep a backup, or
+              to move it to another device.
+            </p>
             <button
               type="button"
               data-testid="review-export-download"
@@ -379,19 +647,25 @@ export default function Review({
             >
               Export {profile.name}&apos;s profile
             </button>
-          </p>
+          </div>
 
-          <p>
-            <label htmlFor="review-import-file">Import a profile file</label>{' '}
-            <input
-              id="review-import-file"
-              data-testid="review-import-file"
-              type="file"
-              accept="application/json"
-              onChange={handleImportFile}
-            />
-          </p>
-          {importError && <p data-testid="review-import-error">{importError}</p>}
+          <div style={CARD_STYLE}>
+            <p style={{ margin: 0 }}>
+              <label htmlFor="review-import-file">Import a profile file</label>{' '}
+              <input
+                id="review-import-file"
+                data-testid="review-import-file"
+                type="file"
+                accept="application/json"
+                onChange={handleImportFile}
+              />
+            </p>
+            {importError && (
+              <p data-testid="review-import-error" style={{ marginBottom: 0 }}>
+                {importError}
+              </p>
+            )}
+          </div>
         </section>
       )}
     </main>

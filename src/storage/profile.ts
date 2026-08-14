@@ -92,8 +92,10 @@ export interface GoalsForPeak {
   pending: Goal[];
   /** The most recently achieved goal for this peak, or `null` if none has
    * been achieved yet — only the single most recent one, not the full
-   * achieved history (that lives in the Climber Log / Goals tab instead). */
-  lastAchieved: Goal | null;
+   * achieved history (that lives in the Climber Log / Goals tab instead).
+   * `achievedAt` is narrowed to `number` here (never `null`), since every
+   * goal in this slot is one that's already been achieved. */
+  lastAchieved: (Goal & { achievedAt: number }) | null;
 }
 
 /** Splits a peak's goals into what's still pending and its most recent
