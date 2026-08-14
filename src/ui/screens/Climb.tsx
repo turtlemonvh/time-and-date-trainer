@@ -307,7 +307,13 @@ export default function Climb({
           fallRiskCapacity={climbState.fallRiskCapacity}
         />
         <MiniMap position={climbState.position} height={climbState.height} />
-        <button type="button" data-testid="climb-bail" onClick={handleBail} disabled={revealing}>
+        <button
+          type="button"
+          data-variant="secondary"
+          data-testid="climb-bail"
+          onClick={handleBail}
+          disabled={revealing}
+        >
           Bail
         </button>
       </div>

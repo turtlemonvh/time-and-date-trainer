@@ -3,8 +3,8 @@ export interface MiniMapProps {
   height: number;
 }
 
-const TRACK_COLOR = '#e5e4e7';
-const MARKER_COLOR = '#2e7d32';
+const TRACK_COLOR = 'var(--border)';
+const MARKER_COLOR = 'var(--pine)';
 
 /**
  * A vertical progress bar showing how far up the current peak the climber

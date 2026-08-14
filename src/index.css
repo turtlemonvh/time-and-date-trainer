@@ -1,16 +1,25 @@
 @import './assets/fonts/fonts.css';
 
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow: rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* "Trail Badge" theme: parchment/canvas warmth, forest pine, campfire
+     ember — a scout-handbook look to match the "learning about clocks by
+     climbing mountains" premise. --code-bg doubles as the "canvas" card
+     surface (table headers, card backgrounds), not just literal code. */
+  --text: #6b5c42;
+  --text-h: #2e2417;
+  --bg: #fdf8ee;
+  --border: #c9a86a;
+  --code-bg: #efe3c8;
+  --accent: #d97b3f;
+  --accent-shadow: #a85a26;
+  --accent-bg: rgba(217, 123, 63, 0.12);
+  --accent-border: rgba(217, 123, 63, 0.55);
+  --pine: #2f5233;
+  --pine-bg: rgba(47, 82, 51, 0.12);
+  --gold: #c98d1f;
+  --danger: #c0392b;
+  --social-bg: rgba(239, 227, 200, 0.5);
+  --shadow: rgba(46, 36, 23, 0.12) 0 10px 15px -3px, rgba(46, 36, 23, 0.08) 0 4px 6px -2px;
 
   /* Fonts (see assets/fonts/fonts.css) — swap either family here to
      retheme the whole app; nothing else needs to change. --heading is the
@@ -38,15 +47,23 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
+    /* Campfire-at-night variant of the same theme: dark charcoal-brown
+       ground, brightened ember/pine/gold so they still read at this
+       lightness against a dark canvas. */
+    --text: #cbbfa0;
+    --text-h: #f5ecd8;
+    --bg: #201a12;
+    --border: #5a4a2e;
+    --code-bg: #2b2318;
+    --accent: #e8935c;
+    --accent-shadow: #a85a2e;
+    --accent-bg: rgba(232, 147, 92, 0.15);
+    --accent-border: rgba(232, 147, 92, 0.5);
+    --pine: #6fa878;
+    --pine-bg: rgba(111, 168, 120, 0.18);
+    --gold: #e0ab3f;
+    --danger: #e0574a;
+    --social-bg: rgba(43, 35, 24, 0.5);
     --shadow: rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
   }
 
@@ -69,6 +86,68 @@
 
 body {
   margin: 0;
+}
+
+main {
+  padding: 0 1.25rem 3rem;
+}
+
+/* Trail Badge button: an ember pill with a bevel shadow, like a merit-badge
+   ribbon. `data-variant="secondary"` opts a button out of the primary CTA
+   look for quieter actions (Cancel, Bail) that shouldn't compete with the
+   screen's main action. */
+button {
+  font-family: var(--sans);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 999px;
+  padding: 0.7rem 1.35rem;
+  min-height: 44px;
+  box-shadow: 0 3px 0 var(--accent-shadow);
+  cursor: pointer;
+}
+button:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+button:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+button[data-variant='secondary'] {
+  color: var(--text-h);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+select,
+input {
+  max-width: 100%;
+  font-family: var(--sans);
+  font-size: 1rem;
+  color: var(--text-h);
+  background: var(--code-bg);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--accent-border);
+  outline-offset: 2px;
 }
 
 h1 {
@@ -96,10 +175,11 @@ h2 {
      headings, not just the app title. */
   font-family: var(--sans);
   font-weight: 700;
+  text-transform: uppercase;
   color: var(--text-h);
   font-size: 20px;
   line-height: 140%;
-  letter-spacing: normal;
+  letter-spacing: 0.04em;
   margin: 0 0 8px;
   @media (max-width: 1024px) {
     font-size: 16px;

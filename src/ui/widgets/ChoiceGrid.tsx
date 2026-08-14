@@ -63,9 +63,9 @@ export default function ChoiceGrid({
               padding: '12px 16px',
               borderRadius: 8,
               background: isCorrect
-                ? '#2e7d32'
+                ? 'var(--pine)'
                 : isWrongSelection
-                  ? '#c0392b'
+                  ? 'var(--danger)'
                   : isSelected
                     ? 'var(--accent)'
                     : undefined,

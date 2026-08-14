@@ -3,9 +3,9 @@ export interface BoostMeterProps {
   boostCapacity: number;
 }
 
-const FILLED_COLOR = '#3a86ff';
-const FULL_COLOR = '#ffb703';
-const EMPTY_COLOR = '#e5e4e7';
+const FILLED_COLOR = 'var(--accent)';
+const FULL_COLOR = 'var(--gold)';
+const EMPTY_COLOR = 'var(--border)';
 
 /**
  * A row of pips showing boost fill toward `boostCapacity` — full (climbing

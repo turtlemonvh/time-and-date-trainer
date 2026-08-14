@@ -3,10 +3,10 @@ export interface TimerBarProps {
   fraction: number;
 }
 
-const TRACK_COLOR = '#e5e4e7';
-const SAFE_COLOR = '#2e7d32';
+const TRACK_COLOR = 'var(--border)';
+const SAFE_COLOR = 'var(--pine)';
 const WARNING_COLOR = '#f0a020';
-const URGENT_COLOR = '#c0392b';
+const URGENT_COLOR = 'var(--danger)';
 
 function colorFor(fraction: number): string {
   if (fraction > 0.5) return SAFE_COLOR;

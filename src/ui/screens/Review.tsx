@@ -47,10 +47,11 @@ const TAB_ACTIVE_STYLE: CSSProperties = {
   cursor: 'default',
 };
 const CARD_STYLE: CSSProperties = {
-  border: '1px solid var(--border)',
-  borderRadius: 10,
+  border: '2px dashed var(--border)',
+  borderRadius: 14,
   padding: '1rem',
   marginBottom: '0.75rem',
+  background: 'var(--code-bg)',
 };
 const CARD_HEADING_STYLE: CSSProperties = {
   fontSize: '0.8rem',
@@ -62,7 +63,7 @@ const CARD_HEADING_STYLE: CSSProperties = {
 };
 const GOAL_CTA_STYLE: CSSProperties = {
   ...CARD_STYLE,
-  border: '1px solid var(--accent-border)',
+  border: '2px dashed var(--accent-border)',
   background: 'var(--accent-bg)',
 };
 const PAGE_STEP_STYLE: CSSProperties = {

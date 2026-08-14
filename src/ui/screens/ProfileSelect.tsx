@@ -76,6 +76,7 @@ export default function ProfileSelect({
           {profiles.length > 0 && (
             <button
               type="button"
+              data-variant="secondary"
               data-testid="profile-create-cancel"
               onClick={() => {
                 setCreating(false);
