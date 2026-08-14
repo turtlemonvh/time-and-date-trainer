@@ -173,3 +173,66 @@ export function describeDifficultyDelta(a: number, b: number): string[] {
 
   return bullets;
 }
+
+export interface DifficultyComparisonRow {
+  item: string;
+  current: string;
+  next: string;
+  /** Whether `current` and `next` actually differ — lets a UI highlight
+   * only the rows that changed without hiding the rest. */
+  changed: boolean;
+}
+
+/**
+ * Full item/current/next comparison table between level `a` (current) and
+ * level `b` (next) — always all 8 `DifficultyProfile`-derived dimensions,
+ * unlike `describeDifficultyDelta`, which only returns the ones that
+ * differ. Lets a UI show the whole picture every time (with `changed` rows
+ * highlighted) rather than just what moved. Same summarized-value
+ * comparison as `describeDifficultyDelta` (dominant precision/answer-mode,
+ * not raw weighted distributions), for the same reason — a parent
+ * comparing two levels cares about the typical question, not a full
+ * probability breakdown.
+ */
+export function describeDifficultyComparisonTable(a: number, b: number): DifficultyComparisonRow[] {
+  const pa = difficultyProfile(a);
+  const pb = difficultyProfile(b);
+
+  function row(item: string, current: string, next: string): DifficultyComparisonRow {
+    return { item, current, next, changed: current !== next };
+  }
+
+  const modeA = capitalize(ANSWER_MODE_LABELS[dominantAnswerMode(pa)]);
+  const modeB = capitalize(ANSWER_MODE_LABELS[dominantAnswerMode(pb)]);
+
+  return [
+    row(
+      'Clock precision',
+      PRECISION_LABELS[dominantPrecision(pa)],
+      PRECISION_LABELS[dominantPrecision(pb)],
+    ),
+    row('Timer', `~${timerSeconds(pa)}s`, `~${timerSeconds(pb)}s`),
+    row('Answer style', modeA, modeB),
+    row(
+      'Dates',
+      capitalize(DATE_SPAN_PHRASES[pa.dateSpan]),
+      capitalize(DATE_SPAN_PHRASES[pb.dateSpan]),
+    ),
+    row('24-hour time', pa.hour24 ? 'On' : 'Off', pb.hour24 ? 'On' : 'Off'),
+    row(
+      'Clock numbers',
+      pa.clockNumerals ? 'Shown' : 'Hidden',
+      pb.clockNumerals ? 'Shown' : 'Hidden',
+    ),
+    row(
+      'Time-in-words',
+      PHRASING_PHRASES[pa.describePhrasing],
+      PHRASING_PHRASES[pb.describePhrasing],
+    ),
+    row(
+      'Answer order',
+      pa.orderedChoices ? 'In order' : 'Shuffled',
+      pb.orderedChoices ? 'In order' : 'Shuffled',
+    ),
+  ];
+}
