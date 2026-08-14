@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useMemo, useState } from 'react';
 import { formatDateLong } from '../../engine/dateMath';
 import { describeDifficultyComparisonTable } from '../../engine/difficultyDescribe';
 import { mulberry32 } from '../../engine/rng';
@@ -7,6 +7,12 @@ import type { PeakProgress, Profile } from '../../storage/types';
 import { buildCharacterLayers } from '../character/buildCharacterLayers';
 import { getCharacterPreset } from '../character/presets';
 import { climbLogResultLabel, sortedClimbLog } from '../climbLogCsv';
+import {
+  CHANGED_CHIP_STYLE,
+  COMPARE_TABLE_STYLE,
+  COMPARE_TD_STYLE,
+  COMPARE_TH_STYLE,
+} from '../compareTableStyles';
 import { formatDuration } from '../formatDuration';
 import ProfileChip from '../hud/ProfileChip';
 import PixelLayers from '../pixel/PixelLayers';
@@ -20,35 +26,6 @@ const MOUNTAIN_HEIGHT = 24;
 const MOUNTAIN_SCALE = 2;
 const PROFILE_PREVIEW_SCALE = 3;
 const HISTORY_PREVIEW_LIMIT = 5;
-
-/** A dedicated "Changed" column states outright whether a row differs,
- * rather than a full-row highlight — the highlight doubled as a second
- * bold treatment that was hard to tell apart from the header row's own
- * bold, and didn't survive grayscale/color-blind viewing anyway. */
-const COMPARE_TABLE_STYLE: CSSProperties = { borderCollapse: 'collapse', width: '100%' };
-const COMPARE_TH_STYLE: CSSProperties = {
-  background: 'var(--code-bg)',
-  color: 'var(--text)',
-  textAlign: 'left',
-  fontSize: '0.85em',
-  textTransform: 'uppercase',
-  letterSpacing: '0.03em',
-  padding: '0.4rem 0.5rem',
-  border: '1px solid var(--border)',
-};
-const COMPARE_TD_STYLE: CSSProperties = {
-  padding: '0.4rem 0.5rem',
-  border: '1px solid var(--border)',
-};
-const CHANGED_CHIP_STYLE: CSSProperties = {
-  display: 'inline-block',
-  fontSize: '0.8em',
-  fontWeight: 700,
-  padding: '0.1rem 0.5rem',
-  borderRadius: 999,
-  background: 'var(--accent-bg)',
-  color: 'var(--accent)',
-};
 
 export interface MapProps {
   profile: Profile;
