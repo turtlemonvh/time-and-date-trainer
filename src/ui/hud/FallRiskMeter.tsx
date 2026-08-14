@@ -3,8 +3,8 @@ export interface FallRiskMeterProps {
   fallRiskCapacity: number;
 }
 
-const FILLED_COLOR = '#c0392b';
-const EMPTY_COLOR = '#e5e4e7';
+const FILLED_COLOR = 'var(--danger)';
+const EMPTY_COLOR = 'var(--border)';
 
 /**
  * A row of pips showing accumulated misses toward `fallRiskCapacity` — the

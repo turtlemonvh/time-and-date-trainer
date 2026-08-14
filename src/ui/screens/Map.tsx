@@ -88,9 +88,10 @@ function PeakCard({ theme, progress, climbLog, onClimb, onViewFullHistory }: Pea
         flexWrap: 'wrap',
         alignItems: 'center',
         gap: '0.75rem',
-        border: '1px solid var(--border)',
-        borderRadius: 8,
+        border: '2px dashed var(--border)',
+        borderRadius: 14,
         padding: '0.75rem',
+        background: 'var(--code-bg)',
       }}
     >
       <PixelLayers
@@ -255,7 +256,12 @@ export default function Map({ profile, onClimb, onReview, onViewFullHistory }: M
           />
         }
       />
-      <button type="button" data-testid="map-review-link" onClick={onReview}>
+      <button
+        type="button"
+        data-variant="secondary"
+        data-testid="map-review-link"
+        onClick={onReview}
+      >
         Review (for parents/teachers)
       </button>
 
