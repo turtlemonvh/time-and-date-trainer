@@ -1,4 +1,11 @@
-import { useMemo, useState, type ChangeEvent, type CSSProperties } from 'react';
+import {
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type ComponentPropsWithoutRef,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import { formatDateLong } from '../../engine/dateMath';
 import {
   describeDifficultyComparisonTable,
@@ -24,34 +31,44 @@ import SampleQuestion from '../SampleQuestion';
 const DIFFICULTIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 const TAB_BAR_STYLE: CSSProperties = {
-  display: 'flex',
-  gap: '1.25rem',
+  display: 'inline-flex',
+  gap: '0.4rem',
   flexWrap: 'wrap',
-  borderBottom: '1px solid var(--border)',
+  background: 'var(--code-bg)',
+  border: '1px solid var(--border)',
+  borderRadius: 999,
+  padding: '0.3rem',
   marginBottom: '1rem',
 };
+/** Explicitly resets every property the global `button` rule sets
+ * (box-shadow, border-radius, min-height, ...) — leaving any of them
+ * unset here means it leaks through as a stray pill-shaped shadow behind
+ * this flat segmented-control look. */
 const TAB_STYLE: CSSProperties = {
-  fontSize: '0.9rem',
+  fontSize: '0.75rem',
   fontWeight: 700,
+  letterSpacing: '0.02em',
+  textTransform: 'uppercase',
   color: 'var(--text)',
-  padding: '0 0 0.6rem',
+  padding: '0.5rem 0.9rem',
+  minHeight: 'auto',
   border: 'none',
-  borderBottom: '2px solid transparent',
+  borderRadius: 999,
   background: 'none',
+  boxShadow: 'none',
   cursor: 'pointer',
 };
 const TAB_ACTIVE_STYLE: CSSProperties = {
   ...TAB_STYLE,
-  color: 'var(--accent)',
-  borderBottomColor: 'var(--accent)',
+  color: '#fff',
+  background: 'var(--accent)',
   cursor: 'default',
 };
 const CARD_STYLE: CSSProperties = {
-  border: '2px dashed var(--border)',
+  border: '1px solid var(--border)',
   borderRadius: 14,
   padding: '1rem',
   marginBottom: '0.75rem',
-  background: 'var(--code-bg)',
 };
 const CARD_HEADING_STYLE: CSSProperties = {
   fontSize: '0.8rem',
@@ -78,6 +95,7 @@ const PAGE_STEP_STYLE: CSSProperties = {
   color: 'var(--text-h)',
   fontSize: '0.85rem',
   fontWeight: 700,
+  boxShadow: 'none',
 };
 const PAGE_STEP_CURRENT_STYLE: CSSProperties = {
   ...PAGE_STEP_STYLE,
@@ -86,6 +104,37 @@ const PAGE_STEP_CURRENT_STYLE: CSSProperties = {
   color: '#fff',
 };
 const SCROLL_X_STYLE: CSSProperties = { overflowX: 'auto' };
+/** `#root` sets `text-align: center` for the whole app; a plain bulleted
+ * list never resets that, so wrapped text centers under a left-flush
+ * marker. Left-align explicitly and swap the browser's default disc for a
+ * themed dot instead of relying on `list-style`, which can't be colored
+ * independently of the text. */
+const BULLET_LIST_STYLE: CSSProperties = {
+  margin: 0,
+  padding: 0,
+  listStyle: 'none',
+  textAlign: 'left',
+};
+const BULLET_ITEM_STYLE: CSSProperties = {
+  position: 'relative',
+  paddingLeft: '1rem',
+  marginBottom: '0.35rem',
+};
+const BULLET_MARKER_STYLE: CSSProperties = { position: 'absolute', left: 0, color: 'var(--pine)' };
+
+function Bullet({
+  children,
+  ...rest
+}: { children: ReactNode } & Omit<ComponentPropsWithoutRef<'li'>, 'style'>) {
+  return (
+    <li style={BULLET_ITEM_STYLE} {...rest}>
+      <span style={BULLET_MARKER_STYLE} aria-hidden="true">
+        ●
+      </span>
+      {children}
+    </li>
+  );
+}
 
 function defaultCompareLevel(level: number): number {
   return level >= 10 ? level - 1 : level + 1;
@@ -351,10 +400,10 @@ export default function Review({
             <h3 style={CARD_HEADING_STYLE}>What difficulty {difficulty} means</h3>
             <ul
               data-testid="review-difficulty-bullets"
-              style={{ margin: 0, paddingLeft: '1.1rem', columns: 2, columnGap: '1.25rem' }}
+              style={{ ...BULLET_LIST_STYLE, columns: 2, columnGap: '1.25rem' }}
             >
               {bullets.map((line) => (
-                <li key={line}>{line}</li>
+                <Bullet key={line}>{line}</Bullet>
               ))}
             </ul>
           </div>
@@ -433,14 +482,11 @@ export default function Review({
                 <p style={{ margin: '0 0 0.25rem', fontWeight: 700 }}>
                   Pending goals for this peak
                 </p>
-                <ul
-                  data-testid="review-goal-cta-pending-list"
-                  style={{ margin: 0, paddingLeft: '1.1rem' }}
-                >
+                <ul data-testid="review-goal-cta-pending-list" style={BULLET_LIST_STYLE}>
                   {pendingGoalsForPeak.map((goal) => (
-                    <li key={goal.id} data-testid="review-goal-cta-pending-row">
+                    <Bullet key={goal.id} data-testid="review-goal-cta-pending-row">
                       Level {goal.difficulty} by {goal.targetDate}
-                    </li>
+                    </Bullet>
                   ))}
                 </ul>
               </div>
@@ -619,14 +665,14 @@ export default function Review({
                 No goals yet.
               </p>
             ) : (
-              <ul data-testid="review-goals-list" style={{ margin: 0, paddingLeft: '1.1rem' }}>
+              <ul data-testid="review-goals-list" style={BULLET_LIST_STYLE}>
                 {goals.map((goal) => (
-                  <li key={goal.id} data-testid="review-goal-row">
+                  <Bullet key={goal.id} data-testid="review-goal-row">
                     {getPeak(goal.peakId).name} — level {goal.difficulty} by {goal.targetDate}:{' '}
                     {goal.achievedAt === null
                       ? 'Pending'
                       : `Achieved ${formatDateLong(new Date(goal.achievedAt))}`}
-                  </li>
+                  </Bullet>
                 ))}
               </ul>
             )}

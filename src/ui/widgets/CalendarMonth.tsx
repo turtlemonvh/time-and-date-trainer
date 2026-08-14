@@ -97,10 +97,16 @@ export default function CalendarMonth({
             style: {
               minWidth: 44,
               minHeight: 44,
-              background: highlighted ? 'var(--accent)' : undefined,
-              color: highlighted ? '#fff' : undefined,
-              borderRadius: highlighted ? 8 : undefined,
-              fontWeight: highlighted ? 700 : undefined,
+              // Explicit non-highlighted defaults, not `undefined` — a day
+              // cell is a grid of numbers, not a row of CTAs, so it can't
+              // just fall through to the global button's ember pill/bevel.
+              background: highlighted ? 'var(--accent)' : 'transparent',
+              color: highlighted ? '#fff' : 'var(--text-h)',
+              borderRadius: highlighted ? 8 : 6,
+              fontWeight: highlighted ? 700 : 400,
+              border: 'none',
+              boxShadow: 'none',
+              padding: 0,
             },
           };
           if (onDayClick) {
