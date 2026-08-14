@@ -4,6 +4,7 @@ import {
   checkGoalsAchieved,
   createProfile,
   getProfile,
+  goalsForPeak,
   highestAttemptBeyondCleared,
   importProfile,
   isPeakSummited,
@@ -392,6 +393,76 @@ describe('checkGoalsAchieved', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('goalsForPeak', () => {
+  it('returns empty pending and null lastAchieved when there are no goals', () => {
+    expect(goalsForPeak([], 1)).toEqual({ pending: [], lastAchieved: null });
+  });
+
+  it('returns only pending (not yet achieved) goals for the requested peak', () => {
+    let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+    const id = save.profiles[0].id;
+    save = addGoal(save, id, 1, 5, '2026-12-01');
+    save = addGoal(save, id, 2, 3, '2026-11-01'); // different peak
+    const goals = getProfile(save, id)?.goals ?? [];
+    expect(goalsForPeak(goals, 1).pending).toHaveLength(1);
+    expect(goalsForPeak(goals, 1).pending[0].peakId).toBe(1);
+  });
+
+  it('sorts pending goals soonest-due first', () => {
+    let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+    const id = save.profiles[0].id;
+    save = addGoal(save, id, 1, 5, '2026-12-01');
+    save = addGoal(save, id, 1, 7, '2026-06-01');
+    const goals = getProfile(save, id)?.goals ?? [];
+    const pending = goalsForPeak(goals, 1).pending;
+    expect(pending.map((g) => g.targetDate)).toEqual(['2026-06-01', '2026-12-01']);
+  });
+
+  it('excludes achieved goals from pending', () => {
+    let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+    const id = save.profiles[0].id;
+    save = addGoal(save, id, 1, 5, '2026-12-01');
+    save = checkGoalsAchieved(save, id, 1, 5);
+    const goals = getProfile(save, id)?.goals ?? [];
+    expect(goalsForPeak(goals, 1).pending).toHaveLength(0);
+  });
+
+  it('returns null lastAchieved when nothing has been achieved for this peak', () => {
+    let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+    const id = save.profiles[0].id;
+    save = addGoal(save, id, 1, 5, '2026-12-01');
+    const goals = getProfile(save, id)?.goals ?? [];
+    expect(goalsForPeak(goals, 1).lastAchieved).toBeNull();
+  });
+
+  it('returns the most recently achieved goal when there are several', () => {
+    vi.useFakeTimers();
+    try {
+      let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+      const id = save.profiles[0].id;
+      save = addGoal(save, id, 1, 3, '2026-01-01');
+      save = checkGoalsAchieved(save, id, 1, 3);
+      vi.advanceTimersByTime(60000);
+      save = addGoal(save, id, 1, 5, '2026-02-01');
+      save = checkGoalsAchieved(save, id, 1, 5);
+      const goals = getProfile(save, id)?.goals ?? [];
+      expect(goalsForPeak(goals, 1).lastAchieved?.difficulty).toBe(5);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('only considers goals for the requested peak, for both pending and lastAchieved', () => {
+    let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+    const id = save.profiles[0].id;
+    save = addGoal(save, id, 2, 5, '2026-12-01');
+    save = checkGoalsAchieved(save, id, 2, 5);
+    save = addGoal(save, id, 2, 7, '2026-12-15');
+    const goals = getProfile(save, id)?.goals ?? [];
+    expect(goalsForPeak(goals, 1)).toEqual({ pending: [], lastAchieved: null });
   });
 });
 

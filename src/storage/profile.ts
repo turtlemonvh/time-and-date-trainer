@@ -87,6 +87,29 @@ export function highestAttemptBeyondCleared(
   return { difficulty, count };
 }
 
+export interface GoalsForPeak {
+  /** Not yet achieved, soonest-due first. */
+  pending: Goal[];
+  /** The most recently achieved goal for this peak, or `null` if none has
+   * been achieved yet — only the single most recent one, not the full
+   * achieved history (that lives in the Climber Log / Goals tab instead). */
+  lastAchieved: Goal | null;
+}
+
+/** Splits a peak's goals into what's still pending and its most recent
+ * achievement — powers the Curriculum tab's inline goal-creation card,
+ * which shows both while browsing a peak's levels. */
+export function goalsForPeak(goals: Goal[], peakId: number): GoalsForPeak {
+  const forPeak = goals.filter((g) => g.peakId === peakId);
+  const pending = forPeak
+    .filter((g) => g.achievedAt === null)
+    .sort((a, b) => a.targetDate.localeCompare(b.targetDate));
+  const achieved = forPeak
+    .filter((g): g is Goal & { achievedAt: number } => g.achievedAt !== null)
+    .sort((a, b) => b.achievedAt - a.achievedAt);
+  return { pending, lastAchieved: achieved[0] ?? null };
+}
+
 function makeClimbLogEntry(
   peakId: number,
   difficulty: number,
