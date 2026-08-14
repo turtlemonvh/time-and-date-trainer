@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { formatDateLong } from '../../engine/dateMath';
 import { describeDifficultyComparisonTable } from '../../engine/difficultyDescribe';
 import { mulberry32 } from '../../engine/rng';
@@ -20,6 +20,35 @@ const MOUNTAIN_HEIGHT = 24;
 const MOUNTAIN_SCALE = 2;
 const PROFILE_PREVIEW_SCALE = 3;
 const HISTORY_PREVIEW_LIMIT = 5;
+
+/** A dedicated "Changed" column states outright whether a row differs,
+ * rather than a full-row highlight — the highlight doubled as a second
+ * bold treatment that was hard to tell apart from the header row's own
+ * bold, and didn't survive grayscale/color-blind viewing anyway. */
+const COMPARE_TABLE_STYLE: CSSProperties = { borderCollapse: 'collapse', width: '100%' };
+const COMPARE_TH_STYLE: CSSProperties = {
+  background: 'var(--code-bg)',
+  color: 'var(--text)',
+  textAlign: 'left',
+  fontSize: '0.85em',
+  textTransform: 'uppercase',
+  letterSpacing: '0.03em',
+  padding: '0.4rem 0.5rem',
+  border: '1px solid var(--border)',
+};
+const COMPARE_TD_STYLE: CSSProperties = {
+  padding: '0.4rem 0.5rem',
+  border: '1px solid var(--border)',
+};
+const CHANGED_CHIP_STYLE: CSSProperties = {
+  display: 'inline-block',
+  fontSize: '0.8em',
+  fontWeight: 700,
+  padding: '0.1rem 0.5rem',
+  borderRadius: 999,
+  background: 'var(--accent-bg)',
+  color: 'var(--accent)',
+};
 
 export interface MapProps {
   profile: Profile;
@@ -156,12 +185,13 @@ function PeakCard({ theme, progress, climbLog, onClimb, onViewFullHistory }: Pea
           Level {selectedLevel} details
         </summary>
 
-        <table data-testid={`peak-compare-${peak.id}`}>
+        <table data-testid={`peak-compare-${peak.id}`} style={COMPARE_TABLE_STYLE}>
           <thead>
             <tr>
-              <th>Item</th>
-              <th>Now</th>
-              <th>Level {selectedLevel}</th>
+              <th style={COMPARE_TH_STYLE}>Item</th>
+              <th style={COMPARE_TH_STYLE}>Now</th>
+              <th style={COMPARE_TH_STYLE}>Level {selectedLevel}</th>
+              <th style={COMPARE_TH_STYLE}>Changed</th>
             </tr>
           </thead>
           <tbody>
@@ -170,13 +200,17 @@ function PeakCard({ theme, progress, climbLog, onClimb, onViewFullHistory }: Pea
                 key={row.item}
                 data-testid={`peak-compare-row-${peak.id}`}
                 data-changed={row.changed}
-                style={
-                  row.changed ? { background: 'var(--accent-bg)', fontWeight: 700 } : undefined
-                }
               >
-                <td>{row.item}</td>
-                <td>{row.current}</td>
-                <td>{row.next}</td>
+                <td style={COMPARE_TD_STYLE}>{row.item}</td>
+                <td style={COMPARE_TD_STYLE}>{row.current}</td>
+                <td style={COMPARE_TD_STYLE}>{row.next}</td>
+                <td style={COMPARE_TD_STYLE}>
+                  {row.changed ? (
+                    <span style={CHANGED_CHIP_STYLE}>Changed</span>
+                  ) : (
+                    <span style={{ color: 'var(--text)' }}>—</span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
