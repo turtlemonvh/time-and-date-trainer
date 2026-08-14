@@ -128,6 +128,12 @@ button[data-variant='secondary'] {
   border: 1px solid var(--border);
   box-shadow: none;
 }
+button[data-variant='ghost'] {
+  color: var(--accent);
+  background: transparent;
+  border: 1.5px dashed var(--accent-border);
+  box-shadow: none;
+}
 
 select,
 input {

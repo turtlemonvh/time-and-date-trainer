@@ -41,6 +41,10 @@ export default function ChoiceGrid({
         const isSelected = index === selectedIndex;
         const isCorrect = revealing && index === correctIndex;
         const isWrongSelection = revealing && isSelected && index !== correctIndex;
+        // An option that's neither the answer nor what was picked, shown
+        // during reveal — it should read as an inert reference, not fall
+        // through to the loud default ember pill.
+        const isNeutralReveal = revealing && !isCorrect && !isWrongSelection && !isSelected;
         const state = isCorrect
           ? 'correct'
           : isWrongSelection
@@ -62,14 +66,33 @@ export default function ChoiceGrid({
               minHeight: 44,
               padding: '12px 16px',
               borderRadius: 8,
+              // The reveal state is the actual feedback moment — dimming
+              // it via the global disabled-opacity rule would undercut the
+              // colors that carry that feedback, so it's overridden here
+              // unconditionally rather than only while revealing.
+              opacity: 1,
+              // Once revealing, every option is a flat feedback indicator,
+              // not a pressable CTA — the global button's 3D bevel shadow
+              // has to be turned off explicitly or it leaks through under
+              // the correct/neutral backgrounds too. Before reveal, leave
+              // it alone so answer options still look like normal pills.
+              boxShadow: revealing ? 'none' : undefined,
               background: isCorrect
                 ? 'var(--pine)'
                 : isWrongSelection
                   ? 'var(--danger)'
                   : isSelected
                     ? 'var(--accent)'
+                    : isNeutralReveal
+                      ? 'var(--code-bg)'
+                      : undefined,
+              border: isNeutralReveal ? '1px solid var(--border)' : undefined,
+              color:
+                isCorrect || isWrongSelection || isSelected
+                  ? '#fff'
+                  : isNeutralReveal
+                    ? 'var(--text-h)'
                     : undefined,
-              color: isCorrect || isWrongSelection || isSelected ? '#fff' : undefined,
             }}
           >
             {option}

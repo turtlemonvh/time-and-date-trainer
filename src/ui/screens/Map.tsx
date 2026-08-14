@@ -88,10 +88,10 @@ function PeakCard({ theme, progress, climbLog, onClimb, onViewFullHistory }: Pea
         flexWrap: 'wrap',
         alignItems: 'center',
         gap: '0.75rem',
-        border: '2px dashed var(--border)',
+        border: '2px solid var(--border)',
+        borderLeft: `5px solid ${theme.rock}`,
         borderRadius: 14,
         padding: '0.75rem',
-        background: 'var(--code-bg)',
       }}
     >
       <PixelLayers
@@ -264,6 +264,15 @@ export default function Map({ profile, onClimb, onReview, onViewFullHistory }: M
       >
         Review (for parents/teachers)
       </button>
+
+      <hr
+        style={{
+          width: '85%',
+          margin: '1.25rem auto',
+          border: 'none',
+          borderTop: '2px dashed var(--border)',
+        }}
+      />
 
       <div
         data-testid="peak-grid"

@@ -41,7 +41,10 @@ export default function ProfileSelect({
       <h1>Who&apos;s climbing?</h1>
 
       {profiles.length > 0 && (
-        <div data-testid="profile-list">
+        <div
+          data-testid="profile-list"
+          style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.75rem' }}
+        >
           {profiles.map((profile) => (
             <button
               key={profile.id}
@@ -56,7 +59,13 @@ export default function ProfileSelect({
       )}
 
       {!creating && (
-        <button type="button" data-testid="profile-new" onClick={() => setCreating(true)}>
+        <button
+          type="button"
+          data-variant="ghost"
+          data-testid="profile-new"
+          onClick={() => setCreating(true)}
+          style={{ marginTop: '0.75rem' }}
+        >
           + New Climber
         </button>
       )}
