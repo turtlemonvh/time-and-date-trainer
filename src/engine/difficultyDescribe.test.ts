@@ -1,20 +1,37 @@
 import { describe, expect, it } from 'vitest';
+import { getPeak } from './peaks';
 import { describeDifficultyComparisonTable, describeDifficultyLevel } from './difficultyDescribe';
+import { generateQuestion, getGenerator } from './questions';
+import { PEAK_TYPE_IDS } from './questions/peakEmphasis';
+import { mulberry32 } from './rng';
+
+// Peak 10 (Summit of Hours) is on-theme for every generator — the closest
+// thing to "no particular peak" for tests that just want *some* answer
+// covering every field, not a specific peak's own restricted set.
+const BROADEST_PEAK = 10;
+
+/** Peaks with exactly one on-theme generator — their answer style can
+ * never vary by difficulty, since there's nothing else to mix with. */
+const SINGLE_GENERATOR_PEAKS = Object.entries(PEAK_TYPE_IDS)
+  .filter(([, typeIds]) => typeIds.length === 1)
+  .map(([peakId, typeIds]) => ({ peakId: Number(peakId), typeId: typeIds[0] }));
 
 describe('describeDifficultyLevel', () => {
-  it('returns exactly 8 non-empty bullets — one per DifficultyProfile field', () => {
-    for (let level = 1; level <= 10; level++) {
-      const bullets = describeDifficultyLevel(level);
-      expect(bullets).toHaveLength(8);
-      for (const bullet of bullets) {
-        expect(typeof bullet).toBe('string');
-        expect(bullet.trim().length).toBeGreaterThan(0);
+  it('returns exactly 8 non-empty bullets — one per DifficultyProfile field, for every peak', () => {
+    for (let peakId = 1; peakId <= 10; peakId++) {
+      for (let level = 1; level <= 10; level++) {
+        const bullets = describeDifficultyLevel(level, peakId);
+        expect(bullets).toHaveLength(8);
+        for (const bullet of bullets) {
+          expect(typeof bullet).toBe('string');
+          expect(bullet.trim().length).toBeGreaterThan(0);
+        }
       }
     }
   });
 
   it('describes difficulty 1 as easy, choice-only, coarse, 12-hour', () => {
-    const bullets = describeDifficultyLevel(1).join(' | ');
+    const bullets = describeDifficultyLevel(1, BROADEST_PEAK).join(' | ');
     expect(bullets).toContain('the hour');
     expect(bullets).toContain('Multiple choice only');
     expect(bullets).toContain('Dates stay within the same month');
@@ -24,7 +41,7 @@ describe('describeDifficultyLevel', () => {
   });
 
   it('describes difficulty 10 as hard, mostly free-typed, fine precision, 24-hour', () => {
-    const bullets = describeDifficultyLevel(10).join(' | ');
+    const bullets = describeDifficultyLevel(10, BROADEST_PEAK).join(' | ');
     expect(bullets).toContain('the exact second');
     expect(bullets).toContain('typed-in answers');
     expect(bullets).toContain('Dates can span different years, including leap years');
@@ -34,12 +51,96 @@ describe('describeDifficultyLevel', () => {
   });
 
   it('clamps out-of-range levels the same way difficultyProfile does', () => {
-    expect(describeDifficultyLevel(0)).toEqual(describeDifficultyLevel(1));
-    expect(describeDifficultyLevel(99)).toEqual(describeDifficultyLevel(10));
+    expect(describeDifficultyLevel(0, BROADEST_PEAK)).toEqual(
+      describeDifficultyLevel(1, BROADEST_PEAK),
+    );
+    expect(describeDifficultyLevel(99, BROADEST_PEAK)).toEqual(
+      describeDifficultyLevel(10, BROADEST_PEAK),
+    );
   });
 
   it('is deterministic', () => {
-    expect(describeDifficultyLevel(5)).toEqual(describeDifficultyLevel(5));
+    expect(describeDifficultyLevel(5, BROADEST_PEAK)).toEqual(
+      describeDifficultyLevel(5, BROADEST_PEAK),
+    );
+  });
+
+  // Issue #78: the "Answer style" bullet was computed from the site-wide
+  // answerModeWeights distribution, ignoring which generator(s) the peak
+  // actually draws from — so a choice-only peak like Basecamp Bluff could
+  // be told it's "Typed-in answers only" at a difficulty where `free` is
+  // the site-wide dominant mode, even though its one on-theme generator
+  // (readAnalog) never produces a free-mode question.
+  describe('"Answer style" always matches what the peak can actually draw (issue #78)', () => {
+    it.each(SINGLE_GENERATOR_PEAKS)(
+      "peak $peakId ($typeId) reports its one generator's answer mode at every difficulty",
+      ({ peakId, typeId }) => {
+        const expectedMode = getGenerator(typeId).answerMode;
+        const expectedLabel = {
+          choice: 'Multiple choice only',
+          interactive: 'Drag/set answers, like moving clock hands only',
+          free: 'Typed-in answers only',
+        }[expectedMode];
+        for (let level = 1; level <= 10; level++) {
+          const bullets = describeDifficultyLevel(level, peakId);
+          expect(bullets).toContain(expectedLabel);
+        }
+      },
+    );
+
+    it('reproduces the reported case: Basecamp Bluff (peak 1) at difficulty 10 says "Multiple choice", not "Typed-in answers"', () => {
+      const bullets = describeDifficultyLevel(10, 1).join(' | ');
+      expect(bullets).toContain('Multiple choice only');
+      expect(bullets).not.toContain('Typed-in answers');
+    });
+
+    it('reproduces the reported case: Sundial Spire (peak 2) at difficulty 7 says "Multiple choice", not "Drag/set"', () => {
+      const bullets = describeDifficultyLevel(7, 2).join(' | ');
+      expect(bullets).toContain('Multiple choice only');
+      expect(bullets).not.toContain('Drag/set');
+    });
+
+    it('the described answer style always matches questions actually generated for that peak/difficulty', () => {
+      // Re-derives the correct answer independently, from real generated
+      // questions rather than from describeDifficultyLevel's own internals,
+      // per this project's "a wrongly-graded question is the worst bug
+      // class" testing convention (see contract.test.ts for the pattern).
+      const MODE_LABEL_SUBSTRING = {
+        choice: 'multiple choice',
+        interactive: 'drag/set',
+        free: 'typed-in',
+      } as const;
+      for (let peakId = 1; peakId <= 10; peakId++) {
+        const peak = getPeak(peakId);
+        for (let level = 1; level <= 10; level += 3) {
+          const bullets = describeDifficultyLevel(level, peakId);
+          const styleBullet = bullets.find((b) => /only$|too$/.test(b))!.toLowerCase();
+
+          const modesActuallyDrawn = new Set(
+            Array.from({ length: 40 }, (_, seed) =>
+              generateQuestion(mulberry32(seed), { difficulty: level, peak }),
+            ).map((q) => getGenerator(q.typeId).answerMode),
+          );
+
+          if (styleBullet.endsWith('only')) {
+            // A hard guarantee, not a probabilistic one: "X only" is false
+            // if even a single sample came back some other mode.
+            for (const mode of modesActuallyDrawn) {
+              expect(styleBullet).toContain(MODE_LABEL_SUBSTRING[mode]);
+            }
+          } else {
+            // "Mostly X, with some other styles too" only promises X is
+            // real, not that every other reachable mode gets named — the
+            // bullet is deliberately vague about what the "other" styles
+            // are, so this only checks X was actually drawable.
+            const namedMode = (
+              Object.keys(MODE_LABEL_SUBSTRING) as (keyof typeof MODE_LABEL_SUBSTRING)[]
+            ).find((mode) => styleBullet.includes(MODE_LABEL_SUBSTRING[mode]))!;
+            expect(modesActuallyDrawn.has(namedMode)).toBe(true);
+          }
+        }
+      }
+    });
   });
 });
 
