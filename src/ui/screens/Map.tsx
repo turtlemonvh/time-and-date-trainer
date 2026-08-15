@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { formatDateLong } from '../../engine/dateMath';
 import { describeDifficultyComparisonTable } from '../../engine/difficultyDescribe';
-import { mulberry32 } from '../../engine/rng';
 import { highestAttemptBeyondCleared, isPeakSummited } from '../../storage/profile';
 import type { PeakProgress, Profile } from '../../storage/types';
+import MountainArt from '../art/MountainArt';
 import { buildCharacterLayers } from '../character/buildCharacterLayers';
 import { getCharacterPreset } from '../character/presets';
 import { climbLogResultLabel, sortedClimbLog } from '../climbLogCsv';
@@ -16,14 +16,18 @@ import {
 import { formatDuration } from '../formatDuration';
 import ProfileChip from '../hud/ProfileChip';
 import PixelLayers from '../pixel/PixelLayers';
-import { generateMountainScene } from '../pixel/mountainScene';
 import { MOUNTAIN_THEMES, pixelPeakHeight, type MountainTheme } from '../pixel/mountainThemes';
 import { bodyIdle } from '../pixel/sprites/body';
 
 const DIFFICULTIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-const MOUNTAIN_WIDTH = 64;
-const MOUNTAIN_HEIGHT = 24;
-const MOUNTAIN_SCALE = 2;
+const MOUNTAIN_WIDTH = 128;
+const MOUNTAIN_HEIGHT = 48;
+/** `pixelPeakHeight` still returns its old 14-22 pixel-scale number (see
+ * its own doc comment for why that's derived from `peak.id`, not
+ * `peak.height`) — reused here as-is and just normalized to a 0-1
+ * fraction, rather than duplicating the "progressively bigger by id"
+ * logic a second time. */
+const PIXEL_HEIGHT_SPAN = 24;
 const PROFILE_PREVIEW_SCALE = 3;
 const HISTORY_PREVIEW_LIMIT = 5;
 
@@ -94,16 +98,13 @@ function PeakCard({ theme, progress, climbLog, onClimb, onViewFullHistory }: Pea
         padding: '0.75rem',
       }}
     >
-      <PixelLayers
-        layers={generateMountainScene(
-          mulberry32(peak.id),
-          MOUNTAIN_WIDTH,
-          MOUNTAIN_HEIGHT,
-          pixelPeakHeight(peak),
-          theme.rock,
-          theme.snow,
-        )}
-        scale={MOUNTAIN_SCALE}
+      <MountainArt
+        rock={theme.rock}
+        snow={theme.snow}
+        seed={peak.id}
+        peakHeightFraction={pixelPeakHeight(peak) / PIXEL_HEIGHT_SPAN}
+        width={MOUNTAIN_WIDTH}
+        height={MOUNTAIN_HEIGHT}
       />
 
       <div style={{ flex: '1 1 200px', minWidth: 200 }}>
