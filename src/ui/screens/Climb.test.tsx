@@ -228,6 +228,50 @@ describe('Climb', () => {
     expect(screen.getByTestId('climb-explain')).toHaveTextContent('Because Right is right.');
   });
 
+  it('applies the slip animation and renders dust puffs during the reveal beat after a miss', () => {
+    render(
+      <Climb
+        peak={shortPeak}
+        difficulty={5}
+        characterPreset={preset}
+        seed={1}
+        onSummit={vi.fn()}
+        onFall={vi.fn()}
+        onBail={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByTestId('choice-option-1'));
+    expect(screen.getByTestId('climb-sprite-wrap').className).toContain('climb-sprite-wrap--slip');
+    expect(document.querySelectorAll('.climb-slip-dust')).toHaveLength(3);
+
+    act(() => {
+      vi.advanceTimersByTime(REVEAL_MS);
+    });
+    expect(screen.getByTestId('climb-sprite-wrap').className).not.toContain(
+      'climb-sprite-wrap--slip',
+    );
+    expect(document.querySelectorAll('.climb-slip-dust')).toHaveLength(0);
+  });
+
+  it('does not apply the slip animation after a correct answer', () => {
+    render(
+      <Climb
+        peak={shortPeak}
+        difficulty={5}
+        characterPreset={preset}
+        seed={1}
+        onSummit={vi.fn()}
+        onFall={vi.fn()}
+        onBail={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByTestId('choice-option-0'));
+    expect(screen.getByTestId('climb-sprite-wrap').className).not.toContain(
+      'climb-sprite-wrap--slip',
+    );
+    expect(document.querySelectorAll('.climb-slip-dust')).toHaveLength(0);
+  });
+
   it('reports every answer via onQuestionAnswered, including correctness and elapsed time', () => {
     const onQuestionAnswered = vi.fn();
     render(

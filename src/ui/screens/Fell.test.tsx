@@ -13,6 +13,30 @@ describe('Fell', () => {
     expect(screen.getByRole('main')).toHaveTextContent('Basecamp Bluff');
   });
 
+  it('shows one of the known encouraging messages', () => {
+    render(<Fell peak={peak} characterPreset={preset} onRetry={vi.fn()} onReturnToMap={vi.fn()} />);
+    const shown = screen.getByTestId('fell-message').textContent;
+    const knownMessages = [
+      'Whoops! Even mountain goats trip sometimes.',
+      'Gravity: 1, You: 0. Rematch?',
+      'That slope was extra slippery today!',
+      'Your boots needed a snack break. Try again!',
+      'Ice happens. Climb on!',
+    ];
+    expect(knownMessages.some((m) => shown?.includes(m))).toBe(true);
+  });
+
+  it('keeps the same message across re-renders rather than re-rolling it', () => {
+    const { rerender } = render(
+      <Fell peak={peak} characterPreset={preset} onRetry={vi.fn()} onReturnToMap={vi.fn()} />,
+    );
+    const first = screen.getByTestId('fell-message').textContent;
+    rerender(
+      <Fell peak={peak} characterPreset={preset} onRetry={vi.fn()} onReturnToMap={vi.fn()} />,
+    );
+    expect(screen.getByTestId('fell-message')).toHaveTextContent(first ?? '');
+  });
+
   it('calls onRetry when "Try Again" is clicked', () => {
     const onRetry = vi.fn();
     render(<Fell peak={peak} characterPreset={preset} onRetry={onRetry} onReturnToMap={vi.fn()} />);
