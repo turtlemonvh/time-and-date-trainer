@@ -331,7 +331,12 @@ export default function Review({
         A reference for parents and teachers: what does each peak actually ask at each difficulty
         level, and what has {profile.name} actually done?
       </p>
-      <button type="button" data-testid="review-back" onClick={onBack}>
+      <button
+        type="button"
+        data-testid="review-back"
+        onClick={onBack}
+        style={{ marginBottom: '1rem' }}
+      >
         Back to Map
       </button>
 
@@ -559,7 +564,7 @@ export default function Review({
               </select>
             </p>
 
-            <p>
+            <p style={{ marginTop: '0.75rem' }}>
               <button
                 type="button"
                 data-testid="review-log-download"
@@ -683,7 +688,7 @@ export default function Review({
       {section === 'export' && (
         <section data-testid="review-export">
           <div style={CARD_STYLE}>
-            <p>
+            <p style={{ marginBottom: '0.75rem' }}>
               The profile lives only in this browser&apos;s storage — export it to keep a backup, or
               to move it to another device.
             </p>
