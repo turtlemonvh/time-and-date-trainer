@@ -2,6 +2,15 @@ import { useState } from 'react';
 import { MONTH_NAMES } from '../questionDisplay';
 
 const WEEKDAY_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+/** How many years to offer on either side of the year currently in view —
+ * re-centers as `view.year` changes, so picking a year at the edge of the
+ * window (or paginating across a year boundary) keeps it within range
+ * rather than requiring a fixed, eventually-exhausted list. */
+const YEAR_WINDOW = 6;
+
+function yearOptions(centerYear: number): number[] {
+  return Array.from({ length: YEAR_WINDOW * 2 + 1 }, (_, i) => centerYear - YEAR_WINDOW + i);
+}
 
 export interface CalendarMonthProps {
   year: number;
@@ -57,7 +66,18 @@ export default function CalendarMonth({
 
   return (
     <div data-testid="calendar-month">
-      <div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.5rem',
+        }}
+      >
+        {/* Pinned to the row's own edges via flex, not positioned relative
+         * to the month/year controls — so they stay put regardless of how
+         * wide "September" vs "May" or the selected year render (issue
+         * #77: pagination buttons used to shift with the label's width). */}
         <button
           type="button"
           data-testid="calendar-prev-month"
@@ -65,10 +85,37 @@ export default function CalendarMonth({
           onClick={() => changeMonth(-1)}
         >
           ‹
-        </button>{' '}
-        <span data-testid="calendar-month-label">
-          {MONTH_NAMES[view.monthIndex]} {view.year}
-        </span>{' '}
+        </button>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.35rem', flex: 1 }}>
+          <select
+            data-testid="calendar-month-select"
+            aria-label="Month"
+            value={view.monthIndex}
+            onChange={(event) =>
+              setView((current) => ({ ...current, monthIndex: Number(event.target.value) }))
+            }
+          >
+            {MONTH_NAMES.map((name, index) => (
+              <option key={name} value={index}>
+                {name}
+              </option>
+            ))}
+          </select>
+          <select
+            data-testid="calendar-year-select"
+            aria-label="Year"
+            value={view.year}
+            onChange={(event) =>
+              setView((current) => ({ ...current, year: Number(event.target.value) }))
+            }
+          >
+            {yearOptions(view.year).map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+        </div>
         <button
           type="button"
           data-testid="calendar-next-month"

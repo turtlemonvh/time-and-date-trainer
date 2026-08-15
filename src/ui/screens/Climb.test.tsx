@@ -471,7 +471,8 @@ describe('Climb — pickDate answer kind', () => {
   it('renders a DatePicker opened on the target month, with no separate Submit button', () => {
     renderClimb();
     expect(screen.getByTestId('date-picker')).toBeInTheDocument();
-    expect(screen.getByTestId('calendar-month-label')).toHaveTextContent('June 2026');
+    expect(screen.getByTestId('calendar-month-select')).toHaveValue('5');
+    expect(screen.getByTestId('calendar-year-select')).toHaveValue('2026');
     expect(screen.queryByTestId('climb-submit')).not.toBeInTheDocument();
   });
 
