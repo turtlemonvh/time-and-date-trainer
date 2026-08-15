@@ -318,10 +318,24 @@ export default function Climb({
         </button>
       </div>
       <TimerBar fraction={timeLeftMs / question.timeLimitMs} />
-      <PixelLayers
-        layers={buildCharacterLayers(characterPreset, POSE_SPRITES[pose], { harness: true })}
-        scale={CHARACTER_SCALE}
-      />
+      <div
+        data-testid="climb-sprite-wrap"
+        className={
+          pose === 'slip' ? 'climb-sprite-wrap climb-sprite-wrap--slip' : 'climb-sprite-wrap'
+        }
+      >
+        {pose === 'slip' && (
+          <>
+            <span className="climb-slip-dust climb-slip-dust--1" />
+            <span className="climb-slip-dust climb-slip-dust--2" />
+            <span className="climb-slip-dust climb-slip-dust--3" />
+          </>
+        )}
+        <PixelLayers
+          layers={buildCharacterLayers(characterPreset, POSE_SPRITES[pose], { harness: true })}
+          scale={CHARACTER_SCALE}
+        />
+      </div>
       <p data-testid="climb-prompt">{question.prompt}</p>
       <div data-testid="climb-display">{renderDisplay(question.display)}</div>
       <div data-testid="climb-answer">{renderAnswerSection()}</div>

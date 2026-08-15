@@ -209,3 +209,155 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+/* --- Gameplay animation --------------------------------------------------
+ * First animation ticket (issue #76 pick-off plan, No. 2/No. 7) — this is
+ * also where the prefers-reduced-motion pattern for every later animation
+ * ticket gets established: every `animation` declaration lives inside the
+ * `no-preference` block below, so someone who's told their OS they want
+ * reduced motion gets the plain, static states with zero extra work per
+ * component. Static (non-animated) layout/shape rules for the same classes
+ * stay outside the media query so they always apply. */
+
+.fell-message {
+  display: inline-block;
+  font-weight: 700;
+  color: var(--text-h);
+  background: var(--code-bg);
+  border: 2px dashed var(--border);
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.boost-pip-row--full {
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.climb-sprite-wrap {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 28px;
+}
+
+.climb-slip-dust {
+  position: absolute;
+  bottom: 8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+  opacity: 0;
+}
+.climb-slip-dust--1 {
+  left: 38%;
+}
+.climb-slip-dust--2 {
+  left: 52%;
+}
+.climb-slip-dust--3 {
+  left: 45%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .boost-pip--charging {
+    animation: boostPipBreathe 1.1s ease-in-out infinite;
+  }
+  .boost-pip-row--full::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      100deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.75) 48%,
+      transparent 66%
+    );
+    animation: boostWaveSweep 1.3s linear infinite;
+    pointer-events: none;
+  }
+
+  .climb-sprite-wrap--slip {
+    animation: climbSlipSlide 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 1;
+  }
+  .climb-slip-dust--1 {
+    animation: climbSlipDustLeft 0.6s ease-out 1 both;
+  }
+  .climb-slip-dust--2 {
+    animation: climbSlipDustRight 0.6s ease-out 1 both 0.05s;
+  }
+  .climb-slip-dust--3 {
+    animation: climbSlipDustCenter 0.6s ease-out 1 both 0.1s;
+  }
+}
+
+@keyframes boostPipBreathe {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(217, 123, 63, 0);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 9px var(--accent);
+    transform: scale(1.08);
+  }
+}
+@keyframes boostWaveSweep {
+  0% {
+    transform: translateX(-140%);
+  }
+  100% {
+    transform: translateX(140%);
+  }
+}
+/* Ends back at (0, 0), not left displaced — this plays during the ~1.5s
+ * post-answer reveal beat while the character sprite still needs to sit in
+ * its normal spot once the next question starts. Kept clear of the sprite
+ * wrap's own margin-bottom (28px > this animation's 22px max) so the
+ * transformed sprite's bounding box never overlaps a sibling element mid-
+ * motion — that overlap otherwise reproduces a real Chromium compositing
+ * artifact (a smeared ghost trail), confirmed while prototyping this
+ * concept. */
+@keyframes climbSlipSlide {
+  0% {
+    transform: translate(0, 0);
+  }
+  35% {
+    transform: translate(-10px, 22px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+@keyframes climbSlipDustLeft {
+  0% {
+    transform: translate(0, 0) scale(0.5);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(-14px, -18px) scale(1.4);
+    opacity: 0;
+  }
+}
+@keyframes climbSlipDustRight {
+  0% {
+    transform: translate(0, 0) scale(0.5);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(14px, -18px) scale(1.4);
+    opacity: 0;
+  }
+}
+@keyframes climbSlipDustCenter {
+  0% {
+    transform: translate(0, 0) scale(0.5);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(0, -18px) scale(1.4);
+    opacity: 0;
+  }
+}

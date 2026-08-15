@@ -28,4 +28,27 @@ describe('BoostMeter', () => {
     expect(fullPips).toHaveLength(5);
     expect(fullPips.every((pip) => pip.getAttribute('data-full') === 'true')).toBe(true);
   });
+
+  it('gives filled-but-not-full pips the charging animation class', () => {
+    render(<BoostMeter boost={2} boostCapacity={5} />);
+    for (const pip of screen.getAllByTestId('boost-pip-filled')) {
+      expect(pip.className).toContain('boost-pip--charging');
+    }
+    for (const pip of screen.getAllByTestId('boost-pip-empty')) {
+      expect(pip.className).not.toContain('boost-pip--charging');
+    }
+  });
+
+  it('drops the charging class and marks the row full once boost reaches capacity', () => {
+    render(<BoostMeter boost={5} boostCapacity={5} />);
+    for (const pip of screen.getAllByTestId('boost-pip-filled')) {
+      expect(pip.className).not.toContain('boost-pip--charging');
+    }
+    expect(screen.getByTestId('boost-meter').querySelector('.boost-pip-row--full')).not.toBeNull();
+  });
+
+  it('does not mark the row full below capacity', () => {
+    render(<BoostMeter boost={4} boostCapacity={5} />);
+    expect(screen.getByTestId('boost-meter').querySelector('.boost-pip-row--full')).toBeNull();
+  });
 });
