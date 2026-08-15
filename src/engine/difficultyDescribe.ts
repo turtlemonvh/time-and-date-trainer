@@ -44,14 +44,54 @@ const ANSWER_MODE_LABELS: Readonly<Record<AnswerMode, string>> = {
   free: 'typed-in answers',
 };
 
-function dominantAnswerMode(profile: DifficultyProfile): AnswerMode {
-  return ANSWER_MODE_ORDER.reduce((best, candidate) =>
-    profile.answerModeWeights[candidate] > profile.answerModeWeights[best] ? candidate : best,
-  );
+interface PeakAnswerModeSummary {
+  mode: AnswerMode;
+  variety: number;
 }
 
-function answerModeVariety(profile: DifficultyProfile): number {
-  return ANSWER_MODE_ORDER.filter((m) => profile.answerModeWeights[m] > 0).length;
+/**
+ * The answer mode(s) actually reachable for `peakId` at this difficulty —
+ * mirrors `selectGenerator`'s exact algorithm (registry.ts: filter to
+ * on-theme generators, weight each by `answerModeWeights[type.answerMode]`,
+ * fall back to a uniform draw if every on-theme generator weighs 0) rather
+ * than reading `profile.answerModeWeights` directly. That distribution
+ * describes the *site-wide* mix across all three modes; a peak's on-theme
+ * generator set can make some or all of those modes unreachable regardless
+ * of it — e.g. Basecamp Bluff's only on-theme generator, `readAnalog`, is
+ * always `choice`, so no difficulty level can make it draw a `free`-mode
+ * question even at a difficulty where `free` is the site-wide dominant
+ * mode. This was issue #78: the curriculum page's "Answer style" bullet
+ * and the sample question it sits next to could describe two different
+ * generators.
+ *
+ * Summing weight per mode across every on-theme generator (rather than
+ * comparing the three `answerModeWeights` numbers directly) also matters
+ * for a peak with several on-theme generators unevenly split across modes
+ * (e.g. peak 10, on-theme for everything, has 7 `choice` generators but
+ * only 2 `interactive` ones) — `selectGenerator` draws a generator, not a
+ * mode, so a mode backed by more generators is more likely to be drawn
+ * even at an equal per-generator weight.
+ */
+function peakAnswerModeSummary(profile: DifficultyProfile, peakId: number): PeakAnswerModeSummary {
+  const peak = getPeak(peakId);
+  const onTheme = BUILT_IN_QUESTION_TYPES.filter((type) => isOnThemeForPeak(peak, type.typeId));
+  const weighted = onTheme.map((type) => ({
+    mode: type.answerMode,
+    weight: profile.answerModeWeights[type.answerMode],
+  }));
+  const hasDrawableWeight = weighted.some((w) => w.weight > 0);
+  const effective = hasDrawableWeight ? weighted : weighted.map((w) => ({ ...w, weight: 1 }));
+
+  const totalByMode = new Map<AnswerMode, number>();
+  for (const { mode, weight } of effective) {
+    totalByMode.set(mode, (totalByMode.get(mode) ?? 0) + weight);
+  }
+
+  const mode = ANSWER_MODE_ORDER.reduce((best, candidate) =>
+    (totalByMode.get(candidate) ?? 0) > (totalByMode.get(best) ?? 0) ? candidate : best,
+  );
+  const variety = ANSWER_MODE_ORDER.filter((m) => (totalByMode.get(m) ?? 0) > 0).length;
+  return { mode, variety };
 }
 
 /** Full-sentence phrasing, for `describeDifficultyLevel`'s standalone bullet. */
@@ -85,19 +125,22 @@ function capitalize(s: string): string {
 
 /**
  * Ordered, short, plain-English bullets describing difficulty `level`
- * (1-10) — one per real `DifficultyProfile` field (`difficulty.ts`), not
- * the design spec's prose, which has drifted from the actually-tuned
- * values (e.g. real timers run 30s down to 12s, not the spec's 20s-7s).
- * Powers the per-peak difficulty picker and the curriculum browser.
+ * (1-10) for `peakId` — one per real `DifficultyProfile` field
+ * (`difficulty.ts`), not the design spec's prose, which has drifted from
+ * the actually-tuned values (e.g. real timers run 30s down to 12s, not the
+ * spec's 20s-7s). Powers the per-peak difficulty picker and the curriculum
+ * browser. Takes `peakId` (not just `level`) so the "Answer style" bullet
+ * reflects what that peak's own on-theme generator(s) can actually produce
+ * — see `peakAnswerModeSummary`.
  */
-export function describeDifficultyLevel(level: number): string[] {
+export function describeDifficultyLevel(level: number, peakId: number): string[] {
   const profile = difficultyProfile(level);
   const precision = dominantPrecision(profile);
-  const mode = dominantAnswerMode(profile);
+  const { mode, variety } = peakAnswerModeSummary(profile, peakId);
   return [
     `Clock reading: ${precisionVariety(profile) > 1 ? 'mostly' : 'always'} to ${PRECISION_LABELS[precision]}`,
     `About ${timerSeconds(profile)} seconds per question`,
-    answerModeVariety(profile) > 1
+    variety > 1
       ? `Mostly ${ANSWER_MODE_LABELS[mode]}, with some other answer styles too`
       : `${capitalize(ANSWER_MODE_LABELS[mode])} only`,
     DATE_SPAN_SENTENCES[profile.dateSpan],
@@ -201,8 +244,8 @@ export function describeDifficultyComparisonTable(
     return { item, current, next, changed: current !== next };
   }
 
-  const modeA = capitalize(ANSWER_MODE_LABELS[dominantAnswerMode(pa)]);
-  const modeB = capitalize(ANSWER_MODE_LABELS[dominantAnswerMode(pb)]);
+  const modeA = capitalize(ANSWER_MODE_LABELS[peakAnswerModeSummary(pa, peakId).mode]);
+  const modeB = capitalize(ANSWER_MODE_LABELS[peakAnswerModeSummary(pb, peakId).mode]);
 
   const allRows = [
     row(

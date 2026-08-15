@@ -275,7 +275,7 @@ export default function Review({
     initialLogFilter?.difficulty ?? 'all',
   );
 
-  const bullets = useMemo(() => describeDifficultyLevel(difficulty), [difficulty]);
+  const bullets = useMemo(() => describeDifficultyLevel(difficulty, peakId), [difficulty, peakId]);
   const compareRows = useMemo(
     () => describeDifficultyComparisonTable(difficulty, compareLevel, peakId),
     [difficulty, compareLevel, peakId],
