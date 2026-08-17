@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   addGoal,
+  bestTimeForDifficulty,
   checkGoalsAchieved,
   createProfile,
   getProfile,
@@ -14,10 +15,11 @@ import {
   recordQuestionStat,
   recordSummit,
   setPeakDifficulty,
+  summitTier,
 } from './profile';
 import type { Profile, SaveFile } from './types';
 
-const EMPTY_SAVE: SaveFile = { v: 2, activeProfileId: null, profiles: [] };
+const EMPTY_SAVE: SaveFile = { v: 3, activeProfileId: null, profiles: [] };
 
 describe('createProfile', () => {
   it('appends a new profile with defaults and makes it active', () => {
@@ -64,7 +66,7 @@ describe('setPeakDifficulty', () => {
     expect(getProfile(save, id)?.progress[1]).toEqual({
       difficulty: 8,
       highestDifficultyCleared: null,
-      bestTimeMs: null,
+      bestTimeMsByDifficulty: {},
       attempts: 0,
       bails: 0,
     });
@@ -89,7 +91,7 @@ describe('setPeakDifficulty', () => {
     expect(getProfile(save, id)?.progress[1]).toEqual({
       difficulty: 7,
       highestDifficultyCleared: 5,
-      bestTimeMs: 90000,
+      bestTimeMsByDifficulty: { 5: 90000 },
       attempts: 1,
       bails: 0,
     });
@@ -102,7 +104,7 @@ describe('isPeakSummited', () => {
       isPeakSummited({
         difficulty: 1,
         highestDifficultyCleared: null,
-        bestTimeMs: null,
+        bestTimeMsByDifficulty: {},
         attempts: 0,
         bails: 0,
       }),
@@ -114,7 +116,7 @@ describe('isPeakSummited', () => {
       isPeakSummited({
         difficulty: 1,
         highestDifficultyCleared: 1,
-        bestTimeMs: 90000,
+        bestTimeMsByDifficulty: { 1: 90000 },
         attempts: 1,
         bails: 0,
       }),
@@ -199,22 +201,40 @@ describe('recordSummit', () => {
     expect(progress).toEqual({
       difficulty: 1,
       highestDifficultyCleared: 5,
-      bestTimeMs: 90000,
+      bestTimeMsByDifficulty: { 5: 90000 },
       attempts: 1,
       bails: 0,
     });
   });
 
-  it('keeps the best (lowest) time across multiple summits', () => {
+  it('keeps the best (lowest) time across multiple summits at the same difficulty', () => {
     let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
     const id = save.profiles[0].id;
     save = recordSummit(save, id, 1, 5, 90000);
     save = recordSummit(save, id, 1, 5, 60000);
-    expect(getProfile(save, id)?.progress[1]?.bestTimeMs).toBe(60000);
+    expect(getProfile(save, id)?.progress[1]?.bestTimeMsByDifficulty[5]).toBe(60000);
     expect(getProfile(save, id)?.progress[1]?.attempts).toBe(2);
     save = recordSummit(save, id, 1, 5, 120000);
-    expect(getProfile(save, id)?.progress[1]?.bestTimeMs).toBe(60000);
+    expect(getProfile(save, id)?.progress[1]?.bestTimeMsByDifficulty[5]).toBe(60000);
     expect(getProfile(save, id)?.progress[1]?.attempts).toBe(3);
+  });
+
+  it('tracks best time per difficulty independently — clearing a harder level does not touch an easier one', () => {
+    let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+    const id = save.profiles[0].id;
+    save = recordSummit(save, id, 1, 3, 50000);
+    save = recordSummit(save, id, 1, 7, 90000);
+    expect(getProfile(save, id)?.progress[1]?.bestTimeMsByDifficulty).toEqual({
+      3: 50000,
+      7: 90000,
+    });
+    // A slower climb at level 7 doesn't touch level 3's record, and vice versa.
+    save = recordSummit(save, id, 1, 7, 200000);
+    save = recordSummit(save, id, 1, 3, 45000);
+    expect(getProfile(save, id)?.progress[1]?.bestTimeMsByDifficulty).toEqual({
+      3: 45000,
+      7: 90000,
+    });
   });
 
   it('keeps the highest difficulty ever cleared, not just the latest', () => {
@@ -230,8 +250,8 @@ describe('recordSummit', () => {
     const id = save.profiles[0].id;
     save = recordSummit(save, id, 1, 5, 90000);
     save = recordSummit(save, id, 2, 5, 50000);
-    expect(getProfile(save, id)?.progress[1]?.bestTimeMs).toBe(90000);
-    expect(getProfile(save, id)?.progress[2]?.bestTimeMs).toBe(50000);
+    expect(getProfile(save, id)?.progress[1]?.bestTimeMsByDifficulty[5]).toBe(90000);
+    expect(getProfile(save, id)?.progress[2]?.bestTimeMsByDifficulty[5]).toBe(50000);
   });
 
   it('appends a climb-log entry with the difficulty, duration, and "summited" result', () => {
@@ -245,6 +265,53 @@ describe('recordSummit', () => {
   });
 });
 
+describe('bestTimeForDifficulty', () => {
+  it('returns null for an undefined progress entry', () => {
+    expect(bestTimeForDifficulty(undefined, 5)).toBeNull();
+  });
+
+  it('returns null when this exact difficulty has never been cleared, even if others have', () => {
+    let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+    const id = save.profiles[0].id;
+    save = recordSummit(save, id, 1, 5, 90000);
+    expect(bestTimeForDifficulty(getProfile(save, id)?.progress[1], 6)).toBeNull();
+  });
+
+  it('returns the recorded best time for a cleared difficulty', () => {
+    let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+    const id = save.profiles[0].id;
+    save = recordSummit(save, id, 1, 5, 90000);
+    expect(bestTimeForDifficulty(getProfile(save, id)?.progress[1], 5)).toBe(90000);
+  });
+});
+
+describe('summitTier', () => {
+  it('is "firstAtDifficulty" when this exact difficulty has never been cleared before', () => {
+    expect(summitTier(undefined, 5, 90000)).toBe('firstAtDifficulty');
+
+    let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+    const id = save.profiles[0].id;
+    save = recordSummit(save, id, 1, 3, 50000);
+    // Cleared at a different difficulty, but not this one.
+    expect(summitTier(getProfile(save, id)?.progress[1], 5, 90000)).toBe('firstAtDifficulty');
+  });
+
+  it('is "newBest" when the new time beats the prior best at this exact difficulty', () => {
+    let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+    const id = save.profiles[0].id;
+    save = recordSummit(save, id, 1, 5, 90000);
+    expect(summitTier(getProfile(save, id)?.progress[1], 5, 60000)).toBe('newBest');
+  });
+
+  it('is "success" when the new time does not beat the prior best at this exact difficulty', () => {
+    let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
+    const id = save.profiles[0].id;
+    save = recordSummit(save, id, 1, 5, 60000);
+    expect(summitTier(getProfile(save, id)?.progress[1], 5, 90000)).toBe('success');
+    expect(summitTier(getProfile(save, id)?.progress[1], 5, 60000)).toBe('success');
+  });
+});
+
 describe('recordFall', () => {
   it('increments attempts without marking the peak summited', () => {
     let save = createProfile(EMPTY_SAVE, 'Riley', 'preset-1');
@@ -253,7 +320,7 @@ describe('recordFall', () => {
     expect(getProfile(save, id)?.progress[1]).toEqual({
       difficulty: 1,
       highestDifficultyCleared: null,
-      bestTimeMs: null,
+      bestTimeMsByDifficulty: {},
       attempts: 1,
       bails: 0,
     });
@@ -267,7 +334,7 @@ describe('recordFall', () => {
     expect(getProfile(save, id)?.progress[1]).toEqual({
       difficulty: 1,
       highestDifficultyCleared: 5,
-      bestTimeMs: 90000,
+      bestTimeMsByDifficulty: { 5: 90000 },
       attempts: 2,
       bails: 0,
     });
@@ -290,7 +357,7 @@ describe('recordBail', () => {
     expect(getProfile(save, id)?.progress[1]).toEqual({
       difficulty: 1,
       highestDifficultyCleared: null,
-      bestTimeMs: null,
+      bestTimeMsByDifficulty: {},
       attempts: 0,
       bails: 1,
     });

@@ -45,6 +45,17 @@ function startClimb(peakId: number) {
   fireEvent.click(screen.getByTestId(`peak-climb-${peakId}`));
 }
 
+/** Selects `difficulty` on the peak card before starting the climb — the
+ * level selector otherwise defaults to "highest cleared + 1", which would
+ * silently move a *second* climb on the same peak to a different
+ * difficulty than the first. */
+function startClimbAtDifficulty(peakId: number, difficulty: number) {
+  fireEvent.change(screen.getByTestId(`peak-difficulty-${peakId}`), {
+    target: { value: String(difficulty) },
+  });
+  startClimb(peakId);
+}
+
 beforeEach(() => {
   localStorage.clear();
   vi.useFakeTimers();
@@ -80,6 +91,42 @@ describe('App', () => {
     fireEvent.click(screen.getByTestId('summit-continue'));
 
     expect(screen.getByTestId('peak-progress-1')).toHaveTextContent('Summited');
+  });
+
+  it('celebrates a first-ever clear with the top tier, then shows the recorded best time on Map', () => {
+    render(<App />);
+    createProfileAndReachMap('Riley');
+    startClimb(1);
+    climbToSummit();
+
+    // First summit at this (peak, difficulty) ever — the top celebration tier.
+    expect(screen.getByTestId('summit-badge')).toBeInTheDocument();
+    expect(screen.getByTestId('summit-tier-message')).toHaveTextContent(
+      'First time clearing this level!',
+    );
+
+    fireEvent.click(screen.getByTestId('summit-continue'));
+    // The level selector defaults to "highest cleared + 1" after a first
+    // clear, so it has to be pointed back at the level just climbed before
+    // that level's best time is the one showing.
+    fireEvent.change(screen.getByTestId('peak-difficulty-1'), { target: { value: '1' } });
+    expect(screen.getByTestId('peak-best-time-1')).toBeInTheDocument();
+  });
+
+  it('does not re-celebrate the top tier on a repeat climb at the same level', () => {
+    render(<App />);
+    createProfileAndReachMap('Riley');
+    startClimbAtDifficulty(1, 1);
+    climbToSummit();
+    fireEvent.click(screen.getByTestId('summit-continue'));
+
+    // Climb the same peak at the same difficulty again, not whatever the
+    // level selector defaults to next.
+    startClimbAtDifficulty(1, 1);
+    climbToSummit();
+
+    expect(screen.queryByTestId('summit-badge')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('summit-ribbon')).not.toBeInTheDocument();
   });
 
   it('records a fall and returns to the map without marking the peak summited', () => {

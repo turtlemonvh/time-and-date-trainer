@@ -22,8 +22,20 @@ const SAMPLE_PROFILES: Profile[] = [
     characterId: 'sunny',
     createdAt: Date.now(),
     progress: {
-      1: { difficulty: 4, highestDifficultyCleared: 4, bestTimeMs: 92000, attempts: 2, bails: 0 },
-      2: { difficulty: 4, highestDifficultyCleared: null, bestTimeMs: null, attempts: 1, bails: 0 },
+      1: {
+        difficulty: 4,
+        highestDifficultyCleared: 4,
+        bestTimeMsByDifficulty: { 4: 92000 },
+        attempts: 2,
+        bails: 0,
+      },
+      2: {
+        difficulty: 4,
+        highestDifficultyCleared: null,
+        bestTimeMsByDifficulty: {},
+        attempts: 1,
+        bails: 0,
+      },
     },
     stats: {},
     goals: [],
@@ -206,6 +218,8 @@ export default function DebugScreensPage() {
         peak={PEAKS[0]}
         characterPreset={CHARACTER_PRESETS[0]}
         elapsedMs={92000}
+        tier="firstAtDifficulty"
+        difficulty={4}
         onContinue={() => setSummitAction('Continued to map')}
       />
 

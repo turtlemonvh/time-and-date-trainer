@@ -6,7 +6,13 @@ export interface PeakProgress {
    * if never summited. Use `isPeakSummited` rather than checking this
    * directly for a plain summited/not-summited read. */
   highestDifficultyCleared: number | null;
-  bestTimeMs: number | null;
+  /** Keyed by difficulty (1-10) — the best (lowest) elapsed time ever
+   * summited at that exact difficulty, not just anywhere on this peak.
+   * Powers both the Map screen's "Best Lv N" badge and the Summit
+   * celebration tier (a first-ever entry for a difficulty is a bigger
+   * celebration than merely beating an existing one — see
+   * `summitTier`). */
+  bestTimeMsByDifficulty: Partial<Record<number, number>>;
   /** Summit + fall outcomes only — see `bails` for the third outcome. */
   attempts: number;
   bails: number;
@@ -61,7 +67,7 @@ export interface Profile {
 }
 
 export interface SaveFile {
-  v: 2;
+  v: 3;
   activeProfileId: string | null;
   profiles: Profile[];
 }
