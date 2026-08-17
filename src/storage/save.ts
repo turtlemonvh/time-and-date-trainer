@@ -1,14 +1,15 @@
 import type { PeakProgress, Profile, SaveFile } from './types';
 
 const STORAGE_KEY = 'timescaler.save';
-export const CURRENT_VERSION = 2;
+export const CURRENT_VERSION = 3;
 
 function emptySave(): SaveFile {
   return { v: CURRENT_VERSION, activeProfileId: null, profiles: [] };
 }
 
-// v1 shapes, kept locally only for the migration below — the live types in
-// `./types` are v2-only, so a v1 shape has nowhere else to live once v2 ships.
+// v1/v2 shapes, kept locally only for the migrations below — the live types
+// in `./types` are v3-only, so an older shape has nowhere else to live once
+// v3 ships.
 interface V1PeakProgress {
   summited: boolean;
   bestTimeMs: number | null;
@@ -29,6 +30,29 @@ interface V1SaveFile {
   profiles: V1Profile[];
 }
 
+interface V2PeakProgress {
+  difficulty: number;
+  highestDifficultyCleared: number | null;
+  bestTimeMs: number | null;
+  attempts: number;
+  bails: number;
+}
+interface V2Profile {
+  id: string;
+  name: string;
+  characterId: string;
+  createdAt: number;
+  progress: Record<number, V2PeakProgress>;
+  stats: Profile['stats'];
+  goals: Profile['goals'];
+  climbLog: Profile['climbLog'];
+}
+interface V2SaveFile {
+  v: 2;
+  activeProfileId: string | null;
+  profiles: V2Profile[];
+}
+
 /**
  * v1 never recorded which difficulty a summit happened at (difficulty was a
  * single global profile setting, not per-peak), so `highestDifficultyCleared`
@@ -37,7 +61,7 @@ interface V1SaveFile {
  * migrated profile: there's no way to reconstruct sessions that already
  * happened, an accepted, unavoidable gap.
  */
-function migratePeakProgress(v1: V1PeakProgress, globalDifficulty: number): PeakProgress {
+function migratePeakProgressV1ToV2(v1: V1PeakProgress, globalDifficulty: number): V2PeakProgress {
   return {
     difficulty: globalDifficulty,
     highestDifficultyCleared: v1.summited ? globalDifficulty : null,
@@ -47,7 +71,7 @@ function migratePeakProgress(v1: V1PeakProgress, globalDifficulty: number): Peak
   };
 }
 
-function migrateV1ToV2(v1: V1SaveFile): SaveFile {
+function migrateV1ToV2(v1: V1SaveFile): V2SaveFile {
   return {
     v: 2,
     activeProfileId: v1.activeProfileId,
@@ -58,16 +82,49 @@ function migrateV1ToV2(v1: V1SaveFile): SaveFile {
       createdAt: profile.createdAt,
       // `settings.difficulty` (a single global level) doesn't survive the
       // move to per-peak difficulty — it's only read here, as the seed for
-      // migratePeakProgress's best-effort guess, then dropped.
+      // migratePeakProgressV1ToV2's best-effort guess, then dropped.
       progress: Object.fromEntries(
         Object.entries(profile.progress).map(([peakId, p]) => [
           peakId,
-          migratePeakProgress(p, profile.settings.difficulty),
+          migratePeakProgressV1ToV2(p, profile.settings.difficulty),
         ]),
       ),
       stats: profile.stats,
       goals: [],
       climbLog: [],
+    })),
+  };
+}
+
+/**
+ * v2's `bestTimeMs` was a single best-ever time per peak, with no record of
+ * which difficulty it happened at — there's no sound way to backfill v3's
+ * per-difficulty map from it, so (per plan) it's dropped rather than
+ * guessed: every migrated peak starts v3 with an empty
+ * `bestTimeMsByDifficulty`, same as a peak that's never been climbed.
+ */
+function migratePeakProgressV2ToV3(v2: V2PeakProgress): PeakProgress {
+  return {
+    difficulty: v2.difficulty,
+    highestDifficultyCleared: v2.highestDifficultyCleared,
+    bestTimeMsByDifficulty: {},
+    attempts: v2.attempts,
+    bails: v2.bails,
+  };
+}
+
+function migrateV2ToV3(v2: V2SaveFile): SaveFile {
+  return {
+    v: 3,
+    activeProfileId: v2.activeProfileId,
+    profiles: v2.profiles.map((profile) => ({
+      ...profile,
+      progress: Object.fromEntries(
+        Object.entries(profile.progress).map(([peakId, p]) => [
+          peakId,
+          migratePeakProgressV2ToV3(p),
+        ]),
+      ),
     })),
   };
 }
@@ -81,11 +138,14 @@ function migrateV1ToV2(v1: V1SaveFile): SaveFile {
 function migrate(raw: unknown): SaveFile {
   if (!raw || typeof raw !== 'object') return emptySave();
   const candidate = raw as { v?: unknown; activeProfileId?: unknown; profiles?: unknown };
-  if (candidate.v === 2 && Array.isArray(candidate.profiles)) {
+  if (candidate.v === 3 && Array.isArray(candidate.profiles)) {
     return candidate as SaveFile;
   }
+  if (candidate.v === 2 && Array.isArray(candidate.profiles)) {
+    return migrateV2ToV3(candidate as V2SaveFile);
+  }
   if (candidate.v === 1 && Array.isArray(candidate.profiles)) {
-    return migrateV1ToV2(candidate as V1SaveFile);
+    return migrateV2ToV3(migrateV1ToV2(candidate as V1SaveFile));
   }
   // No known migration path for anything else — starting fresh is safer
   // than misinterpreting an unrecognized shape.

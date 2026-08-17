@@ -43,10 +43,21 @@ function defaultPeakProgress(): PeakProgress {
   return {
     difficulty: DEFAULT_PEAK_DIFFICULTY,
     highestDifficultyCleared: null,
-    bestTimeMs: null,
+    bestTimeMsByDifficulty: {},
     attempts: 0,
     bails: 0,
   };
+}
+
+/** The best (lowest) time ever summited at exactly `difficulty` on this
+ * peak, or `null` if it's never been cleared at that difficulty — a peak
+ * cleared at a harder level doesn't imply anything about an easier one, so
+ * this never falls back to a different difficulty's time. */
+export function bestTimeForDifficulty(
+  progress: PeakProgress | undefined,
+  difficulty: number,
+): number | null {
+  return progress?.bestTimeMsByDifficulty[difficulty] ?? null;
 }
 
 /** Whether a peak has ever been summited, at any difficulty. */
@@ -159,8 +170,9 @@ export function setPeakDifficulty(
   });
 }
 
-/** Marks a peak summited at `difficulty`, keeping the best (lowest) time and
- * the highest difficulty ever cleared, and appends a climb-log entry. */
+/** Marks a peak summited at `difficulty`, keeping the best (lowest) time
+ * for that exact difficulty and the highest difficulty ever cleared, and
+ * appends a climb-log entry. */
 export function recordSummit(
   save: SaveFile,
   profileId: string,
@@ -170,7 +182,9 @@ export function recordSummit(
 ): SaveFile {
   return updateProfile(save, profileId, (profile) => {
     const prior = profile.progress[peakId] ?? defaultPeakProgress();
-    const bestTimeMs = prior.bestTimeMs != null ? Math.min(prior.bestTimeMs, elapsedMs) : elapsedMs;
+    const priorBestAtDifficulty = prior.bestTimeMsByDifficulty[difficulty];
+    const bestAtDifficulty =
+      priorBestAtDifficulty != null ? Math.min(priorBestAtDifficulty, elapsedMs) : elapsedMs;
     return {
       ...profile,
       progress: {
@@ -178,13 +192,40 @@ export function recordSummit(
         [peakId]: {
           ...prior,
           highestDifficultyCleared: Math.max(prior.highestDifficultyCleared ?? 0, difficulty),
-          bestTimeMs,
+          bestTimeMsByDifficulty: {
+            ...prior.bestTimeMsByDifficulty,
+            [difficulty]: bestAtDifficulty,
+          },
           attempts: prior.attempts + 1,
         },
       },
       climbLog: [...profile.climbLog, makeClimbLogEntry(peakId, difficulty, elapsedMs, 'summited')],
     };
   });
+}
+
+export type SummitTier = 'success' | 'newBest' | 'firstAtDifficulty';
+
+/**
+ * Which of the three celebration tiers a just-completed summit earns —
+ * "more enthusiastic as you go up from 1 to 3" per the original ask.
+ * Compares against `priorProgress`, so the caller must pass the profile's
+ * state from *before* this summit's own `recordSummit` call updates it
+ * (App.tsx does this by reading `profile.progress[peakId]` in the same
+ * render pass that still holds the pre-summit save). A first-ever clear at
+ * `difficulty` is deliberately its own top tier rather than folding into
+ * "new best" — going from no record to a record is a bigger moment than
+ * merely beating an existing one.
+ */
+export function summitTier(
+  priorProgress: PeakProgress | undefined,
+  difficulty: number,
+  elapsedMs: number,
+): SummitTier {
+  const priorBest = bestTimeForDifficulty(priorProgress, difficulty);
+  if (priorBest === null) return 'firstAtDifficulty';
+  if (elapsedMs < priorBest) return 'newBest';
+  return 'success';
 }
 
 /** Increments attempts on a fall and appends a climb-log entry.

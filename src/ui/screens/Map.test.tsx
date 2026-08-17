@@ -21,7 +21,7 @@ function makeProgress(overrides: Partial<PeakProgress> = {}): PeakProgress {
   return {
     difficulty: 1,
     highestDifficultyCleared: null,
-    bestTimeMs: null,
+    bestTimeMsByDifficulty: {},
     attempts: 0,
     bails: 0,
     ...overrides,
@@ -95,7 +95,11 @@ describe('Map', () => {
   it('shows summited status with the highest level cleared', () => {
     const profile = makeProfile({
       progress: {
-        1: makeProgress({ highestDifficultyCleared: 5, bestTimeMs: 90000, attempts: 3 }),
+        1: makeProgress({
+          highestDifficultyCleared: 5,
+          bestTimeMsByDifficulty: { 5: 90000 },
+          attempts: 3,
+        }),
       },
     });
     renderMap(profile);

@@ -1,7 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { formatDateLong } from '../../engine/dateMath';
 import { describeDifficultyComparisonTable } from '../../engine/difficultyDescribe';
-import { highestAttemptBeyondCleared, isPeakSummited } from '../../storage/profile';
+import {
+  bestTimeForDifficulty,
+  highestAttemptBeyondCleared,
+  isPeakSummited,
+} from '../../storage/profile';
 import type { PeakProgress, Profile } from '../../storage/types';
 import MountainArt from '../art/MountainArt';
 import { buildCharacterLayers } from '../character/buildCharacterLayers';
@@ -30,6 +34,20 @@ const MOUNTAIN_HEIGHT = 48;
 const PIXEL_HEIGHT_SPAN = 24;
 const PROFILE_PREVIEW_SCALE = 3;
 const HISTORY_PREVIEW_LIMIT = 5;
+
+/** Same chip shape as `compareTableStyles.ts`'s `CHANGED_CHIP_STYLE`, in
+ * pine instead of accent — a personal-best is an achievement to celebrate,
+ * not a change to flag, so it gets its own color rather than reusing the
+ * "changed" one. */
+const BEST_TIME_CHIP_STYLE: CSSProperties = {
+  display: 'inline-block',
+  fontSize: '0.8em',
+  fontWeight: 700,
+  padding: '0.1rem 0.5rem',
+  borderRadius: 999,
+  background: 'var(--pine)',
+  color: '#fff',
+};
 
 export interface MapProps {
   profile: Profile;
@@ -83,6 +101,7 @@ function PeakCard({ theme, progress, climbLog, onClimb, onViewFullHistory }: Pea
 
   const attemptBeyond = highestAttemptBeyondCleared(climbLog, peak.id, highestCleared);
   const summited = progress ? isPeakSummited(progress) : false;
+  const bestTimeAtSelectedLevel = bestTimeForDifficulty(progress, selectedLevel);
 
   return (
     <article
@@ -127,6 +146,11 @@ function PeakCard({ theme, progress, climbLog, onClimb, onViewFullHistory }: Pea
             {attemptBeyond && (
               <span data-testid={`peak-status-attempt-${peak.id}`}>
                 Tried Lv {attemptBeyond.difficulty} ({attemptBeyond.count}×)
+              </span>
+            )}
+            {bestTimeAtSelectedLevel !== null && (
+              <span data-testid={`peak-best-time-${peak.id}`} style={BEST_TIME_CHIP_STYLE}>
+                🏆 Best Lv {selectedLevel}: {formatDuration(bestTimeAtSelectedLevel)}
               </span>
             )}
           </span>

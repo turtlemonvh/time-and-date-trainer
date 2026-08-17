@@ -20,6 +20,8 @@ import {
   recordQuestionStat,
   recordSummit,
   setPeakDifficulty,
+  summitTier,
+  type SummitTier,
 } from './storage/profile';
 import { loadSave, saveSave } from './storage/save';
 import type { Profile, SaveFile } from './storage/types';
@@ -31,7 +33,7 @@ type Screen =
   | { name: 'map' }
   | { name: 'review'; logFilter?: { peakId: number; difficulty: number } }
   | { name: 'climb'; peakId: number; seed: number }
-  | { name: 'summit'; peakId: number; elapsedMs: number }
+  | { name: 'summit'; peakId: number; elapsedMs: number; tier: SummitTier; difficulty: number }
   | { name: 'fell'; peakId: number };
 
 function requireActiveProfile(save: SaveFile): Profile {
@@ -143,11 +145,15 @@ export default function App() {
             )
           }
           onSummit={(_finalState, elapsedMs) => {
+            // Computed from `profile` — the pre-summit state still held in
+            // this render's closure — before recordSummit below updates it,
+            // per summitTier's own doc comment on why ordering matters here.
+            const tier = summitTier(profile.progress[peakId], difficulty, elapsedMs);
             setSave((current) => {
               const summited = recordSummit(current, profile.id, peakId, difficulty, elapsedMs);
               return checkGoalsAchieved(summited, profile.id, peakId, difficulty);
             });
-            setScreen({ name: 'summit', peakId, elapsedMs });
+            setScreen({ name: 'summit', peakId, elapsedMs, tier, difficulty });
           }}
           onBail={(elapsedMs) => {
             setSave((current) => recordBail(current, profile.id, peakId, difficulty, elapsedMs));
@@ -168,6 +174,8 @@ export default function App() {
           peak={getPeak(screen.peakId)}
           characterPreset={getCharacterPreset(profile.characterId)}
           elapsedMs={screen.elapsedMs}
+          tier={screen.tier}
+          difficulty={screen.difficulty}
           onContinue={() => setScreen({ name: 'map' })}
         />
       );
